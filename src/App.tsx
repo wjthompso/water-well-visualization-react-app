@@ -3,6 +3,7 @@ import CesiumViewer from "./components/cesium/CesiumViewer";
 import Header from "./components/Header/Header";
 
 import { Ion } from "cesium";
+import Legend from "./components/Legend/Legend";
 import { RightSideBar } from "./components/RightSidebar/RightSideBar";
 
 // Set your Cesium Ion access token
@@ -16,6 +17,7 @@ function App() {
             <div className="relative flex-1 h-[calc(100vh-89px)] bg-yellow-400">
                 <CesiumViewer />
                 <RightSideBar></RightSideBar>
+                <Legend></Legend>
             </div>
         </>
     );
