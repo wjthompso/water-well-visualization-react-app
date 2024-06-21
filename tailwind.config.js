@@ -11,6 +11,8 @@ export default {
                 borderColor: "#808080",
                 sideBarBackgroundColor: "rgba(50, 50, 50, 0.85)",
                 drillReportButtonBackgroundColor: "#C0C0C0",
+                legendBorderColor: "#808080",
+                legendBackgroundColor: "rgba(50, 50, 50, 0.85)",
             },
         },
     },
