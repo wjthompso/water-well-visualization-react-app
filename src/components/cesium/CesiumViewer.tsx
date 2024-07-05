@@ -1,4 +1,3 @@
-// ResiumViewerComponent.tsx
 import {
     Cartesian3,
     Math as CesiumMath,
@@ -11,6 +10,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { CesiumComponentRef, Viewer } from "resium";
 import "../../App.css";
 import CustomSearchBar from "../Searchbar/CustomSearchbar";
+import DraggableComponent from "../testDraggableComponent/ExampleDraggableComponent";
 import CylinderEntities from "./CylinderEntities";
 import Tooltip from "./Tooltip";
 
@@ -77,15 +77,9 @@ const ResiumViewerComponent: React.FC = () => {
                 if (toolbar) {
                     toolbar.style.top = "2.5rem";
                     if (window.innerWidth < 768) {
-                        // toolbar.classList.add("flex", "flex-col", "items-end");
                         toolbar.style.left = "1rem";
                         toolbar.style.right = "auto";
                     } else {
-                        // toolbar.classList.remove(
-                        //     "flex",
-                        //     "flex-col",
-                        //     "items-end"
-                        // );
                         toolbar.style.left = "1rem";
                         toolbar.style.right = "auto";
                     }
@@ -117,9 +111,13 @@ const ResiumViewerComponent: React.FC = () => {
     }
 
     return (
-        <div className="box-border w-[100vw] h-full p-0 m-0">
+        <div className="relative box-border w-[100vw] h-full p-0 m-0 overflow-hidden">
             <CustomSearchBar viewerRef={viewerRef} />
-            <div className="relative w-[100%] h-[100%]">
+            <DraggableComponent />{" "}
+            <div
+                id="cesium-viewer-container"
+                className="relative w-[100%] h-[100%] overflow-hidden"
+            >
                 <Viewer
                     full
                     ref={viewerRef}
@@ -138,6 +136,7 @@ const ResiumViewerComponent: React.FC = () => {
                 </Viewer>
                 <Tooltip />
             </div>
+            {/* Ensure the DraggableComponent is outside the Cesium viewer container */}
         </div>
     );
 };

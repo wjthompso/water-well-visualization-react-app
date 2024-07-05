@@ -1,13 +1,29 @@
-import { FC } from "react";
+import { FC, useEffect, useState } from "react";
 import UCSBBrenLogo from "../../assets/UCSBBrenLogo.svg";
+import UCSBBrenLogoDark from "../../assets/UCSBBrenLogoDark.svg";
 
 const Header: FC = () => {
+    const [isWideScreen, setIsWideScreen] = useState<boolean>(
+        window.innerWidth >= 768
+    );
+
+    const handleResize = () => {
+        setIsWideScreen(window.innerWidth >= 768);
+    };
+
+    useEffect(() => {
+        window.addEventListener("resize", handleResize);
+        return () => {
+            window.removeEventListener("resize", handleResize);
+        };
+    }, []);
+
     return (
-        <header className="py-4 h-[3.5rem] w-full md:h-[89px] flex items-center bg-[#2F2E2E]">
+        <header className="py-4 h-[3.5rem] w-full md:h-[89px] flex items-center md:bg-[#2F2E2E] bg-white border-b-[0.5px] border-[#D9D9D9] md:border-[#808080]">
             <div className="flex items-center w-full px-4">
                 <img
                     id="UCSBBrenLogo"
-                    src={UCSBBrenLogo}
+                    src={isWideScreen ? UCSBBrenLogo : UCSBBrenLogoDark}
                     alt="UCSB Bren Logo"
                     className="flex-shrink-0 mr-4 w-[10rem] h-[4rem] md:w-[15rem] md:h-[3.5rem]"
                 />
@@ -28,7 +44,7 @@ const Header: FC = () => {
                 <div
                     id="element-the-same-width-as-the-logo"
                     className="mr-4 flex-shrink-0 w-[15rem] h-[3.5rem]"
-                ></div>{" "}
+                ></div>
             </div>
         </header>
     );

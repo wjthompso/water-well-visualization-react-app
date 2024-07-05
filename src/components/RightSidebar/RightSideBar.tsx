@@ -8,7 +8,7 @@ export function RightSideBar() {
         >
             <h1
                 id="main-label"
-                className="flex items-center w-full h-[3rem] pl-[1.4rem] text-white text-2xl font-[600] font-lora border-y-[0.5px] border-borderColor"
+                className="flex items-center w-full h-[3rem] pl-[1.4rem] text-white text-2xl font-[600] font-lora border-b-[0.5px] border-borderColor"
             >
                 Selected Well Info
             </h1>

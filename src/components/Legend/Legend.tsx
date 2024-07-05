@@ -11,7 +11,7 @@ const Legend: React.FC = () => {
 
     return (
         <div
-            className={`hidden md:absolute bottom-0 left-0 transition-transform duration-200 ${
+            className={`hidden md:block md:absolute bottom-0 left-0 transition-transform duration-200 ${
                 isVisible ? "translate-y-0" : "translate-y-full"
             }`}
         >

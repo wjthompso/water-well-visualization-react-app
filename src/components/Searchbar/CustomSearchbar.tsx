@@ -81,9 +81,9 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({ viewerRef }) => {
     return (
         <div
             id="custom-search-bar-container"
-            className="absolute z-30 w-full md:w-[17rem] md:right-[calc(271px+1rem)] md:top-[1rem] px-2 py-1 bg-white md:px-0 md:py-0 md:bg-transparent"
+            className="absolute z-30 w-full md:w-[17rem] md:right-[calc(271px+0.5rem)] md:top-[0.4rem] px-2 py-1 bg-white md:px-0 md:py-0 md:bg-transparent"
             onFocus={() => setSearchBarInFocus(true)}
-            onBlur={() => setSearchBarInFocus(false)}
+            onBlur={() => setTimeout(() => setSearchBarInFocus(false), 300)}
         >
             <div
                 id="custom-search-bar-with-results"
@@ -102,7 +102,7 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({ viewerRef }) => {
                         type="text"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Search for a city or address..."
+                        placeholder="Search for a city or address"
                         className="flex-1 flex-grow w-full h-full text-[#595959] outline-none focus:ring-0"
                     />
                 </div>
