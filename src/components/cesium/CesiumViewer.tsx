@@ -1,14 +1,16 @@
+// ResiumViewerComponent.tsx
 import {
     Cartesian3,
+    Math as CesiumMath,
     CesiumTerrainProvider,
     Viewer as CesiumViewer,
-    Math,
     createWorldTerrainAsync,
 } from "cesium";
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import React, { useEffect, useRef, useState } from "react";
 import { CesiumComponentRef, Viewer } from "resium";
 import "../../App.css";
+import CustomSearchBar from "../Searchbar/CustomSearchbar";
 import CylinderEntities from "./CylinderEntities";
 import Tooltip from "./Tooltip";
 
@@ -22,8 +24,8 @@ function moveCameraToDangermond(viewer: CesiumViewer) {
             5000
         ),
         orientation: {
-            heading: Math.toRadians(0),
-            pitch: Math.toRadians(-60),
+            heading: CesiumMath.toRadians(0),
+            pitch: CesiumMath.toRadians(-60),
             roll: 0.0,
         },
     });
@@ -64,35 +66,50 @@ const ResiumViewerComponent: React.FC = () => {
 
         loadTerrainData();
 
+        const repositionToolbar = () => {
+            if (viewerRef.current?.cesiumElement) {
+                const viewer = viewerRef.current.cesiumElement as CesiumViewer;
+                const container = viewer.container;
+                const toolbar = container.querySelector<HTMLDivElement>(
+                    ".cesium-viewer-toolbar"
+                );
+
+                if (toolbar) {
+                    toolbar.style.top = "2.5rem";
+                    if (window.innerWidth < 768) {
+                        // toolbar.classList.add("flex", "flex-col", "items-end");
+                        toolbar.style.left = "1rem";
+                        toolbar.style.right = "auto";
+                    } else {
+                        // toolbar.classList.remove(
+                        //     "flex",
+                        //     "flex-col",
+                        //     "items-end"
+                        // );
+                        toolbar.style.left = "1rem";
+                        toolbar.style.right = "auto";
+                    }
+                }
+            }
+        };
+
         const checkViewerReady = setInterval(() => {
             if (viewerRef.current?.cesiumElement) {
-                const viewer = viewerRef.current.cesiumElement;
+                const viewer = viewerRef.current.cesiumElement as CesiumViewer;
                 clearInterval(checkViewerReady);
                 enableUndergroundView(viewer);
                 moveCameraToDangermond(viewer);
                 makeGroundTranslucentAsYouGetCloser(viewer);
-
-                // Repositioning controls
-                const container = viewer.container;
-                const toolbar: HTMLDivElement | null = container.querySelector(
-                    ".cesium-viewer-toolbar"
-                );
-                const bottomContainer: HTMLDivElement | null =
-                    container.querySelector(".cesium-viewer-bottom");
-
-                if (toolbar) {
-                    toolbar.style.top = "10px";
-                    toolbar.style.right = "275px";
-                }
-
-                if (bottomContainer) {
-                    bottomContainer.style.bottom = "10px";
-                    bottomContainer.style.right = "275px";
-                }
+                repositionToolbar();
             }
         }, 100);
 
-        return () => clearInterval(checkViewerReady);
+        window.addEventListener("resize", repositionToolbar);
+
+        return () => {
+            clearInterval(checkViewerReady);
+            window.removeEventListener("resize", repositionToolbar);
+        };
     }, []);
 
     if (!terrainProvider) {
@@ -101,6 +118,7 @@ const ResiumViewerComponent: React.FC = () => {
 
     return (
         <div className="box-border w-[100vw] h-full p-0 m-0">
+            <CustomSearchBar viewerRef={viewerRef} />
             <div className="relative w-[100%] h-[100%]">
                 <Viewer
                     full
@@ -108,6 +126,13 @@ const ResiumViewerComponent: React.FC = () => {
                     terrainProvider={terrainProvider}
                     orderIndependentTranslucency={false}
                     fullscreenButton={false}
+                    animation={false}
+                    timeline={false}
+                    navigationHelpButton={false} // Hide the navigation help button
+                    homeButton={false} // Hide the home button
+                    sceneModePicker={false} // Hide the scene mode picker
+                    baseLayerPicker={false} // Hide the base layer picker
+                    geocoder={false} // Hide the geocoder
                 >
                     <CylinderEntities terrainProvider={terrainProvider} />
                 </Viewer>

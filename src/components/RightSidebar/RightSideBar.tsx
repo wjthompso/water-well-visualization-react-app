@@ -4,11 +4,11 @@ export function RightSideBar() {
     return (
         <div
             id="rightSideBar"
-            className="absolute right-0 top-0 w-[17rem] h-full z-[999] bg-sideBarBackgroundColor"
+            className="hidden md:block absolute right-0 top-0 w-[17rem] h-full z-[999] bg-sideBarBackgroundColor border-l-[0.5px] border-borderColor"
         >
             <h1
                 id="main-label"
-                className="flex items-center w-full h-[3rem] pl-[1.4rem] text-white text-2xl font-[600] font-lora border-[0.5px] border-borderColor"
+                className="flex items-center w-full h-[3rem] pl-[1.4rem] text-white text-2xl font-[600] font-lora border-y-[0.5px] border-borderColor"
             >
                 Selected Well Info
             </h1>
@@ -20,7 +20,7 @@ export function RightSideBar() {
                     id="well-info"
                     className="mb-4"
                 >
-                    <h1 className="text-xl font-[600] mb-1 font-roboto">
+                    <h1 className="lg:text-xl font-[600] mb-1 font-roboto">
                         Oak Wells #1
                     </h1>
                     <h3 className="text-base font-roboto">

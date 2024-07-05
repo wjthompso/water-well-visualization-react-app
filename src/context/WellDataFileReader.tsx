@@ -1,10 +1,10 @@
+import { rawDangermondData } from "./DangermondData"; // Assume this is in rawDangermondData.ts
 import {
     GroundMaterialType,
     GroundMaterialTypeColor,
     Layer,
     WellData,
 } from "./WellData"; // Assume these are in WellDataTypes.ts
-import { rawDangermondData } from "./DangermondData"; // Assume this is in rawDangermondData.ts
 
 function toTitleCase(str: string): string {
     return str.replace(
@@ -33,7 +33,7 @@ function convertRawDataToWellData(
         const lithologiesSplit: string[] = splitStringsIntoLists(lithologies);
 
         // Split the words in the lithology column value by commas and the word " and "
-        console.log(lithologiesSplit);
+        // console.log(lithologiesSplit);
 
         const depthInterval =
             (data.BottomDepth_InUnitsOfFeet - data.TopDepth_InUnitsOfFeet) /

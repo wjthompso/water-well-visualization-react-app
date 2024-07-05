@@ -14,7 +14,7 @@ function App() {
     return (
         <>
             <Header />
-            <div className="relative flex-1 h-[calc(100vh-89px)] bg-yellow-400">
+            <div className="relative flex-1 h-[calc(100vh-3.5rem)] md:h-[calc(100vh-89px)]">
                 <CesiumViewer />
                 <RightSideBar></RightSideBar>
                 <Legend></Legend>
