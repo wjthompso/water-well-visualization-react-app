@@ -56,6 +56,8 @@ const ResiumViewerComponent: React.FC = () => {
         CesiumTerrainProvider | undefined
     >(undefined);
     const hasLoadedTerrainData = useRef(false);
+    const parentRefForDraggableComponent = useRef<HTMLDivElement>(null);
+    const searchBarRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const loadTerrainData = async () => {
@@ -111,9 +113,19 @@ const ResiumViewerComponent: React.FC = () => {
     }
 
     return (
-        <div className="relative box-border w-[100vw] h-full p-0 m-0 overflow-hidden">
-            <CustomSearchBar viewerRef={viewerRef} />
-            <DraggableComponent />{" "}
+        <div
+            id="cesium-viewer-plus-widgets"
+            className="relative box-border w-[100vw] h-full p-0 m-0 overflow-hidden"
+            ref={parentRefForDraggableComponent}
+        >
+            <CustomSearchBar
+                viewerRef={viewerRef}
+                searchBarRef={searchBarRef}
+            />
+            <DraggableComponent
+                parentRef={parentRefForDraggableComponent}
+                searchBarRef={searchBarRef}
+            />{" "}
             <div
                 id="cesium-viewer-container"
                 className="relative w-[100%] h-[100%] overflow-hidden"

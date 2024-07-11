@@ -7,6 +7,7 @@ import SearchIcon from "../../assets/SearchIcon.svg";
 
 interface CustomSearchBarProps {
     viewerRef: React.RefObject<CesiumComponentRef<CesiumViewer>>;
+    searchBarRef: React.RefObject<HTMLDivElement>;
 }
 
 interface GeocodeResult {
@@ -20,7 +21,10 @@ interface GeocodeResult {
     };
 }
 
-const CustomSearchBar: React.FC<CustomSearchBarProps> = ({ viewerRef }) => {
+const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
+    viewerRef,
+    searchBarRef,
+}) => {
     const [query, setQuery] = useState<string>("");
     const [results, setResults] = useState<GeocodeResult[]>([]);
     const [searchBarInFocus, setSearchBarInFocus] = useState<boolean>(false);
@@ -80,6 +84,7 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({ viewerRef }) => {
 
     return (
         <div
+            ref={searchBarRef}
             id="custom-search-bar-container"
             className="absolute z-30 w-full md:w-[17rem] md:right-[calc(271px+0.5rem)] md:top-[0.4rem] px-2 py-1 bg-white md:px-0 md:py-0 md:bg-transparent"
             onFocus={() => setSearchBarInFocus(true)}

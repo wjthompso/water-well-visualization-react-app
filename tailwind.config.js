@@ -14,6 +14,9 @@ export default {
                 legendBorderColor: "#808080",
                 legendBackgroundColor: "rgba(50, 50, 50, 0.85)",
             },
+            boxShadow: {
+                topShadow: "0 -10px 20px rgba(0, 0, 0, 0.3)",
+            },
         },
     },
     plugins: [],
