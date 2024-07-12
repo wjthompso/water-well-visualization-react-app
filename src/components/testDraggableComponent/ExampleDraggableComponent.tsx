@@ -1,6 +1,7 @@
 import { animated, useSpring } from "@react-spring/web";
 import { useDrag } from "@use-gesture/react";
 import React, { useEffect, useRef, useState } from "react";
+import PDFIcon from "../../assets/PDFIcon.svg";
 
 interface DraggableComponentProps {
     parentRef: React.RefObject<HTMLDivElement>;
@@ -15,6 +16,8 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
     const componentRef = useRef<HTMLDivElement>(null);
     const heightOfSearchBarRef = useRef(45);
     const componentLeftMarginRef = useRef(8);
+
+    // Initial Y position based on parent or window height
     const [initialY, setInitialY] = useState(
         parentRef.current
             ? parentRef.current.offsetHeight - peekHeight
@@ -25,12 +28,14 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
         y: initialY,
     }));
 
+    // Update the search bar height once available
     useEffect(() => {
         if (searchBarRef.current) {
             heightOfSearchBarRef.current = searchBarRef.current.offsetHeight;
         }
     }, [searchBarRef]);
 
+    // Update the left margin of the component once available
     useEffect(() => {
         if (componentRef.current) {
             componentLeftMarginRef.current = parseInt(
@@ -39,13 +44,11 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
         }
     }, [componentRef]);
 
-    // Set the height property of the component to its calculated height after filling in the content
-    // in order to enable scrolling without having to define a fixed height prior.
+    // Set the height property of the component after filling in the content to enable scrolling
     useEffect(() => {
         if (componentRef.current && parentRef.current) {
             const parentHeight = parentRef.current.offsetHeight;
             const componentHeight = componentRef.current.offsetHeight;
-            // Get the component's left margin
             const componentLeftMargin = componentLeftMarginRef.current;
             if (componentHeight > parentHeight) {
                 const parentHeightMinusMargin =
@@ -60,26 +63,13 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
     // Update the initial Y value once the parentRef is available
     useEffect(() => {
         if (parentRef.current) {
-            setInitialY(parentRef.current.offsetHeight - peekHeight);
-            api.set({ y: parentRef.current.offsetHeight - peekHeight });
+            const newInitialY = parentRef.current.offsetHeight - peekHeight;
+            setInitialY(newInitialY);
+            api.set({ y: newInitialY });
         }
     }, [parentRef, api, peekHeight]);
 
-    // Update the bounds when the window is resized
-    useEffect(() => {
-        const handleResize = () => {
-            api.set({
-                y: parentRef.current
-                    ? parentRef.current.offsetHeight - peekHeight
-                    : window.innerHeight - peekHeight,
-            });
-        };
-        window.addEventListener("resize", handleResize);
-        return () => {
-            window.removeEventListener("resize", handleResize);
-        };
-    }, [api, peekHeight, parentRef]);
-
+    // Custom hook to handle drag behavior
     const bind = useDrag(
         ({ offset: [, oy], memo = y.get() }) => {
             if (componentRef.current && parentRef.current) {
@@ -112,7 +102,7 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
         >
             <div
                 id="scrollable-content"
-                className="w-full h-full overflow-scroll"
+                className="w-full h-full overflow-y-scroll"
             >
                 <div className="px-4">
                     <div
@@ -122,8 +112,8 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
                     <h2 className="mt-2 mb-4 text-2xl font-bold text-center">
                         Oak Wells #1
                     </h2>
-                    <div className="grid grid-cols-[1fr_2fr_3fr] mb-4">
-                        <div className="flex flex-col justify-between">
+                    <div className="grid grid-cols-[2.2fr_3fr_2fr] mb-4">
+                        <div className="flex flex-col">
                             <p className="text-sm font-semibold">Well ID:</p>
                             <p className="text-sm font-semibold">Latitude:</p>
                             <p className="text-sm font-semibold">Longitude:</p>
@@ -131,58 +121,122 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
                                 Drill reason:
                             </p>
                         </div>
-                        <div className="flex flex-col justify-between">
+                        <div className="flex flex-col">
                             <p className="text-sm">oak_wells_#1</p>
                             <p className="text-sm">34°25'51.5"N</p>
                             <p className="text-sm">119°52'42.6"W</p>
                             <p className="text-sm">Searching for petroleum</p>
                         </div>
-                        <div className="flex items-center justify-center">
-                            <button className="flex items-center justify-center w-32 h-10 font-semibold text-white bg-gray-700 rounded">
-                                DRILL REPORT
+                        <div className="flex items-center justify-center ml-1">
+                            <button className="flex items-center justify-start w-28 h-12 py-2 border-[1px] border-black rounded">
+                                <img
+                                    className="flex w-[1.75rem] mx-2 sm:mx-2 justify-self-start"
+                                    src={PDFIcon}
+                                    alt="PDF Report Icon"
+                                />
+                                <p className="flex justify-start text-[0.75rem] w-12 font-bold text-black text-left">
+                                    {" "}
+                                    DRILL REPORT
+                                </p>{" "}
                             </button>
                         </div>
                     </div>
-                    <div className="mt-4">
+                    <div
+                        id="divider-bar"
+                        className="absolute left-0 w-[calc(100%)] h-2 bg-[#EDEDED] border-[1px] border-y-[#D2D2D2]"
+                    ></div>
+                    <div className="mt-8">
                         <h3 className="flex justify-center mt-2 mb-2 text-2xl font-bold">
                             Well lithology
                         </h3>
                     </div>
-                    <div className="space-y-2">
-                        <div className="p-2 bg-yellow-200 rounded">
-                            <p className="font-semibold">
-                                Clastic Sedimentary,
-                            </p>
-                            <p>Course-grained</p>
-                            <p>0-20 ft</p>
+                    <div
+                        id="well-lithology-table"
+                        className="flex flex-col"
+                    >
+                        <div className="flex rounded-none">
+                            <div className="w-2 bg-yellow-400"></div>
+                            <div className="flex flex-col justify-between flex-1 p-2 bg-yellow-200">
+                                <div className="flex justify-between">
+                                    <div>
+                                        <p className="font-semibold">
+                                            Clastic Sedimentary,
+                                        </p>
+                                        <p>Course-grained</p>
+                                    </div>
+                                    <p className="w-[20%] flex flex-row justify-start">
+                                        0-20 ft
+                                    </p>
+                                </div>
+                            </div>
                         </div>
-                        <div className="p-2 bg-orange-200 rounded">
-                            <p className="font-semibold">Unconsolidated,</p>
-                            <p>Course- and fine-grained</p>
-                            <p>20-60 ft</p>
+                        <div className="flex">
+                            <div className="w-2 bg-orange-400"></div>
+                            <div className="flex flex-col justify-between flex-1 p-2 bg-orange-200">
+                                <div className="flex justify-between">
+                                    <div>
+                                        <p className="font-semibold">
+                                            Unconsolidated,
+                                        </p>
+                                        <p>Course- and fine-grained</p>
+                                    </div>
+                                    <p className="w-[20%] flex flex-row justify-start">
+                                        20-60 ft
+                                    </p>
+                                </div>
+                            </div>
                         </div>
-                        <div className="p-2 bg-green-200 rounded">
-                            <p className="font-semibold">
-                                Other, Volcanic Class
-                            </p>
-                            <p>60-88 ft</p>
+                        <div className="flex">
+                            <div className="w-2 bg-green-400"></div>
+                            <div className="flex flex-col justify-between flex-1 p-2 bg-green-200">
+                                <div className="flex justify-between">
+                                    <div>
+                                        <p className="font-semibold">
+                                            Other, Volcanic Class
+                                        </p>
+                                    </div>
+                                    <p className="w-[20%] flex flex-row justify-start">
+                                        60-88 ft
+                                    </p>
+                                </div>
+                            </div>
                         </div>
-                        <div className="p-2 bg-red-200 rounded">
-                            <p className="font-semibold">Sedimentary,</p>
-                            <p>Course- and Fine-grained</p>
-                            <p>88.3-91.25 ft</p>
+                        <div className="flex">
+                            <div className="w-2 bg-red-400"></div>
+                            <div className="flex flex-col justify-between flex-1 p-2 bg-red-200">
+                                <div className="flex justify-between">
+                                    <div>
+                                        <p className="font-semibold">
+                                            Sedimentary,
+                                        </p>
+                                        <p>Course- and Fine-grained</p>
+                                    </div>
+                                    <p className="w-[20%] flex flex-row justify-start">
+                                        88.3-91.25 ft
+                                    </p>
+                                </div>
+                            </div>
                         </div>
-                        <div className="p-2 bg-red-400 rounded">
-                            <p className="font-semibold">
-                                Clastic sedimentary,
-                            </p>
-                            <p>Mostly fine-grained</p>
-                            <p>91.25-135 ft</p>
+                        <div className="flex">
+                            <div className="w-2 bg-red-600"></div>
+                            <div className="flex flex-col justify-between flex-1 p-2 bg-red-400">
+                                <div className="flex justify-between">
+                                    <div>
+                                        <p className="font-semibold">
+                                            Clastic sedimentary,
+                                        </p>
+                                        <p>Mostly fine-grained</p>
+                                    </div>
+                                    <p className="w-[20%] flex flex-row justify-start">
+                                        91.25-135 ft
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div id="extra-info-text">
+                {/* <div id="extra-info-text">
                     <p>
                         1. Lorem ipsum dolor sit amet consectetur adipisicing
                         elit. Eligendi, sit? Quisquam quia in enim a. Possimus
@@ -246,13 +300,13 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
                         impedit, eos ipsum?
                     </p>
                     <p>
-                        10. Lorem ipsum dolor sit amet consectetur adipisicing
+                        10. Lorem ipsum dolor sit amet, consectetur adipisicing
                         elit. Facilis, dolorem voluptatibus nesciunt accusantium
                         ab consequatur nulla est corrupti minus ratione ea at
                         incidunt error molestias cumque, enim iste accusamus
                         officiis.
                     </p>
-                </div>
+                </div> */}
             </div>
         </animated.div>
     );
