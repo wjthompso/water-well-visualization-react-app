@@ -4,11 +4,19 @@ import {
     CesiumTerrainProvider,
     Color,
     Math,
+    NearFarScalar,
     sampleTerrainMostDetailed,
+    VerticalOrigin,
 } from "cesium";
 import React, { useCallback, useContext, useEffect, useState } from "react";
-import { EllipseGraphics, Entity, EntityDescription } from "resium";
+import {
+    BillboardGraphics,
+    EllipseGraphics,
+    Entity,
+    EntityDescription,
+} from "resium";
 // import { wellData } from "../context/WellData";
+import MapIcon from "../../assets/MapIcon.png";
 import { TooltipContext } from "../../context/AppContext"; // Adjust the import path as necessary
 import { wellDataFromRawData } from "../../context/WellDataFileReader";
 
@@ -76,12 +84,10 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
         if (terrainProvider) {
             sampleTerrainHeights();
         }
-    }, []); // Re-run this effect if the terrainProvider changes
+    }, [terrainProvider]); // Re-run this effect if the terrainProvider changes
 
     const handleMouseMove = (event: MouseEvent) => {
         // Update the position of the tooltip based on the mouse position
-        // You can use event.clientX and event.clientY to get the mouse position
-        // Update the tooltip position accordingly
         setTooltipX(event.clientX);
         setTooltipY(event.clientY);
     };
@@ -90,10 +96,9 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
         document.addEventListener("mousemove", handleMouseMove);
 
         return () => {
-            // Clean up the event listener when the component unmounts
             document.removeEventListener("mousemove", handleMouseMove);
         };
-    }, []); // Empty dependency array to ensure the effect only runs once
+    }, [handleMouseMove]);
 
     const handleMouseOver = useCallback(
         (index: number, layer: number) => {
@@ -111,61 +116,83 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
 
     return (
         <>
-            {wellDataWithHeights.map((well, wellIndex) => (
-                <React.Fragment key={wellIndex}>
-                    {well.layers.map((layer, layerIndex) => {
-                        const layerStartPositionCartesian =
-                            Cartesian3.fromDegrees(
-                                well.longitude,
-                                well.latitude,
-                                layer.startDepth
+            {wellDataWithHeights.map((well, wellIndex) => {
+                // Ensure the well has layers and startDepth is defined
+                if (
+                    well.layers.length === 0 ||
+                    well.layers[0].startDepth === undefined
+                ) {
+                    return null;
+                }
+
+                // Calculate the position of the first layer to position the BillboardGraphics
+                const firstLayerStartPosition = Cartesian3.fromDegrees(
+                    well.longitude,
+                    well.latitude,
+                    well.layers[0].startDepth + heightWellShouldShowAboveSurface
+                );
+
+                return (
+                    <React.Fragment key={wellIndex}>
+                        <Entity
+                            key={`billboard_${wellIndex}`}
+                            position={firstLayerStartPosition}
+                            onMouseMove={() => handleMouseOver(wellIndex, 0)}
+                            onMouseLeave={handleMouseOut}
+                        >
+                            <BillboardGraphics
+                                image={MapIcon} // Replace with the correct path to MapIcon.png
+                                verticalOrigin={VerticalOrigin.BOTTOM}
+                                scaleByDistance={
+                                    new NearFarScalar(1.5e2, 0.7, 1.5e5, 0.2)
+                                } // Adjust scale based on distance
+                            />
+                        </Entity>
+                        {well.layers.map((layer, layerIndex) => {
+                            const layerStartPositionCartesian =
+                                Cartesian3.fromDegrees(
+                                    well.longitude,
+                                    well.latitude,
+                                    layer.startDepth
+                                );
+
+                            return (
+                                <Entity
+                                    key={`cylinder_${wellIndex}_${layerIndex}`}
+                                    position={layerStartPositionCartesian}
+                                    onMouseMove={() =>
+                                        handleMouseOver(wellIndex, layerIndex)
+                                    }
+                                    onMouseLeave={handleMouseOut}
+                                >
+                                    <EllipseGraphics
+                                        semiMinorAxis={5.0}
+                                        semiMajorAxis={5.0}
+                                        height={
+                                            heightWellShouldShowAboveSurface +
+                                            layer.startDepth
+                                        }
+                                        extrudedHeight={
+                                            heightWellShouldShowAboveSurface +
+                                            layer.endDepth
+                                        }
+                                        rotation={Math.toRadians(-40.0)}
+                                        material={Color.fromCssColorString(
+                                            layer.color
+                                        )}
+                                    />
+                                    <EntityDescription>
+                                        <h1>{`Layer ${layerIndex} of Cylinder ${wellIndex}`}</h1>
+                                        {well.metadata ? (
+                                            <p>{well.metadata}</p>
+                                        ) : null}
+                                    </EntityDescription>
+                                </Entity>
                             );
-                        // console.log(
-                        //     "layer",
-                        //     layerIndex,
-                        //     " stateMetadata",
-                        //     well.metadata,
-                        //     " startDepth",
-                        //     heightWellShouldShowAboveSurface + layer.startDepth,
-                        //     "endDepth",
-                        //     heightWellShouldShowAboveSurface + layer.endDepth
-                        // );
-                        return (
-                            <Entity
-                                key={`cylinder_${wellIndex}_${layerIndex}`}
-                                position={layerStartPositionCartesian}
-                                onMouseMove={() =>
-                                    handleMouseOver(wellIndex, layerIndex)
-                                }
-                                onMouseLeave={handleMouseOut}
-                            >
-                                <EllipseGraphics
-                                    semiMinorAxis={5.0}
-                                    semiMajorAxis={5.0}
-                                    height={
-                                        heightWellShouldShowAboveSurface +
-                                        layer.startDepth
-                                    }
-                                    extrudedHeight={
-                                        heightWellShouldShowAboveSurface +
-                                        layer.endDepth
-                                    }
-                                    rotation={Math.toRadians(-40.0)}
-                                    material={Color.fromCssColorString(
-                                        layer.color
-                                    )}
-                                />
-                                <EntityDescription>
-                                    <h1>{`Layer ${layerIndex} of Cylinder ${wellIndex}`}</h1>
-                                    {well.metadata ? (
-                                        <p>{well.metadata}</p>
-                                    ) : null}
-                                </EntityDescription>
-                            </Entity>
-                        );
-                    })}
-                </React.Fragment>
-            ))}
+                        })}
+                    </React.Fragment>
+                );
+            })}
         </>
     );
 };
