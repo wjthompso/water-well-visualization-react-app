@@ -28,6 +28,7 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
     terrainProvider,
 }) => {
     const heightWellShouldShowAboveSurface = 100;
+    const heightMapIconShouldShowAboveWell = 20;
     const [wellDataWithHeights, setWellDataWithHeights] =
         useState(wellDataFromRawData);
     const { setTooltipString, setTooltipX, setTooltipY } =
@@ -125,18 +126,19 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
                     return null;
                 }
 
-                // Calculate the position of the first layer to position the BillboardGraphics
-                const firstLayerStartPosition = Cartesian3.fromDegrees(
+                const indicatorStartPosition = Cartesian3.fromDegrees(
                     well.longitude,
                     well.latitude,
-                    well.layers[0].startDepth + heightWellShouldShowAboveSurface
+                    well.layers[0].startDepth +
+                        heightWellShouldShowAboveSurface +
+                        heightMapIconShouldShowAboveWell
                 );
 
                 return (
                     <React.Fragment key={wellIndex}>
                         <Entity
                             key={`billboard_${wellIndex}`}
-                            position={firstLayerStartPosition}
+                            position={indicatorStartPosition}
                             onMouseMove={() => handleMouseOver(wellIndex, 0)}
                             onMouseLeave={handleMouseOut}
                         >
@@ -144,8 +146,8 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
                                 image={MapIcon} // Replace with the correct path to MapIcon.png
                                 verticalOrigin={VerticalOrigin.BOTTOM}
                                 scaleByDistance={
-                                    new NearFarScalar(1.5e2, 0.7, 1.5e5, 0.2)
-                                } // Adjust scale based on distance
+                                    new NearFarScalar(1.5e2, 0.7, 1.5e5, 0.2) // Adjust scale based on distance
+                                }
                             />
                         </Entity>
                         {well.layers.map((layer, layerIndex) => {

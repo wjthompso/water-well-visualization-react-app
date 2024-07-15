@@ -15,8 +15,8 @@ import CylinderEntities from "./CylinderEntities";
 import Tooltip from "./Tooltip";
 
 function moveCameraToDangermond(viewer: CesiumViewer) {
-    const cameraLongitude = -120.462283;
-    const cameraLatitude = 34.424167;
+    const cameraLongitude = -120.432283;
+    const cameraLatitude = 34.454167;
     viewer.camera.setView({
         destination: Cartesian3.fromDegrees(
             cameraLongitude,

@@ -39,7 +39,7 @@ export enum GroundMaterialTypeColor {
 }
 
 export interface Layer {
-    type: GroundMaterialType;
+    type: GroundMaterialType[];
     color: GroundMaterialTypeColor;
     startDepth: number;
     endDepth: number;
@@ -67,31 +67,31 @@ export const wellData: WellData[] = [
         endDepth: 100,
         layers: [
             {
-                type: GroundMaterialType.Sandstone,
+                type: [GroundMaterialType.Sandstone],
                 color: GroundMaterialTypeColor.Sandstone,
                 startDepth: 0,
                 endDepth: 20,
             },
             {
-                type: GroundMaterialType.Limestone,
+                type: [GroundMaterialType.Limestone],
                 color: GroundMaterialTypeColor.Limestone,
                 startDepth: 20,
                 endDepth: 40,
             },
             {
-                type: GroundMaterialType.Shale,
+                type: [GroundMaterialType.Shale],
                 color: GroundMaterialTypeColor.Shale,
                 startDepth: 40,
                 endDepth: 60,
             },
             {
-                type: GroundMaterialType.Granite,
+                type: [GroundMaterialType.Granite],
                 color: GroundMaterialTypeColor.Granite,
                 startDepth: 60,
                 endDepth: 80,
             },
             {
-                type: GroundMaterialType.Basalt,
+                type: [GroundMaterialType.Basalt],
                 color: GroundMaterialTypeColor.Basalt,
                 startDepth: 80,
                 endDepth: 100,
@@ -106,31 +106,31 @@ export const wellData: WellData[] = [
         endDepth: 100,
         layers: [
             {
-                type: GroundMaterialType.Sandstone,
+                type: [GroundMaterialType.Sandstone],
                 color: GroundMaterialTypeColor.Sandstone,
                 startDepth: 0,
                 endDepth: 20,
             },
             {
-                type: GroundMaterialType.Limestone,
+                type: [GroundMaterialType.Limestone],
                 color: GroundMaterialTypeColor.Limestone,
                 startDepth: 20,
                 endDepth: 40,
             },
             {
-                type: GroundMaterialType.Shale,
+                type: [GroundMaterialType.Shale],
                 color: GroundMaterialTypeColor.Shale,
                 startDepth: 40,
                 endDepth: 60,
             },
             {
-                type: GroundMaterialType.Granite,
+                type: [GroundMaterialType.Granite],
                 color: GroundMaterialTypeColor.Granite,
                 startDepth: 60,
                 endDepth: 80,
             },
             {
-                type: GroundMaterialType.Basalt,
+                type: [GroundMaterialType.Basalt],
                 color: GroundMaterialTypeColor.Basalt,
                 startDepth: 80,
                 endDepth: 100,
@@ -145,31 +145,31 @@ export const wellData: WellData[] = [
         endDepth: 100,
         layers: [
             {
-                type: GroundMaterialType.Sandstone,
+                type: [GroundMaterialType.Sandstone],
                 color: GroundMaterialTypeColor.Sandstone,
                 startDepth: 0,
                 endDepth: 20,
             },
             {
-                type: GroundMaterialType.Limestone,
+                type: [GroundMaterialType.Limestone],
                 color: GroundMaterialTypeColor.Limestone,
                 startDepth: 20,
                 endDepth: 40,
             },
             {
-                type: GroundMaterialType.Shale,
+                type: [GroundMaterialType.Shale],
                 color: GroundMaterialTypeColor.Shale,
                 startDepth: 40,
                 endDepth: 60,
             },
             {
-                type: GroundMaterialType.Granite,
+                type: [GroundMaterialType.Granite],
                 color: GroundMaterialTypeColor.Granite,
                 startDepth: 60,
                 endDepth: 80,
             },
             {
-                type: GroundMaterialType.Basalt,
+                type: [GroundMaterialType.Basalt],
                 color: GroundMaterialTypeColor.Basalt,
                 startDepth: 80,
                 endDepth: 100,
@@ -184,31 +184,31 @@ export const wellData: WellData[] = [
         endDepth: 100,
         layers: [
             {
-                type: GroundMaterialType.Sandstone,
+                type: [GroundMaterialType.Sandstone],
                 color: GroundMaterialTypeColor.Sandstone,
                 startDepth: 0,
                 endDepth: 20,
             },
             {
-                type: GroundMaterialType.Limestone,
+                type: [GroundMaterialType.Limestone],
                 color: GroundMaterialTypeColor.Limestone,
                 startDepth: 20,
                 endDepth: 40,
             },
             {
-                type: GroundMaterialType.Shale,
+                type: [GroundMaterialType.Shale],
                 color: GroundMaterialTypeColor.Shale,
                 startDepth: 40,
                 endDepth: 60,
             },
             {
-                type: GroundMaterialType.Granite,
+                type: [GroundMaterialType.Granite],
                 color: GroundMaterialTypeColor.Granite,
                 startDepth: 60,
                 endDepth: 80,
             },
             {
-                type: GroundMaterialType.Basalt,
+                type: [GroundMaterialType.Basalt],
                 color: GroundMaterialTypeColor.Basalt,
                 startDepth: 80,
                 endDepth: 100,
@@ -223,31 +223,31 @@ export const wellData: WellData[] = [
         endDepth: 100,
         layers: [
             {
-                type: GroundMaterialType.Sandstone,
+                type: [GroundMaterialType.Sandstone],
                 color: GroundMaterialTypeColor.Sandstone,
                 startDepth: 0,
                 endDepth: 20,
             },
             {
-                type: GroundMaterialType.Limestone,
+                type: [GroundMaterialType.Limestone],
                 color: GroundMaterialTypeColor.Limestone,
                 startDepth: 20,
                 endDepth: 40,
             },
             {
-                type: GroundMaterialType.Shale,
+                type: [GroundMaterialType.Shale],
                 color: GroundMaterialTypeColor.Shale,
                 startDepth: 40,
                 endDepth: 60,
             },
             {
-                type: GroundMaterialType.Granite,
+                type: [GroundMaterialType.Granite],
                 color: GroundMaterialTypeColor.Granite,
                 startDepth: 60,
                 endDepth: 80,
             },
             {
-                type: GroundMaterialType.Basalt,
+                type: [GroundMaterialType.Basalt],
                 color: GroundMaterialTypeColor.Basalt,
                 startDepth: 80,
                 endDepth: 100,
@@ -262,31 +262,31 @@ export const wellData: WellData[] = [
         endDepth: 100,
         layers: [
             {
-                type: GroundMaterialType.Sandstone,
+                type: [GroundMaterialType.Sandstone],
                 color: GroundMaterialTypeColor.Sandstone,
                 startDepth: 0,
                 endDepth: 20,
             },
             {
-                type: GroundMaterialType.Limestone,
+                type: [GroundMaterialType.Limestone],
                 color: GroundMaterialTypeColor.Limestone,
                 startDepth: 20,
                 endDepth: 40,
             },
             {
-                type: GroundMaterialType.Shale,
+                type: [GroundMaterialType.Shale],
                 color: GroundMaterialTypeColor.Shale,
                 startDepth: 40,
                 endDepth: 60,
             },
             {
-                type: GroundMaterialType.Granite,
+                type: [GroundMaterialType.Granite],
                 color: GroundMaterialTypeColor.Granite,
                 startDepth: 60,
                 endDepth: 80,
             },
             {
-                type: GroundMaterialType.Basalt,
+                type: [GroundMaterialType.Basalt],
                 color: GroundMaterialTypeColor.Basalt,
                 startDepth: 80,
                 endDepth: 100,
