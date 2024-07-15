@@ -16,7 +16,7 @@ import {
     EntityDescription,
 } from "resium";
 // import { wellData } from "../context/WellData";
-import MapIcon from "../../assets/MapIcon.png";
+import MapIconWaterPresent from "../../assets/MapIconWaterPresent.png";
 import { TooltipContext } from "../../context/AppContext"; // Adjust the import path as necessary
 import { wellDataFromRawData } from "../../context/WellDataFileReader";
 
@@ -27,7 +27,7 @@ interface CylinderEntitiesProps {
 const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
     terrainProvider,
 }) => {
-    const heightWellShouldShowAboveSurface = 100;
+    const heightWellShouldShowAboveSurface = 10;
     const heightMapIconShouldShowAboveWell = 20;
     const [wellDataWithHeights, setWellDataWithHeights] =
         useState(wellDataFromRawData);
@@ -143,7 +143,7 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
                             onMouseLeave={handleMouseOut}
                         >
                             <BillboardGraphics
-                                image={MapIcon} // Replace with the correct path to MapIcon.png
+                                image={MapIconWaterPresent} // Replace with the correct path to MapIcon.png
                                 verticalOrigin={VerticalOrigin.BOTTOM}
                                 scaleByDistance={
                                     new NearFarScalar(1.5e2, 0.7, 1.5e5, 0.2) // Adjust scale based on distance
