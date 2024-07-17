@@ -51,6 +51,7 @@ export interface WellData {
     startDepth: number;
     endDepth: number;
     layers: Layer[];
+    StateWellID?: string | null;
     metadata?: string | null;
 }
 

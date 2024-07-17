@@ -15,7 +15,6 @@ import {
     Entity,
     EntityDescription,
 } from "resium";
-// import { wellData } from "../context/WellData";
 import MapIconWaterPresent from "../../assets/MapIconWaterPresent.png";
 import { TooltipContext } from "../../context/AppContext"; // Adjust the import path as necessary
 import { wellDataFromRawData } from "../../context/WellDataFileReader";
@@ -35,7 +34,6 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
         useContext(TooltipContext);
 
     useEffect(() => {
-        // Wait until the terrain provider is not undefined or null
         if (!terrainProvider) {
             console.log("Terrain provider is not ready yet");
             return;
@@ -56,7 +54,6 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
                     positions
                 );
 
-                // Create a new array with updated heights
                 const newWellData = wellDataWithHeights.map(
                     (well, wellIndex) => {
                         const height = sampledPositions[wellIndex].height;
@@ -75,7 +72,6 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
                     }
                 );
 
-                // Update state with the new data, which will trigger a re-render
                 setWellDataWithHeights(newWellData);
             } catch (error) {
                 console.error("Error sampling terrain heights:", error);
@@ -85,10 +81,9 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
         if (terrainProvider) {
             sampleTerrainHeights();
         }
-    }, [terrainProvider]); // Re-run this effect if the terrainProvider changes
+    }, [terrainProvider]);
 
     const handleMouseMove = (event: MouseEvent) => {
-        // Update the position of the tooltip based on the mouse position
         setTooltipX(event.clientX);
         setTooltipY(event.clientY);
     };
@@ -115,10 +110,17 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
         setTooltipString("");
     }, [setTooltipString]);
 
+    const handleIconMouseOver = useCallback(
+        (index: number) => {
+            const StateWellID = wellDataWithHeights[index].StateWellID;
+            setTooltipString(`${StateWellID}`);
+        },
+        [wellDataWithHeights, setTooltipString]
+    );
+
     return (
         <>
             {wellDataWithHeights.map((well, wellIndex) => {
-                // Ensure the well has layers and startDepth is defined
                 if (
                     well.layers.length === 0 ||
                     well.layers[0].startDepth === undefined
@@ -139,7 +141,7 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
                         <Entity
                             key={`billboard_${wellIndex}`}
                             position={indicatorStartPosition}
-                            onMouseMove={() => handleMouseOver(wellIndex, 0)}
+                            onMouseMove={() => handleIconMouseOver(wellIndex)}
                             onMouseLeave={handleMouseOut}
                         >
                             <BillboardGraphics
@@ -149,6 +151,9 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
                                     new NearFarScalar(1.5e2, 0.7, 1.5e5, 0.2) // Adjust scale based on distance
                                 }
                             />
+                            <EntityDescription>
+                                <h2>{`Map Icon for Well ${well.StateWellID}`}</h2>
+                            </EntityDescription>
                         </Entity>
                         {well.layers.map((layer, layerIndex) => {
                             const layerStartPositionCartesian =
