@@ -95,7 +95,7 @@ function convertRawDataToWellData(
             startDepth: Math.min(...layers.map((layer) => layer.startDepth)),
             endDepth: Math.max(...layers.map((layer) => layer.endDepth)),
             layers: layers,
-            metadata: `${firstEntry.Lithology1}, ${firstEntry.StateWellID}`,
+            metadata: `${firstEntry.Lithology1}`,
             WellID: firstEntry.WellID,
             StateWellID: firstEntry.StateWellID,
         };

@@ -17,6 +17,7 @@ import {
 } from "resium";
 import MapIconWaterPresent from "../../assets/MapIconWaterPresent.png";
 import { TooltipContext } from "../../context/AppContext"; // Adjust the import path as necessary
+import { GroundMaterialType } from "../../context/WellData";
 import { wellDataFromRawData } from "../../context/WellDataFileReader";
 
 interface CylinderEntitiesProps {
@@ -98,10 +99,12 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
 
     const handleMouseOver = useCallback(
         (index: number, layer: number) => {
-            const description = wellDataWithHeights[index].metadata;
-            setTooltipString(
-                `Layer ${layer} of Cylinder ${index}: ${description}`
+            const types = wellDataWithHeights[index].layers[layer].type;
+            const typesAsString: string[] = types.map((type) =>
+                GroundMaterialType[type].toString()
             );
+            const description = typesAsString.join(", ");
+            setTooltipString(`${description}`);
         },
         [wellDataWithHeights, setTooltipString]
     );
