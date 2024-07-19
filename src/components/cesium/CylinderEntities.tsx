@@ -1,9 +1,9 @@
 import {
     Cartesian3,
     Cartographic,
+    Math as CesiumMath,
     CesiumTerrainProvider,
     Color,
-    Math,
     NearFarScalar,
     sampleTerrainMostDetailed,
     VerticalOrigin,
@@ -55,7 +55,7 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
                     positions
                 );
 
-                const newWellData = wellDataWithHeights.map(
+                const newWellData = wellDataFromRawData.map(
                     (well, wellIndex) => {
                         const height = sampledPositions[wellIndex].height;
                         const layers = well.layers.map((layer) => ({
@@ -79,15 +79,16 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
             }
         };
 
-        if (terrainProvider) {
-            sampleTerrainHeights();
-        }
+        sampleTerrainHeights();
     }, [terrainProvider]);
 
-    const handleMouseMove = (event: MouseEvent) => {
-        setTooltipX(event.clientX);
-        setTooltipY(event.clientY);
-    };
+    const handleMouseMove = useCallback(
+        (event: MouseEvent) => {
+            setTooltipX(event.clientX);
+            setTooltipY(event.clientY);
+        },
+        [setTooltipX, setTooltipY]
+    );
 
     useEffect(() => {
         document.addEventListener("mousemove", handleMouseMove);
@@ -106,7 +107,7 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
             const description = typesAsString.join(", ");
             setTooltipString(`${description}`);
         },
-        [wellDataWithHeights, setTooltipString]
+        [setTooltipString, wellDataWithHeights]
     );
 
     const handleMouseOut = useCallback(() => {
@@ -118,12 +119,13 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
             const StateWellID = wellDataWithHeights[index].StateWellID;
             setTooltipString(`${StateWellID}`);
         },
-        [wellDataWithHeights, setTooltipString]
+        [setTooltipString, wellDataWithHeights]
     );
 
     return (
         <>
             {wellDataWithHeights.map((well, wellIndex) => {
+                console.log("Rendering well", well);
                 if (
                     well.layers.length === 0 ||
                     well.layers[0].startDepth === undefined
@@ -186,7 +188,7 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
                                             heightWellShouldShowAboveSurface +
                                             layer.endDepth
                                         }
-                                        rotation={Math.toRadians(-40.0)}
+                                        rotation={CesiumMath.toRadians(-40.0)}
                                         material={Color.fromCssColorString(
                                             layer.color
                                         )}
@@ -209,5 +211,4 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
 
 const CylinderEntities = React.memo(PreMemoizedCylinderEntities);
 
-// Memoize the component to prevent unnecessary re-renders
 export default CylinderEntities;
