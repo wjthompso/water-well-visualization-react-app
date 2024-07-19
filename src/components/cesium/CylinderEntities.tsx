@@ -125,7 +125,6 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
     return (
         <>
             {wellDataWithHeights.map((well, wellIndex) => {
-                console.log("Rendering well", well);
                 if (
                     well.layers.length === 0 ||
                     well.layers[0].startDepth === undefined
