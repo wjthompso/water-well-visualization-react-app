@@ -17,15 +17,17 @@ import {
 } from "resium";
 import MapIconWaterPresent from "../../assets/MapIconWaterPresent.png";
 import { TooltipContext } from "../../context/AppContext"; // Adjust the import path as necessary
-import { GroundMaterialType } from "../../context/WellData";
+import { GroundMaterialType, WellData } from "../../context/WellData";
 import { wellDataFromRawData } from "../../context/WellDataFileReader";
 
 interface CylinderEntitiesProps {
     terrainProvider: CesiumTerrainProvider | undefined | null;
+    wellDataWithoutElevationAdjustments: WellData[];
 }
 
 const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
     terrainProvider,
+    wellDataWithoutElevationAdjustments,
 }) => {
     const heightWellShouldShowAboveSurface = 10;
     const heightMapIconShouldShowAboveWell = 20;
@@ -40,8 +42,8 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
             return;
         }
 
-        const sampleTerrainHeights = async () => {
-            const positions = wellDataFromRawData.map((well) =>
+        const sampleTerrainHeights = async (data: WellData[]) => {
+            const positions = data.map((well) =>
                 Cartographic.fromDegrees(
                     well.longitude,
                     well.latitude,
@@ -55,23 +57,21 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
                     positions
                 );
 
-                const newWellData = wellDataFromRawData.map(
-                    (well, wellIndex) => {
-                        const height = sampledPositions[wellIndex].height;
-                        const layers = well.layers.map((layer) => ({
-                            ...layer,
-                            startDepth: height - layer.startDepth,
-                            endDepth: height - layer.endDepth,
-                        }));
+                const newWellData = data.map((well, wellIndex) => {
+                    const height = sampledPositions[wellIndex].height;
+                    const layers = well.layers.map((layer) => ({
+                        ...layer,
+                        startDepth: height - layer.startDepth,
+                        endDepth: height - layer.endDepth,
+                    }));
 
-                        return {
-                            ...well,
-                            layers,
-                            startDepth: height - well.startDepth,
-                            endDepth: height - well.endDepth,
-                        };
-                    }
-                );
+                    return {
+                        ...well,
+                        layers,
+                        startDepth: height - well.startDepth,
+                        endDepth: height - well.endDepth,
+                    };
+                });
 
                 setWellDataWithHeights(newWellData);
             } catch (error) {
@@ -79,8 +79,12 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
             }
         };
 
-        sampleTerrainHeights();
-    }, [terrainProvider]);
+        if (wellDataWithoutElevationAdjustments.length > 0) {
+            sampleTerrainHeights(wellDataWithoutElevationAdjustments);
+        } else {
+            sampleTerrainHeights(wellDataFromRawData);
+        }
+    }, [terrainProvider, wellDataWithoutElevationAdjustments]);
 
     const handleMouseMove = useCallback(
         (event: MouseEvent) => {

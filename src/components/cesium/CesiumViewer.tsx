@@ -11,6 +11,12 @@ import "cesium/Build/Cesium/Widgets/widgets.css";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { CesiumComponentRef, Viewer } from "resium";
 import "../../App.css";
+import {
+    GroundMaterialType,
+    GroundMaterialTypeColor,
+    Layer,
+    WellData,
+} from "../../context/WellData";
 import CustomSearchBar from "../Searchbar/CustomSearchbar";
 import DraggableComponent from "../testDraggableComponent/ExampleDraggableComponent";
 import CylinderEntities from "./CylinderEntities";
@@ -27,10 +33,6 @@ interface Chunk {
     };
 }
 
-interface WellData {
-    // Define the structure of your WellData here
-}
-
 const fetchQuadrants = async (): Promise<Chunk[]> => {
     const response = await fetch("http://localhost:3000/keys");
     const chunks: Chunk[] = await response.json();
@@ -38,7 +40,7 @@ const fetchQuadrants = async (): Promise<Chunk[]> => {
     return chunks;
 };
 
-const fetchWellData = async (locationKey: string): Promise<WellData> => {
+const fetchWellData = async (locationKey: string): Promise<any[]> => {
     const response = await fetch("http://localhost:3000/keys", {
         method: "POST",
         headers: {
@@ -46,7 +48,7 @@ const fetchWellData = async (locationKey: string): Promise<WellData> => {
         },
         body: JSON.stringify({ key: locationKey }),
     });
-    const wellData: WellData = await response.json();
+    const wellData: any[] = await response.json();
 
     return wellData;
 };
@@ -92,14 +94,71 @@ function makeGroundTranslucentAsYouGetCloser(viewer: CesiumViewer) {
     });
 }
 
+function mapMaterialType(material: string): GroundMaterialType {
+    switch (material.trim().toUpperCase()) {
+        case "LEAN CLAY":
+            return GroundMaterialType.Clay;
+        case "SANDY LEAN CLAY":
+            return GroundMaterialType.Clay;
+        case "SHALE":
+            return GroundMaterialType.Shale;
+        // Add other mappings here...
+        default:
+            return GroundMaterialType.NA;
+    }
+}
+
+function mapMaterialColor(
+    material: GroundMaterialType
+): GroundMaterialTypeColor {
+    switch (material) {
+        case GroundMaterialType.Clay:
+            return GroundMaterialTypeColor.Clay;
+        case GroundMaterialType.Shale:
+            return GroundMaterialTypeColor.Shale;
+        // Add other mappings here...
+        default:
+            return GroundMaterialTypeColor.NA;
+    }
+}
+
+function processWellData(rawData: any[]): WellData[] {
+    return rawData.map((data) => {
+        const layers: Layer[] = data.layers.map((layer: any) => {
+            const materialType = mapMaterialType(layer[2]);
+            return {
+                type: [materialType],
+                color: mapMaterialColor(materialType),
+                startDepth: layer[0],
+                endDepth: layer[1],
+            };
+        });
+
+        return {
+            longitude: data.lon,
+            latitude: data.lat,
+            startDepth: 0,
+            endDepth: data.total_well_depth_in_ft,
+            layers: layers,
+            StateWellID: data.well_id,
+            metadata: null,
+        };
+    });
+}
+
 const ResiumViewerComponent: React.FC = () => {
     const viewerRef = useRef<CesiumComponentRef<CesiumViewer> | null>(null);
     const [terrainProvider, setTerrainProvider] = useState<
         CesiumTerrainProvider | undefined
     >(undefined);
     const quadrantsRef = useRef<Chunk[]>([]); // Use ref for quadrants
-    const [currentQuadrant, setCurrentQuadrant] = useState<Chunk | null>(null);
-    const [wellData, setWellData] = useState<WellData | null>(null); // State to store well data
+    const [currentQuadrant, setCurrentQuadrant] = useState<
+        Chunk | null | undefined
+    >(null);
+    const [
+        wellDataWithoutElevationAdjustments,
+        setWellDataWithoutElevationAdjustments,
+    ] = useState<WellData[]>([]); // State to store well data without elevation adjustments
     const hasLoadedTerrainData = useRef(false);
     const hasFetchedQuadrants = useRef(false); // Ref to check if quadrants have been fetched
     const parentRefForDraggableComponent = useRef<HTMLDivElement>(null);
@@ -108,15 +167,6 @@ const ResiumViewerComponent: React.FC = () => {
     // Variables to store the previous camera position
     const prevCameraPosition = useRef<Cartographic | null>(null);
 
-    // 1. Load terrain data
-    // 2. Fetch quadrants
-    // 3. Set the current quadrant based on the current camera position
-    // 4. Define function to reposition the toolbar when the screen gets smaller
-    // 5. Set the initial camera position to Dangermond
-    // 6. Enable underground view
-    // 7. Make ground translucent as you get closer
-    // 8. Add event listener to reposition the toolbar when the screen gets smaller
-    // 9. Add the event listener to handle camera move changes
     useEffect(() => {
         const loadTerrainData = async () => {
             const terrainData = await createWorldTerrainAsync();
@@ -147,10 +197,10 @@ const ResiumViewerComponent: React.FC = () => {
                 if (toolbar) {
                     toolbar.style.top = "2.5rem";
                     if (window.innerWidth < 768) {
-                        toolbar.style.left = "20rem";
+                        toolbar.style.left = "2.5rem";
                         toolbar.style.right = "auto";
                     } else {
-                        toolbar.style.left = "20rem";
+                        toolbar.style.left = "2.5rem";
                         toolbar.style.right = "auto";
                     }
                 }
@@ -199,43 +249,42 @@ const ResiumViewerComponent: React.FC = () => {
                 cartographicPosition.longitude
             );
 
-            // Find the chunk that contains the current camera position and its index
-            let currentChunkIndex = -1;
-            const currentChunk = quadrantsRef.current.find((chunk, index) => {
-                if (
+            // Check if the camera is still within the current chunk
+            if (
+                currentQuadrant &&
+                currentLon >= currentQuadrant.topLeft.lon &&
+                currentLon <= currentQuadrant.bottomRight.lon &&
+                currentLat <= currentQuadrant.bottomRight.lat &&
+                currentLat >= currentQuadrant.topLeft.lat
+            ) {
+                // The camera is still within the current chunk, no need to do anything
+                return;
+            }
+
+            // Find the new chunk that contains the current camera position
+            console.log("We're about to do an expensive operation");
+            const newChunk = quadrantsRef.current.find((chunk) => {
+                return (
                     currentLon >= chunk.topLeft.lon &&
                     currentLon <= chunk.bottomRight.lon &&
                     currentLat <= chunk.bottomRight.lat &&
                     currentLat >= chunk.topLeft.lat
-                ) {
-                    currentChunkIndex = index;
-                    return true;
-                }
-                return false;
+                );
             });
 
-            console.log("chunks", quadrantsRef.current);
-            console.log("Current camera position:", currentLat, currentLon);
-            console.log("Current chunk:", currentChunk);
-            console.log("currentChunkIndex", currentChunkIndex);
-
-            if (currentChunk) {
-                console.log("Current chunk:", currentChunk);
-                console.log("Current chunk index:", currentChunkIndex);
-                const locationKey = createLocationKey(currentChunk);
-                const wellData = await fetchWellData(locationKey);
-                setWellData(wellData);
-                console.log("Fetched well data:", wellData);
-            } else {
-                console.log("Camera is not in any chunk");
+            if (newChunk && newChunk !== currentQuadrant) {
+                // We have moved to a new chunk, fetch the new data
+                const locationKey = createLocationKey(newChunk);
+                const rawWellData = await fetchWellData(locationKey);
+                const processedWellData = processWellData(rawWellData);
+                setWellDataWithoutElevationAdjustments(processedWellData);
+                setCurrentQuadrant(newChunk);
             }
-
-            setCurrentQuadrant(currentChunk);
 
             // Update the previous position
             prevCameraPosition.current = cartographicPosition;
         },
-        [setCurrentQuadrant]
+        [currentQuadrant, setCurrentQuadrant]
     );
 
     if (!terrainProvider) {
@@ -255,7 +304,7 @@ const ResiumViewerComponent: React.FC = () => {
             <DraggableComponent
                 parentRef={parentRefForDraggableComponent}
                 searchBarRef={searchBarRef}
-            />{" "}
+            />
             <div
                 id="cesium-viewer-container"
                 className="relative w-[100%] h-[100%] overflow-hidden"
@@ -271,10 +320,15 @@ const ResiumViewerComponent: React.FC = () => {
                     navigationHelpButton={false} // Hide the navigation help button
                     homeButton={false} // Hide the home button
                     sceneModePicker={false} // Hide the scene mode picker
-                    baseLayerPicker={true} // Hide the base layer picker
+                    baseLayerPicker={false} // Hide the base layer picker
                     geocoder={false} // Hide the geocoder
                 >
-                    <CylinderEntities terrainProvider={terrainProvider} />
+                    <CylinderEntities
+                        terrainProvider={terrainProvider}
+                        wellDataWithoutElevationAdjustments={
+                            wellDataWithoutElevationAdjustments
+                        }
+                    />
                 </Viewer>
                 <Tooltip />
             </div>
