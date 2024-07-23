@@ -27,32 +27,34 @@ interface Chunk {
     };
 }
 
+interface WellData {
+    // Define the structure of your WellData here
+}
+
 const fetchQuadrants = async (): Promise<Chunk[]> => {
     const response = await fetch("http://localhost:3000/keys");
-    const data: string[] = await response.json();
+    const chunks: Chunk[] = await response.json();
 
-    const chunks = data.map((entry: string) => {
-        const match = entry.match(
-            /location:\(([^,]+), ([^,]+)\)-\(([^,]+), ([^,]+)\)/
-        );
-
-        if (!match) {
-            throw new Error("Invalid quadrant entry: " + entry);
-        }
-
-        return {
-            topLeft: {
-                lat: parseFloat(match[1]),
-                lon: parseFloat(match[2]),
-            },
-            bottomRight: {
-                lat: parseFloat(match[3]),
-                lon: parseFloat(match[4]),
-            },
-        };
-    });
     return chunks;
 };
+
+const fetchWellData = async (locationKey: string): Promise<WellData> => {
+    const response = await fetch("http://localhost:3000/keys", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ key: locationKey }),
+    });
+    const wellData: WellData = await response.json();
+
+    return wellData;
+};
+
+function createLocationKey(chunk: Chunk) {
+    const { topLeft, bottomRight } = chunk;
+    return `location:(${topLeft.lat}, ${topLeft.lon})-(${bottomRight.lat}, ${bottomRight.lon})`;
+}
 
 function moveCameraToDangermond(viewer: CesiumViewer) {
     const cameraLongitude = -120.432283;
@@ -97,6 +99,7 @@ const ResiumViewerComponent: React.FC = () => {
     >(undefined);
     const quadrantsRef = useRef<Chunk[]>([]); // Use ref for quadrants
     const [currentQuadrant, setCurrentQuadrant] = useState<Chunk | null>(null);
+    const [wellData, setWellData] = useState<WellData | null>(null); // State to store well data
     const hasLoadedTerrainData = useRef(false);
     const hasFetchedQuadrants = useRef(false); // Ref to check if quadrants have been fetched
     const parentRefForDraggableComponent = useRef<HTMLDivElement>(null);
@@ -185,7 +188,7 @@ const ResiumViewerComponent: React.FC = () => {
     }, []);
 
     const handleCameraMove = useCallback(
-        (camera: Camera) => {
+        async (camera: Camera) => {
             const cartographicPosition = Cartographic.fromCartesian(
                 camera.position
             );
@@ -219,6 +222,10 @@ const ResiumViewerComponent: React.FC = () => {
             if (currentChunk) {
                 console.log("Current chunk:", currentChunk);
                 console.log("Current chunk index:", currentChunkIndex);
+                const locationKey = createLocationKey(currentChunk);
+                const wellData = await fetchWellData(locationKey);
+                setWellData(wellData);
+                console.log("Fetched well data:", wellData);
             } else {
                 console.log("Camera is not in any chunk");
             }
