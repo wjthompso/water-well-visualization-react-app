@@ -30,7 +30,8 @@ interface Chunk {
 const fetchQuadrants = async (): Promise<Chunk[]> => {
     const response = await fetch("http://localhost:3000/keys");
     const data: string[] = await response.json();
-    return data.map((entry: string) => {
+
+    const chunks = data.map((entry: string) => {
         const match = entry.match(
             /location:\(([^,]+), ([^,]+)\)-\(([^,]+), ([^,]+)\)/
         );
@@ -50,6 +51,7 @@ const fetchQuadrants = async (): Promise<Chunk[]> => {
             },
         };
     });
+    return chunks;
 };
 
 function moveCameraToDangermond(viewer: CesiumViewer) {
@@ -93,14 +95,25 @@ const ResiumViewerComponent: React.FC = () => {
     const [terrainProvider, setTerrainProvider] = useState<
         CesiumTerrainProvider | undefined
     >(undefined);
-    const [quadrants, setQuadrants] = useState<Chunk[]>([]);
+    const quadrantsRef = useRef<Chunk[]>([]); // Use ref for quadrants
     const [currentQuadrant, setCurrentQuadrant] = useState<Chunk | null>(null);
     const hasLoadedTerrainData = useRef(false);
-    const quadrantsCache = useRef<Chunk[] | null>(null); // Cache for quadrants
+    const hasFetchedQuadrants = useRef(false); // Ref to check if quadrants have been fetched
     const parentRefForDraggableComponent = useRef<HTMLDivElement>(null);
     const searchBarRef = useRef<HTMLDivElement>(null);
-    const hasFetchedQuadrants = useRef(false); // Ref to check if quadrants have been fetched
 
+    // Variables to store the previous camera position
+    const prevCameraPosition = useRef<Cartographic | null>(null);
+
+    // 1. Load terrain data
+    // 2. Fetch quadrants
+    // 3. Set the current quadrant based on the current camera position
+    // 4. Define function to reposition the toolbar when the screen gets smaller
+    // 5. Set the initial camera position to Dangermond
+    // 6. Enable underground view
+    // 7. Make ground translucent as you get closer
+    // 8. Add event listener to reposition the toolbar when the screen gets smaller
+    // 9. Add the event listener to handle camera move changes
     useEffect(() => {
         const loadTerrainData = async () => {
             const terrainData = await createWorldTerrainAsync();
@@ -110,15 +123,10 @@ const ResiumViewerComponent: React.FC = () => {
 
         const getQuadrants = async () => {
             if (!hasFetchedQuadrants.current) {
-                // Assume (dangerously) that the quadrants WILL be fetched
-                // do this so that when useEffect gets called again we don't
-                // make an unnecessary second call to the API.
                 hasFetchedQuadrants.current = true;
                 const quadrantData: Chunk[] = await fetchQuadrants();
-                quadrantsCache.current = quadrantData;
-                setQuadrants(quadrantData);
-            } else {
-                setQuadrants(quadrantsCache.current || []);
+                quadrantsRef.current = quadrantData;
+                console.log("Quadrants fetched:", quadrantData);
             }
         };
 
@@ -154,6 +162,17 @@ const ResiumViewerComponent: React.FC = () => {
                 moveCameraToDangermond(viewer);
                 makeGroundTranslucentAsYouGetCloser(viewer);
                 repositionToolbar();
+
+                const scene = viewer.scene;
+                const camera = scene.camera;
+
+                const moveHandler = () => handleCameraMove(camera);
+
+                scene.camera.changed.addEventListener(moveHandler);
+
+                return () => {
+                    scene.camera.changed.removeEventListener(moveHandler);
+                };
             }
         }, 100);
 
@@ -177,37 +196,40 @@ const ResiumViewerComponent: React.FC = () => {
                 cartographicPosition.longitude
             );
 
-            const newQuadrant = quadrants.find(
-                ({ topLeft, bottomRight }) =>
-                    currentLat >= bottomRight.lat &&
-                    currentLat <= topLeft.lat &&
-                    currentLon >= topLeft.lon &&
-                    currentLon <= bottomRight.lon
-            );
+            // Find the chunk that contains the current camera position and its index
+            let currentChunkIndex = -1;
+            const currentChunk = quadrantsRef.current.find((chunk, index) => {
+                if (
+                    currentLon >= chunk.topLeft.lon &&
+                    currentLon <= chunk.bottomRight.lon &&
+                    currentLat <= chunk.bottomRight.lat &&
+                    currentLat >= chunk.topLeft.lat
+                ) {
+                    currentChunkIndex = index;
+                    return true;
+                }
+                return false;
+            });
 
-            if (newQuadrant && newQuadrant !== currentQuadrant) {
-                setCurrentQuadrant(newQuadrant);
-                console.log("Entered new quadrant:", newQuadrant);
+            console.log("chunks", quadrantsRef.current);
+            console.log("Current camera position:", currentLat, currentLon);
+            console.log("Current chunk:", currentChunk);
+            console.log("currentChunkIndex", currentChunkIndex);
+
+            if (currentChunk) {
+                console.log("Current chunk:", currentChunk);
+                console.log("Current chunk index:", currentChunkIndex);
+            } else {
+                console.log("Camera is not in any chunk");
             }
+
+            setCurrentQuadrant(currentChunk);
+
+            // Update the previous position
+            prevCameraPosition.current = cartographicPosition;
         },
-        [quadrants, currentQuadrant]
+        [setCurrentQuadrant]
     );
-
-    useEffect(() => {
-        if (viewerRef.current?.cesiumElement) {
-            const viewer = viewerRef.current.cesiumElement as CesiumViewer;
-            const scene = viewer.scene;
-            const camera = scene.camera;
-
-            const moveHandler = () => handleCameraMove(camera);
-
-            scene.postRender.addEventListener(moveHandler);
-
-            return () => {
-                scene.postRender.removeEventListener(moveHandler);
-            };
-        }
-    }, [handleCameraMove]);
 
     if (!terrainProvider) {
         return <div>Loading terrain data...</div>;
