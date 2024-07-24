@@ -29,6 +29,8 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
     const [results, setResults] = useState<GeocodeResult[]>([]);
     const [searchBarInFocus, setSearchBarInFocus] = useState<boolean>(false);
 
+    const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_APS_API_KEY;
+
     const fetchGeocodingResults = async (searchQuery: string) => {
         if (searchQuery.trim() === "") return;
 
@@ -36,7 +38,7 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
             const response = await fetch(
                 `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
                     searchQuery
-                )}&key=AIzaSyC7z0q-r21RaBwnhNFe1aegUwC_xpgYi4Y`
+                )}&key=${GOOGLE_API_KEY}`
             );
             const data = await response.json();
 
