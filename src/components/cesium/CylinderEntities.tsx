@@ -17,7 +17,7 @@ import {
 } from "resium";
 import MapIconWaterPresent from "../../assets/MapIconWaterPresent.png";
 import { TooltipContext } from "../../context/AppContext"; // Adjust the import path as necessary
-import { GroundMaterialType, WellData } from "../../context/WellData";
+import { WellData } from "../../context/WellData";
 import { wellDataFromRawData } from "../../context/WellDataFileReader";
 
 interface CylinderEntitiesProps {
@@ -29,7 +29,7 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
     terrainProvider,
     wellDataWithoutElevationAdjustments,
 }) => {
-    const heightWellShouldShowAboveSurface = 10;
+    const heightWellShouldShowAboveSurface = 1;
     const heightMapIconShouldShowAboveWell = 20;
     const [wellDataWithHeights, setWellDataWithHeights] =
         useState(wellDataFromRawData);
@@ -63,6 +63,8 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
                         ...layer,
                         startDepth: height - layer.startDepth,
                         endDepth: height - layer.endDepth,
+                        unAdjustedStartDepth: layer.startDepth,
+                        unAdjustedEndDepth: layer.endDepth,
                     }));
 
                     return {
@@ -105,11 +107,24 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
     const handleMouseOver = useCallback(
         (index: number, layer: number) => {
             const types = wellDataWithHeights[index].layers[layer].type;
-            const typesAsString: string[] = types.map((type) =>
-                GroundMaterialType[type].toString()
-            );
-            const description = typesAsString.join(", ");
-            setTooltipString(`${description}`);
+            const stringDescription =
+                wellDataWithHeights[index].layers[layer].description;
+            const startDepth =
+                Math.round(
+                    wellDataWithHeights[index].layers[layer]
+                        .unAdjustedStartDepth * 100
+                ) / 100;
+            const endDepth =
+                Math.round(
+                    wellDataWithHeights[index].layers[layer]
+                        .unAdjustedEndDepth * 100
+                ) / 100;
+            setTooltipString({
+                startDepth,
+                endDepth,
+                lithologyDescription: stringDescription,
+                type: types,
+            });
         },
         [setTooltipString, wellDataWithHeights]
     );

@@ -33,14 +33,32 @@ interface Chunk {
     };
 }
 
+interface RawLayer {
+    0: number; // startDepth
+    1: number; // endDepth
+    2: string; // description
+    3: string; // type
+    4: number; // value1
+    5: number; // value2
+    6: number; // value3
+    7: number; // value4
+}
+
+interface RawWellData {
+    lat: number;
+    lon: number;
+    total_well_depth_in_ft: number;
+    well_id: string;
+    layers: RawLayer[];
+}
+
 const fetchQuadrants = async (): Promise<Chunk[]> => {
     const response = await fetch("http://localhost:3000/keys");
     const chunks: Chunk[] = await response.json();
-
     return chunks;
 };
 
-const fetchWellData = async (locationKey: string): Promise<any[]> => {
+const fetchWellData = async (locationKey: string): Promise<RawWellData[]> => {
     const response = await fetch("http://localhost:3000/keys", {
         method: "POST",
         headers: {
@@ -48,8 +66,7 @@ const fetchWellData = async (locationKey: string): Promise<any[]> => {
         },
         body: JSON.stringify({ key: locationKey }),
     });
-    const wellData: any[] = await response.json();
-
+    const wellData: RawWellData[] = await response.json();
     return wellData;
 };
 
@@ -94,43 +111,42 @@ function makeGroundTranslucentAsYouGetCloser(viewer: CesiumViewer) {
     });
 }
 
-function mapMaterialType(material: string): GroundMaterialType {
-    switch (material.trim().toUpperCase()) {
-        case "LEAN CLAY":
-            return GroundMaterialType.Clay;
-        case "SANDY LEAN CLAY":
-            return GroundMaterialType.Clay;
-        case "SHALE":
-            return GroundMaterialType.Shale;
-        // Add other mappings here...
-        default:
-            return GroundMaterialType.NA;
+function mapMaterialType(material: string): keyof typeof GroundMaterialType {
+    const cleanedMaterial = material.trim().toUpperCase();
+    for (const key in GroundMaterialType) {
+        if (key === cleanedMaterial) {
+            return key as keyof typeof GroundMaterialType;
+        }
     }
+    return "NA";
 }
 
 function mapMaterialColor(
-    material: GroundMaterialType
+    materialKey: keyof typeof GroundMaterialType
 ): GroundMaterialTypeColor {
-    switch (material) {
-        case GroundMaterialType.Clay:
-            return GroundMaterialTypeColor.Clay;
-        case GroundMaterialType.Shale:
-            return GroundMaterialTypeColor.Shale;
-        // Add other mappings here...
-        default:
-            return GroundMaterialTypeColor.NA;
+    if (materialKey in GroundMaterialTypeColor) {
+        return GroundMaterialTypeColor[materialKey];
+    } else {
+        return GroundMaterialTypeColor.NA; // Fallback if material not found
     }
 }
 
-function processWellData(rawData: any[]): WellData[] {
+function processRawWellData(rawData: RawWellData[]): WellData[] {
     return rawData.map((data) => {
-        const layers: Layer[] = data.layers.map((layer: any) => {
-            const materialType = mapMaterialType(layer[2]);
+        const layers: Layer[] = data.layers.map((layer: RawLayer) => {
+            const materialType: keyof typeof GroundMaterialType =
+                mapMaterialType(layer[3]);
+            const color: GroundMaterialTypeColor =
+                mapMaterialColor(materialType);
+
             return {
-                type: [materialType],
-                color: mapMaterialColor(materialType),
+                type: [GroundMaterialType[materialType]],
+                color: color,
                 startDepth: layer[0],
                 endDepth: layer[1],
+                unAdjustedEndDepth: layer[1],
+                unAdjustedStartDepth: layer[0],
+                description: layer[2],
             };
         });
 
@@ -139,9 +155,54 @@ function processWellData(rawData: any[]): WellData[] {
             latitude: data.lat,
             startDepth: 0,
             endDepth: data.total_well_depth_in_ft,
-            layers: layers,
             StateWellID: data.well_id,
-            metadata: null,
+            layers: layers,
+        };
+    });
+}
+
+function fillInMissingLayers(wellData: WellData[]): WellData[] {
+    return wellData.map((well) => {
+        const filledLayers: Layer[] = [];
+        let currentDepth = well.startDepth;
+
+        well.layers.forEach((layer) => {
+            // If there's a gap between the current depth and the start of the next layer, fill it with an NA layer
+            if (layer.startDepth > currentDepth) {
+                filledLayers.push({
+                    type: [GroundMaterialType.NA],
+                    color: GroundMaterialTypeColor.NA,
+                    startDepth: currentDepth,
+                    endDepth: layer.startDepth,
+                    unAdjustedEndDepth: layer.startDepth,
+                    unAdjustedStartDepth: currentDepth,
+                    description: "NA",
+                });
+            }
+
+            // Add the current layer
+            filledLayers.push(layer);
+
+            // Update the current depth to the end of this layer
+            currentDepth = layer.endDepth;
+        });
+
+        // If there's a gap between the end of the last layer and the end of the well, fill it with an NA layer
+        if (currentDepth < well.endDepth) {
+            filledLayers.push({
+                type: [GroundMaterialType.NA],
+                color: GroundMaterialTypeColor.NA,
+                startDepth: currentDepth,
+                endDepth: well.endDepth,
+                unAdjustedEndDepth: well.endDepth,
+                unAdjustedStartDepth: currentDepth,
+                description: "NA",
+            });
+        }
+
+        return {
+            ...well,
+            layers: filledLayers,
         };
     });
 }
@@ -152,6 +213,7 @@ const ResiumViewerComponent: React.FC = () => {
         CesiumTerrainProvider | undefined
     >(undefined);
     const quadrantsRef = useRef<Chunk[]>([]); // Use ref for quadrants
+    const currentQuadrantRef = useRef<Chunk | null | undefined>(null);
     const [currentQuadrant, setCurrentQuadrant] = useState<
         Chunk | null | undefined
     >(null);
@@ -166,6 +228,62 @@ const ResiumViewerComponent: React.FC = () => {
 
     // Variables to store the previous camera position
     const prevCameraPosition = useRef<Cartographic | null>(null);
+
+    const handleCameraMove = useCallback(async (camera: Camera) => {
+        const cartographicPosition = Cartographic.fromCartesian(
+            camera.position
+        );
+        const currentLat = CesiumMath.toDegrees(cartographicPosition.latitude);
+        const currentLon = CesiumMath.toDegrees(cartographicPosition.longitude);
+
+        const quadrant = currentQuadrantRef.current;
+
+        // Check if the camera is still within the current chunk
+        if (
+            quadrant &&
+            currentLon >= quadrant.topLeft.lon &&
+            currentLon <= quadrant.bottomRight.lon &&
+            currentLat <= quadrant.bottomRight.lat &&
+            currentLat >= quadrant.topLeft.lat
+        ) {
+            // The camera is still within the current chunk, no need to do anything
+            console.log(
+                "We correctly determined that we're in the same chunk as before"
+            );
+            return;
+        }
+
+        // Find the new chunk that contains the current camera position
+        console.log("We're about to do an expensive operation");
+        const newChunk = quadrantsRef.current.find((chunk) => {
+            return (
+                currentLon >= chunk.topLeft.lon &&
+                currentLon <= chunk.bottomRight.lon &&
+                currentLat <= chunk.bottomRight.lat &&
+                currentLat >= chunk.topLeft.lat
+            );
+        });
+
+        if (newChunk && newChunk !== quadrant) {
+            // We have moved to a new chunk, fetch the new data
+            const locationKey: string = createLocationKey(newChunk);
+            const rawWellData: RawWellData[] = await fetchWellData(locationKey);
+            const processedWellData: WellData[] =
+                processRawWellData(rawWellData);
+            const filledWellData: WellData[] =
+                fillInMissingLayers(processedWellData);
+            setWellDataWithoutElevationAdjustments(filledWellData);
+            setCurrentQuadrant(newChunk);
+            currentQuadrantRef.current = newChunk;
+        }
+
+        // Update the previous position
+        prevCameraPosition.current = cartographicPosition;
+    }, []);
+
+    useEffect(() => {
+        currentQuadrantRef.current = currentQuadrant;
+    }, [currentQuadrant]);
 
     useEffect(() => {
         const loadTerrainData = async () => {
@@ -235,57 +353,8 @@ const ResiumViewerComponent: React.FC = () => {
             clearInterval(checkViewerReady);
             window.removeEventListener("resize", repositionToolbar);
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
-
-    const handleCameraMove = useCallback(
-        async (camera: Camera) => {
-            const cartographicPosition = Cartographic.fromCartesian(
-                camera.position
-            );
-            const currentLat = CesiumMath.toDegrees(
-                cartographicPosition.latitude
-            );
-            const currentLon = CesiumMath.toDegrees(
-                cartographicPosition.longitude
-            );
-
-            // Check if the camera is still within the current chunk
-            if (
-                currentQuadrant &&
-                currentLon >= currentQuadrant.topLeft.lon &&
-                currentLon <= currentQuadrant.bottomRight.lon &&
-                currentLat <= currentQuadrant.bottomRight.lat &&
-                currentLat >= currentQuadrant.topLeft.lat
-            ) {
-                // The camera is still within the current chunk, no need to do anything
-                return;
-            }
-
-            // Find the new chunk that contains the current camera position
-            console.log("We're about to do an expensive operation");
-            const newChunk = quadrantsRef.current.find((chunk) => {
-                return (
-                    currentLon >= chunk.topLeft.lon &&
-                    currentLon <= chunk.bottomRight.lon &&
-                    currentLat <= chunk.bottomRight.lat &&
-                    currentLat >= chunk.topLeft.lat
-                );
-            });
-
-            if (newChunk && newChunk !== currentQuadrant) {
-                // We have moved to a new chunk, fetch the new data
-                const locationKey = createLocationKey(newChunk);
-                const rawWellData = await fetchWellData(locationKey);
-                const processedWellData = processWellData(rawWellData);
-                setWellDataWithoutElevationAdjustments(processedWellData);
-                setCurrentQuadrant(newChunk);
-            }
-
-            // Update the previous position
-            prevCameraPosition.current = cartographicPosition;
-        },
-        [currentQuadrant, setCurrentQuadrant]
-    );
 
     if (!terrainProvider) {
         return <div>Loading terrain data...</div>;

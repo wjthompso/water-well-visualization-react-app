@@ -14,29 +14,72 @@ const Tooltip: React.FC<TooltipProps> = () => {
         }
     }, [tooltipString]);
 
+    // Check if tooltipString is a string or an object
+    const isStringTooltip = (str: string | object): str is string => {
+        return typeof str === "string";
+    };
+
     return (
         <>
-            {tooltipString && (
-                <div
-                    id="tooltip"
-                    ref={tooltipRef}
-                    style={{
-                        position: "absolute",
-                        backgroundColor: "white",
-                        color: "black",
-                        borderRadius: "5px",
-                        padding: "10px",
-                        boxShadow: "2px 2px 5px rgba(0, 0, 0, 0.2)",
-                        zIndex: 999,
-                        display: "block",
-                        left: `${tooltipX - tooltipWidth / 2}px`,
-                        top: `${tooltipY - 150}px`, // Adjust this value as needed to position the tooltip above the cursor
-                        whiteSpace: "nowrap", // Prevents text from wrapping, adjust or remove as needed
-                    }}
-                >
-                    {tooltipString}
-                </div>
-            )}
+            {tooltipString &&
+                (isStringTooltip(tooltipString) ? (
+                    tooltipString.trim() !== "" && (
+                        <div
+                            id="tooltip"
+                            ref={tooltipRef}
+                            style={{
+                                position: "absolute",
+                                backgroundColor: "white",
+                                color: "black",
+                                borderRadius: "5px",
+                                padding: "10px",
+                                boxShadow: "2px 2px 5px rgba(0, 0, 0, 0.2)",
+                                zIndex: 999,
+                                display: "block",
+                                left: `${tooltipX - tooltipWidth / 2}px`,
+                                top: `${tooltipY - 150}px`, // Adjust this value as needed to position the tooltip above the cursor
+                                whiteSpace: "nowrap", // Prevents text from wrapping, adjust or remove as needed
+                            }}
+                        >
+                            {tooltipString}
+                        </div>
+                    )
+                ) : (
+                    <div
+                        id="tooltip"
+                        ref={tooltipRef}
+                        style={{
+                            position: "absolute",
+                            backgroundColor: "white",
+                            color: "black",
+                            borderRadius: "5px",
+                            padding: "10px",
+                            boxShadow: "2px 2px 5px rgba(0, 0, 0, 0.2)",
+                            zIndex: 999,
+                            display: "block",
+                            left: `${tooltipX - tooltipWidth / 2}px`,
+                            top: `${tooltipY - 200}px`, // Adjust this value as needed to position the tooltip above the cursor
+                            whiteSpace: "nowrap", // Prevents text from wrapping, adjust or remove as needed
+                        }}
+                    >
+                        <div className="text-sm">
+                            <strong>Start Depth:</strong>{" "}
+                            {tooltipString.startDepth} ft
+                        </div>
+                        <div className="text-sm">
+                            <strong>End Depth:</strong> {tooltipString.endDepth}{" "}
+                            ft
+                        </div>
+                        <div className="text-sm">
+                            <strong>Type:</strong>{" "}
+                            {tooltipString.type.join(", ")}
+                        </div>
+                        <div className="text-sm">
+                            <strong>Description:</strong>{" "}
+                            {tooltipString.lithologyDescription}
+                        </div>
+                    </div>
+                ))}
         </>
     );
 };
