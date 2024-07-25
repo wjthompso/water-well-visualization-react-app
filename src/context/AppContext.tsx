@@ -15,12 +15,14 @@ interface TooltipContextType {
     tooltipY: number;
     tooltipString: ToolTipString | string;
     wellDataFromRawDataState: WellData[];
+    selectedWellData: WellData | null;
     setTooltipX: React.Dispatch<React.SetStateAction<number>>;
     setTooltipY: React.Dispatch<React.SetStateAction<number>>;
     setTooltipString: React.Dispatch<
         React.SetStateAction<ToolTipString | string>
     >;
     setWellDataFromRawData: React.Dispatch<React.SetStateAction<WellData[]>>;
+    setSelectedWellData: React.Dispatch<React.SetStateAction<WellData | null>>;
 }
 
 // Create the context with initial values
@@ -33,11 +35,13 @@ export const TooltipContext = createContext<TooltipContextType>({
     },
     tooltipX: 0,
     tooltipY: 0,
+    selectedWellData: null,
     wellDataFromRawDataState: [],
     setTooltipString: () => {},
     setTooltipX: () => {},
     setTooltipY: () => {},
     setWellDataFromRawData: () => {},
+    setSelectedWellData: () => {},
 });
 
 // Define the props type for TooltipProvider
@@ -56,6 +60,9 @@ export const TooltipProvider: React.FC<TooltipProviderProps> = ({
     const [tooltipY, setTooltipY] = useState<number>(0);
     const [wellDataFromRawDataState, setWellDataFromRawData] =
         useState<WellData[]>(wellDataFromRawData);
+    const [selectedWellData, setSelectedWellData] = useState<WellData | null>(
+        null
+    );
 
     return (
         <TooltipContext.Provider
@@ -64,10 +71,12 @@ export const TooltipProvider: React.FC<TooltipProviderProps> = ({
                 tooltipX,
                 tooltipY,
                 wellDataFromRawDataState,
+                selectedWellData,
                 setTooltipString,
                 setTooltipX,
                 setTooltipY,
                 setWellDataFromRawData,
+                setSelectedWellData,
             }}
         >
             {children}

@@ -4,7 +4,7 @@ import Header from "./components/Header/Header";
 
 import { Ion } from "cesium";
 import Legend from "./components/Legend/Legend";
-import { RightSideBar } from "./components/RightSidebar/RightSideBar";
+import RightSideBar from "./components/RightSidebar/RightSideBar";
 
 // Set your Cesium Ion access token
 Ion.defaultAccessToken =

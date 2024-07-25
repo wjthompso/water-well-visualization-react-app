@@ -9,12 +9,7 @@ import {
     VerticalOrigin,
 } from "cesium";
 import React, { useCallback, useContext, useEffect, useState } from "react";
-import {
-    BillboardGraphics,
-    EllipseGraphics,
-    Entity,
-    EntityDescription,
-} from "resium";
+import { BillboardGraphics, EllipseGraphics, Entity } from "resium";
 import MapIconWaterPresent from "../../assets/MapIconWaterPresent.png";
 import { TooltipContext } from "../../context/AppContext"; // Adjust the import path as necessary
 import { WellData } from "../../context/WellData";
@@ -33,7 +28,7 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
     const heightMapIconShouldShowAboveWell = 20;
     const [wellDataWithHeights, setWellDataWithHeights] =
         useState(wellDataFromRawData);
-    const { setTooltipString, setTooltipX, setTooltipY } =
+    const { setTooltipString, setTooltipX, setTooltipY, setSelectedWellData } =
         useContext(TooltipContext);
 
     useEffect(() => {
@@ -141,6 +136,13 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
         [setTooltipString, wellDataWithHeights]
     );
 
+    const handleClick = useCallback(
+        (index: number) => {
+            setSelectedWellData(wellDataWithHeights[index]);
+        },
+        [setSelectedWellData, wellDataWithHeights]
+    );
+
     return (
         <>
             {wellDataWithHeights.map((well, wellIndex) => {
@@ -164,6 +166,7 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
                         <Entity
                             key={`billboard_${wellIndex}`}
                             position={indicatorStartPosition}
+                            onClick={() => handleClick(wellIndex)}
                             onMouseMove={() => handleIconMouseOver(wellIndex)}
                             onMouseLeave={handleMouseOut}
                         >
@@ -174,9 +177,9 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
                                     new NearFarScalar(1.5e2, 0.7, 1.5e5, 0.2) // Adjust scale based on distance
                                 }
                             />
-                            <EntityDescription>
+                            {/* <EntityDescription>
                                 <h2>{`Map Icon for Well ${well.StateWellID}`}</h2>
-                            </EntityDescription>
+                            </EntityDescription> */}
                         </Entity>
                         {well.layers.map((layer, layerIndex) => {
                             const layerStartPositionCartesian =
@@ -190,6 +193,7 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
                                 <Entity
                                     key={`cylinder_${wellIndex}_${layerIndex}`}
                                     position={layerStartPositionCartesian}
+                                    onClick={() => handleClick(wellIndex)}
                                     onMouseMove={() =>
                                         handleMouseOver(wellIndex, layerIndex)
                                     }
@@ -211,12 +215,12 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
                                             layer.color
                                         )}
                                     />
-                                    <EntityDescription>
+                                    {/* <EntityDescription>
                                         <h1>{`Layer ${layerIndex} of Cylinder ${wellIndex}`}</h1>
                                         {well.metadata ? (
                                             <p>{well.metadata}</p>
                                         ) : null}
-                                    </EntityDescription>
+                                    </EntityDescription> */}
                                 </Entity>
                             );
                         })}

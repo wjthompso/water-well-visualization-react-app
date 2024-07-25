@@ -58,25 +58,25 @@ export enum GroundMaterialType {
 }
 
 export enum GroundMaterialTypeColor {
-    UCG = "#FDE046",
-    UMC = "#EAB305",
-    UMIX = "#FB923C",
-    UFC = "#EA580B",
-    UFG = "#EF4444",
+    UCG = "#8B4513", // SaddleBrown
+    UMC = "#A0522D", // Sienna
+    UMIX = "#CD853F", // Peru
+    UFC = "#DEB887", // BurlyWood
+    UFG = "#F4A460", // SandyBrown
     //
-    TILL = "#F471B5",
+    TILL = "#808080", // Gray
     //
-    CCG = "#FDE050",
-    CMCG = "#EAB315",
-    CMIX = "#FB923F",
-    CMFC = "#EA580C",
-    CFGP = "#EF4450",
+    CCG = "#FFCDD2", // Light Pink
+    CMCG = "#EF9A9A", // Salmon
+    CMIX = "#E57373", // Light Coral
+    CMFC = "#D9534F", // Crimson
+    CFGP = "#C64B4B", // Dark Red
     //
-    CARB = "#D1D5DA",
-    ENDO = "#1D40AF",
-    VOLC = "#16A349",
-    EVAP = "#7E22CD",
-    NA = "#FFFFFF",
+    CARB = "#B0C4DE", // LightSteelBlue
+    ENDO = "#5F9EA0", // CadetBlue
+    VOLC = "#483D8B", // DarkSlateBlue
+    EVAP = "#4682B4", // SteelBlue
+    NA = "#FFFFFF", // White
 }
 
 export interface Layer {

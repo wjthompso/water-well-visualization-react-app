@@ -391,6 +391,8 @@ const ResiumViewerComponent: React.FC = () => {
                     sceneModePicker={false} // Hide the scene mode picker
                     baseLayerPicker={false} // Hide the base layer picker
                     geocoder={false} // Hide the geocoder
+                    selectionIndicator={false} // Hide the selection indicator
+                    infoBox={false} // Hide the info box
                 >
                     <CylinderEntities
                         terrainProvider={terrainProvider}

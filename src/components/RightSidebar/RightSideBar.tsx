@@ -1,6 +1,9 @@
-import PDFReport from "../../assets/PDFReport.svg";
+import React, { useContext } from "react";
+import { TooltipContext } from "../../context/AppContext"; // adjust the import path as needed
 
-export function RightSideBar() {
+const RightSideBar: React.FC = () => {
+    const { selectedWellData } = useContext(TooltipContext);
+
     return (
         <div
             id="rightSideBar"
@@ -21,13 +24,19 @@ export function RightSideBar() {
                     className="mb-4"
                 >
                     <h1 className="lg:text-xl font-[600] mb-1 font-roboto">
-                        Oak Wells #1
+                        {selectedWellData
+                            ? selectedWellData.StateWellID || "Unknown Well"
+                            : "--"}
                     </h1>
                     <h3 className="text-base font-roboto">
-                        34°25'51.5"N, 119°52'42.6"W
+                        {selectedWellData
+                            ? `${selectedWellData.latitude.toFixed(
+                                  5
+                              )}°, ${selectedWellData.longitude.toFixed(5)}°`
+                            : "--"}
                     </h3>
                 </div>
-                <div
+                {/* <div
                     id="water-status"
                     className="mb-4"
                 >
@@ -35,8 +44,8 @@ export function RightSideBar() {
                         Water Status
                     </h1>
                     <h3 className="flex flex-row text-base font-roboto">
-                        <div className="mr-2">🚫</div> No water detected as of
-                        11/20/2014
+                        <div className="mr-2">🚫</div>
+                        {selectedWellData ? "No water detected" : "--"}
                     </h3>
                 </div>
                 <div
@@ -47,10 +56,10 @@ export function RightSideBar() {
                         Original Drilling Motive
                     </h1>
                     <h3 className="text-base font-roboto">
-                        Looking for petroleum.
+                        {selectedWellData ? "Looking for petroleum" : "--"}
                     </h3>
-                </div>
-                <div
+                </div> */}
+                {/* <div
                     id="drill-report"
                     className="mb-4"
                 >
@@ -62,46 +71,38 @@ export function RightSideBar() {
                         />{" "}
                         DRILL REPORT
                     </button>
-                </div>
-                <div
-                    id="lithology-breakdown"
-                    className="text-black"
-                >
-                    <h1 className="text-xl font-[600] mb-2 font-roboto text-white">
-                        Lithology breakdown
-                    </h1>
-                    <div className="grid grid-cols-3 gap-2 p-2 text-sm bg-yellow-400">
-                        <p className="col-span-2">
-                            <b>Clastic Sedimentary</b>, Course-grained
-                        </p>
-                        <p>0-20 ft</p>
+                </div> */}
+                {selectedWellData && (
+                    <div
+                        id="lithology-breakdown"
+                        className="text-black"
+                    >
+                        <h1 className="text-xl font-[600] mb-2 font-roboto text-white">
+                            Lithology breakdown
+                        </h1>
+                        {selectedWellData.layers.map((layer, index) => (
+                            <div
+                                key={index}
+                                className={`grid grid-cols-3 gap-2 p-2 text-sm`}
+                                style={{ backgroundColor: layer.color }}
+                            >
+                                <p className="col-span-2">
+                                    <b>{layer.type.join(", ")}</b>
+                                    {layer.description
+                                        ? `, ${layer.description}`
+                                        : ""}
+                                </p>
+                                <p>
+                                    {Math.floor(layer.unAdjustedStartDepth)}-
+                                    {Math.floor(layer.unAdjustedEndDepth)} ft
+                                </p>
+                            </div>
+                        ))}
                     </div>
-                    <div className="grid grid-cols-3 gap-2 p-2 text-sm bg-orange-400">
-                        <p className="col-span-2">
-                            <b>Unconsolidated</b>, Course- and fine-grained
-                        </p>
-                        <p>20-60 ft</p>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 p-2 text-sm bg-green-400">
-                        <p className="col-span-2">
-                            <b>Other</b>, Volcanic Class
-                        </p>
-                        <p>60-88 ft</p>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 p-2 text-sm bg-red-400">
-                        <p className="col-span-2">
-                            <b>Sedimentary</b>, Course- and Fine-grained
-                        </p>
-                        <p>88.3-91.25 ft</p>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 p-2 text-sm bg-red-600">
-                        <p className="col-span-2">
-                            <b>Clastic sedimentary</b>, Mostly fine-grained
-                        </p>
-                        <p>91.25-135 ft</p>
-                    </div>
-                </div>
+                )}
             </div>
         </div>
     );
-}
+};
+
+export default RightSideBar;
