@@ -103,7 +103,7 @@ function makeGroundTranslucentAsYouGetCloser(viewer: CesiumViewer) {
     const scene = viewer.scene;
     scene.camera.changed.addEventListener(function () {
         const cameraHeight = scene.camera.positionCartographic.height;
-        if (cameraHeight < 700) {
+        if (cameraHeight < 2000) {
             globe.translucency.frontFaceAlpha = 0.5;
         } else {
             globe.translucency.frontFaceAlpha = 1;
