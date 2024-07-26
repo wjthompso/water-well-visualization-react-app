@@ -8,6 +8,7 @@ export default {
                 roboto: ["Roboto", "sans-serif"], // Add Roboto font here
             },
             colors: {
+                headerBackgroundColor: "#2F2E2E",
                 borderColor: "#808080",
                 sideBarBackgroundColor: "rgba(50, 50, 50, 0.85)",
                 drillReportButtonBackgroundColor: "#C0C0C0",

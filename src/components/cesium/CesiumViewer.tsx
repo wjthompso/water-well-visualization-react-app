@@ -17,8 +17,8 @@ import {
     Layer,
     WellData,
 } from "../../context/WellData";
+import DraggableComponent from "../DraggableFooter/DraggableFooter";
 import CustomSearchBar from "../Searchbar/CustomSearchbar";
-import DraggableComponent from "../testDraggableComponent/ExampleDraggableComponent";
 import CylinderEntities from "./CylinderEntities";
 import Tooltip from "./Tooltip";
 
