@@ -359,7 +359,7 @@ const ResiumViewerComponent: React.FC = () => {
     if (!terrainProvider) {
         // return <div>Loading terrain data...</div>;
         return (
-            <div className="flex items-center justify-center w-full h-full bg-headerBackgroundColor">
+            <div className="flex items-center justify-center w-full h-full md:pr-[272px] bg-headerBackgroundColor">
                 <LoadingSpinner />
             </div>
         );
