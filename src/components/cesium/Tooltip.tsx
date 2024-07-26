@@ -60,20 +60,16 @@ const Tooltip: React.FC<TooltipProps> = () => {
                             whiteSpace: "nowrap", // Prevents text from wrapping, adjust or remove as needed
                         }}
                     >
-                        <div className="text-sm">
-                            <strong>Start Depth:</strong>{" "}
-                            {tooltipString.startDepth} ft
-                        </div>
-                        <div className="text-sm">
-                            <strong>End Depth:</strong> {tooltipString.endDepth}{" "}
+                        <div className="text-base">
+                            {tooltipString.startDepth}-{tooltipString.endDepth}{" "}
                             ft
                         </div>
                         <div className="text-sm">
-                            <strong>Type:</strong>{" "}
+                            <strong>Category:</strong>{" "}
                             {tooltipString.type.join(", ")}
                         </div>
                         <div className="text-sm">
-                            <strong>Description:</strong>{" "}
+                            <strong>Driller Notes:</strong>{" "}
                             {tooltipString.lithologyDescription}
                         </div>
                     </div>
