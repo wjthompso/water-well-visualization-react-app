@@ -67,9 +67,10 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
                     heightOfSearchBarRef.current -
                     componentLeftMargin * 2;
                 componentRef.current.style.height = `${parentHeightMinusMargin}px`;
+                console.log("parentHeightMinusMargin", parentHeightMinusMargin);
             }
         }
-    }, [componentRef, parentRef]);
+    }, [componentRef, parentRef, selectedWellData]);
 
     // Update the initial Y value once the parentRef is available
     useEffect(() => {
@@ -87,9 +88,13 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
                 const componentHeight = componentRef.current.offsetHeight;
                 const parentHeight = parentRef.current.offsetHeight;
                 const componentLeftMargin = componentLeftMarginRef.current;
-                const topBound =
+                const topBoundA =
                     parentHeight - componentHeight - componentLeftMargin;
+                const topBoundB =
+                    heightOfSearchBarRef.current + componentLeftMargin;
+                const topBound = Math.max(topBoundA, topBoundB);
                 const bottomBound = parentHeight - peekHeight;
+                // console.log("topBound", topBound, "bottomBound", bottomBound);
                 const newY = Math.min(Math.max(oy, topBound), bottomBound);
                 api.start({ y: newY, immediate: true });
             }
@@ -101,6 +106,8 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
         }
     );
 
+    if (!selectedWellData) return <></>;
+
     return (
         <animated.div
             {...bind()}
@@ -109,16 +116,16 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
                 y,
                 touchAction: "none",
             }}
-            className="absolute mx-2 top-0 left-0 z-50 visible w-[calc(100%-1rem)] p-4 bg-headerBackgroundColor text-white border-[1px] border-borderColor rounded-xl cursor-move shadow-topShadow md:hidden"
+            className="absolute mx-2 top-0 left-0 z-50 visible w-[calc(100%-1rem)] bg-headerBackgroundColor text-white border-[1px] border-borderColor rounded-xl cursor-move shadow-topShadow md:hidden"
         >
             <div
                 id="scrollable-content"
                 className="w-full h-full overflow-y-scroll"
             >
-                <div className="px-4">
+                <div className="px-8">
                     <div
                         id="bar-to-indicate-draggability"
-                        className="w-20 px-4 py-1 mx-auto bg-gray-300 rounded"
+                        className="w-20 px-4 py-1 mx-auto mt-4 bg-gray-300 rounded"
                     ></div>
                     <h2 className="mt-2 mb-4 text-2xl font-bold text-center select-none">
                         Selected Well Info
@@ -158,15 +165,15 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
                             </button> */}
                         </div>
                     </div>
-                    <div
-                        id="divider-bar"
-                        className="absolute left-0 w-[calc(100%)] h-[1px] bg-borderColor"
-                    ></div>
-                    <div className="mt-8">
-                        <h3 className="flex justify-center mt-2 mb-2 text-2xl font-bold">
-                            Well lithology
-                        </h3>
-                    </div>
+                </div>
+                <div
+                    id="divider-bar"
+                    className="w-[calc(100%)] h-[1px] bg-borderColor"
+                ></div>
+                <div className="px-4 py-4">
+                    <h3 className="flex justify-center mb-2 text-2xl font-bold">
+                        Well lithology
+                    </h3>
                     <div
                         id="well-lithology-table"
                         className="flex flex-col"

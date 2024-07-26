@@ -18,6 +18,7 @@ import {
     WellData,
 } from "../../context/WellData";
 import DraggableComponent from "../DraggableFooter/DraggableFooter";
+import LoadingSpinner from "../LoadingSpinner/LoadingSpinner";
 import CustomSearchBar from "../Searchbar/CustomSearchbar";
 import CylinderEntities from "./CylinderEntities";
 import Tooltip from "./Tooltip";
@@ -356,7 +357,12 @@ const ResiumViewerComponent: React.FC = () => {
     }, []);
 
     if (!terrainProvider) {
-        return <div>Loading terrain data...</div>;
+        // return <div>Loading terrain data...</div>;
+        return (
+            <div className="flex items-center justify-center w-full h-full bg-headerBackgroundColor">
+                <LoadingSpinner />
+            </div>
+        );
     }
 
     return (

@@ -27,10 +27,9 @@ const Tooltip: React.FC<TooltipProps> = () => {
                         <div
                             id="tooltip"
                             ref={tooltipRef}
+                            className="text-white bg-headerBackgroundColor"
                             style={{
                                 position: "absolute",
-                                backgroundColor: "white",
-                                color: "black",
                                 borderRadius: "5px",
                                 padding: "10px",
                                 boxShadow: "2px 2px 5px rgba(0, 0, 0, 0.2)",
@@ -48,10 +47,9 @@ const Tooltip: React.FC<TooltipProps> = () => {
                     <div
                         id="tooltip"
                         ref={tooltipRef}
+                        className="text-white bg-headerBackgroundColor"
                         style={{
                             position: "absolute",
-                            backgroundColor: "white",
-                            color: "black",
                             borderRadius: "5px",
                             padding: "10px",
                             boxShadow: "2px 2px 5px rgba(0, 0, 0, 0.2)",
