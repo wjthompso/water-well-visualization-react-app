@@ -1,7 +1,6 @@
 import { animated, useSpring } from "@react-spring/web";
 import { useDrag } from "@use-gesture/react";
 import React, { useContext, useEffect, useRef, useState } from "react";
-import PDFIcon from "../../assets/PDFIcon.svg";
 import { TooltipContext } from "../../context/AppContext"; // adjust the import path as needed
 
 interface DraggableComponentProps {
@@ -110,7 +109,7 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
                 y,
                 touchAction: "none",
             }}
-            className="absolute mx-2 top-0 left-0 z-50 visible w-[calc(100%-1rem)] p-4 bg-white border rounded-xl cursor-move shadow-topShadow md:hidden"
+            className="absolute mx-2 top-0 left-0 z-50 visible w-[calc(100%-1rem)] p-4 bg-headerBackgroundColor text-white border-[1px] border-borderColor rounded-xl cursor-move shadow-topShadow md:hidden"
         >
             <div
                 id="scrollable-content"
@@ -146,22 +145,22 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
                             </p>
                         </div>
                         <div className="flex items-center justify-center ml-1">
-                            <button className="flex items-center justify-start w-28 h-12 py-2 border-[1px] border-black rounded">
+                            {/* <button className="flex items-center justify-start w-28 h-12 py-2 border-[1px] border-borderColor rounded">
                                 <img
                                     className="flex w-[1.75rem] mx-2 sm:mx-2 justify-self-start"
                                     src={PDFIcon}
                                     alt="PDF Report Icon"
                                 />
-                                <p className="flex justify-start text-[0.75rem] w-12 font-bold text-black text-left">
+                                <p className="flex justify-start text-[0.75rem] w-12 font-bold text-white text-left">
                                     {" "}
                                     DRILL REPORT
                                 </p>{" "}
-                            </button>
+                            </button> */}
                         </div>
                     </div>
                     <div
                         id="divider-bar"
-                        className="absolute left-0 w-[calc(100%)] h-2 bg-[#EDEDED] border-[1px] border-y-[#D2D2D2]"
+                        className="absolute left-0 w-[calc(100%)] h-[1px] bg-borderColor"
                     ></div>
                     <div className="mt-8">
                         <h3 className="flex justify-center mt-2 mb-2 text-2xl font-bold">

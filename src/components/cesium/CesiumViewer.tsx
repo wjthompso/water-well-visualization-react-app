@@ -297,7 +297,6 @@ const ResiumViewerComponent: React.FC = () => {
                 hasFetchedQuadrants.current = true;
                 const quadrantData: Chunk[] = await fetchQuadrants();
                 quadrantsRef.current = quadrantData;
-                console.log("Quadrants fetched:", quadrantData);
             }
         };
 

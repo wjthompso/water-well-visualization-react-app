@@ -4,6 +4,7 @@ import { debounce } from "lodash"; // Install lodash if not already installed
 import React, { useEffect, useState } from "react";
 import { CesiumComponentRef } from "resium";
 import SearchIcon from "../../assets/SearchIcon.svg";
+import "./CustomSearchbar.css";
 
 interface CustomSearchBarProps {
     viewerRef: React.RefObject<CesiumComponentRef<CesiumViewer>>;
@@ -88,13 +89,13 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
         <div
             ref={searchBarRef}
             id="custom-search-bar-container"
-            className="absolute z-30 w-full md:w-[17rem] md:right-[calc(271px+0.5rem)] md:top-[0.4rem] px-2 py-1 bg-white md:px-0 md:py-0 md:bg-transparent"
+            className="absolute z-30 w-full md:w-[17rem] md:right-[calc(271px+0.5rem)] md:top-[0.4rem] px-2 py-1 bg-headerBackgroundColor md:px-0 md:py-0 md:bg-transparent"
             onFocus={() => setSearchBarInFocus(true)}
             onBlur={() => setTimeout(() => setSearchBarInFocus(false), 300)}
         >
             <div
                 id="custom-search-bar-with-results"
-                className="min-h-[2rem] flex flex-col flex-1 px-[0.4rem] bg-white rounded-md border-[1px] border-[#9A9A9A]"
+                className="min-h-[2rem] flex flex-col flex-1 px-[0.4rem] bg-headerBackgroundColor rounded-md border-[1px] border-[#9A9A9A]"
             >
                 <div
                     id="search-bar"
@@ -103,26 +104,27 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
                     <img
                         src={SearchIcon}
                         alt="Search Icon"
-                        className="self-center w-4 h-4 mr-[0.3rem]"
+                        className="self-center w-4 h-4 mr-[0.3rem] custom-search-icon-svg-filter"
                     />
                     <input
+                        id="search-input"
                         type="text"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder="Search for a city or address"
-                        className="flex-1 flex-grow w-full h-full text-[#595959] outline-none focus:ring-0"
+                        className="flex-1 flex-grow w-full h-full text-white outline-none bg-headerBackgroundColor focus:ring-0"
                     />
                 </div>
                 {searchBarInFocus && (
                     <ul
                         id="search-results"
-                        className="w-full bg-white"
+                        className="w-full bg-headerBackgroundColor"
                     >
                         {results.map((result) => (
                             <li
                                 key={result.place_id}
                                 onClick={() => handleResultClick(result)}
-                                className="flex items-center px-2 min-h-[2.2rem] cursor-pointer hover:bg-gray-200 border-t-[1px] border-t-gray-200"
+                                className="flex items-center px-2 min-h-[2.2rem] text-white cursor-pointer hover:bg-gray-600 border-t-[1px] border-t-gray-200"
                             >
                                 {result.formatted_address}
                             </li>
