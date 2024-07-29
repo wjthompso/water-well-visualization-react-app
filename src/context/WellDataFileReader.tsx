@@ -74,6 +74,9 @@ function convertRawDataToWellData(
                     ],
                     startDepth: data.TopDepth_InUnitsOfFeet,
                     endDepth: data.BottomDepth_InUnitsOfFeet,
+                    unAdjustedEndDepth: data.BottomDepth_InUnitsOfFeet,
+                    unAdjustedStartDepth: data.TopDepth_InUnitsOfFeet,
+                    description: data.Lithology1,
                 };
 
                 layers.push(layer);

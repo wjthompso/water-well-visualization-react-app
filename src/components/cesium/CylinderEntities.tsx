@@ -13,7 +13,6 @@ import { BillboardGraphics, EllipseGraphics, Entity } from "resium";
 import MapIconWaterPresent from "../../assets/MapIconWaterPresent.png";
 import { TooltipContext } from "../../context/AppContext"; // Adjust the import path as necessary
 import { WellData } from "../../context/WellData";
-import { wellDataFromRawData } from "../../context/WellDataFileReader";
 
 interface CylinderEntitiesProps {
     terrainProvider: CesiumTerrainProvider | undefined | null;
@@ -26,8 +25,9 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
 }) => {
     const heightWellShouldShowAboveSurface = 1;
     const heightMapIconShouldShowAboveWell = 20;
-    const [wellDataWithHeights, setWellDataWithHeights] =
-        useState(wellDataFromRawData);
+    const [wellDataWithHeights, setWellDataWithHeights] = useState(
+        [] as WellData[]
+    );
     const { setTooltipString, setTooltipX, setTooltipY, setSelectedWellData } =
         useContext(TooltipContext);
 
@@ -78,8 +78,6 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
 
         if (wellDataWithoutElevationAdjustments.length > 0) {
             sampleTerrainHeights(wellDataWithoutElevationAdjustments);
-        } else {
-            sampleTerrainHeights(wellDataFromRawData);
         }
     }, [terrainProvider, wellDataWithoutElevationAdjustments]);
 
@@ -177,9 +175,6 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
                                     new NearFarScalar(1.5e2, 0.7, 1.5e5, 0.2) // Adjust scale based on distance
                                 }
                             />
-                            {/* <EntityDescription>
-                                <h2>{`Map Icon for Well ${well.StateWellID}`}</h2>
-                            </EntityDescription> */}
                         </Entity>
                         {well.layers.map((layer, layerIndex) => {
                             const layerStartPositionCartesian =
@@ -215,12 +210,6 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
                                             layer.color
                                         )}
                                     />
-                                    {/* <EntityDescription>
-                                        <h1>{`Layer ${layerIndex} of Cylinder ${wellIndex}`}</h1>
-                                        {well.metadata ? (
-                                            <p>{well.metadata}</p>
-                                        ) : null}
-                                    </EntityDescription> */}
                                 </Entity>
                             );
                         })}

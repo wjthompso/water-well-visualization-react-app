@@ -248,14 +248,13 @@ const ResiumViewerComponent: React.FC = () => {
             currentLat >= quadrant.topLeft.lat
         ) {
             // The camera is still within the current chunk, no need to do anything
-            console.log(
-                "We correctly determined that we're in the same chunk as before"
-            );
+            // console.log(
+            //     "We correctly determined that we're in the same chunk as before"
+            // );
             return;
         }
 
         // Find the new chunk that contains the current camera position
-        console.log("We're about to do an expensive operation");
         const newChunk = quadrantsRef.current.find((chunk) => {
             return (
                 currentLon >= chunk.topLeft.lon &&
