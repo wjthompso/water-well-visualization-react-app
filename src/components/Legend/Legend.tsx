@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import LegendArrowsDown from "../../assets/LegendArrowsDown.svg";
 import LegendArrowsUp from "../../assets/LegendArrowsUp.svg";
+import { TailwindGroundMaterialTypeColor } from "../../context/WellData";
 
 const Legend: React.FC = () => {
     const [isVisible, setIsVisible] = useState(true);
@@ -26,23 +27,33 @@ const Legend: React.FC = () => {
                         </h2>
                         <div className="flex flex-col justify-between flex-1">
                             <p className="flex items-center text-[0.7rem]">
-                                <span className="inline-block w-4 h-4 mr-[0.4rem] bg-yellow-300"></span>
+                                <span
+                                    className={`inline-block w-4 h-4 mr-[0.4rem] ${TailwindGroundMaterialTypeColor.UNC_COARSE}`}
+                                ></span>
                                 Coarse-grained
                             </p>
                             <p className="flex items-center text-[0.7rem]">
-                                <span className="inline-block w-4 h-4 mr-[0.4rem] bg-yellow-500"></span>
+                                <span
+                                    className={`inline-block w-4 h-4 mr-[0.4rem] ${TailwindGroundMaterialTypeColor.UNC_MOSTLY_COARSE}`}
+                                ></span>
                                 Mostly coarse-grained
                             </p>
                             <p className="flex items-center text-[0.7rem]">
-                                <span className="inline-block w-4 h-4 mr-[0.4rem] bg-orange-400"></span>
+                                <span
+                                    className={`inline-block w-4 h-4 mr-[0.4rem] ${TailwindGroundMaterialTypeColor.UNC_MIX_COARSE_FINE}`}
+                                ></span>
                                 Coarse- and fine-grained
                             </p>
                             <p className="flex items-center text-[0.7rem]">
-                                <span className="inline-block w-4 h-4 mr-[0.4rem] bg-orange-600"></span>
+                                <span
+                                    className={`inline-block w-4 h-4 mr-[0.4rem] ${TailwindGroundMaterialTypeColor.UNC_MOSTLY_FINE}`}
+                                ></span>
                                 Mostly fine-grained
                             </p>
                             <p className="flex items-center text-[0.7rem]">
-                                <span className="inline-block w-4 h-4 mr-[0.4rem] bg-red-500"></span>
+                                <span
+                                    className={`inline-block w-4 h-4 mr-[0.4rem] ${TailwindGroundMaterialTypeColor.UNC_FINE}`}
+                                ></span>
                                 Fine-grained
                             </p>
                         </div>
@@ -56,23 +67,33 @@ const Legend: React.FC = () => {
                         </h2>
                         <div className="flex flex-col justify-between flex-1">
                             <p className="flex items-center text-[0.7rem]">
-                                <span className="inline-block w-4 h-4 mr-[0.4rem] bg-yellow-300"></span>
+                                <span
+                                    className={`inline-block w-4 h-4 mr-[0.4rem] ${TailwindGroundMaterialTypeColor.CONS_COARSE}`}
+                                ></span>
                                 Coarse-grained
                             </p>
                             <p className="flex items-center text-[0.7rem]">
-                                <span className="inline-block w-4 h-4 mr-[0.4rem] bg-yellow-500"></span>
+                                <span
+                                    className={`inline-block w-4 h-4 mr-[0.4rem] ${TailwindGroundMaterialTypeColor.CONS_MOSTLY_COARSE}`}
+                                ></span>
                                 Mostly coarse-grained
                             </p>
                             <p className="flex items-center text-[0.7rem]">
-                                <span className="inline-block w-4 h-4 mr-[0.4rem] bg-orange-400"></span>
+                                <span
+                                    className={`inline-block w-4 h-4 mr-[0.4rem] ${TailwindGroundMaterialTypeColor.CONS_MIX_COARSE_FINE}`}
+                                ></span>
                                 Coarse- and fine-grained
                             </p>
                             <p className="flex items-center text-[0.7rem]">
-                                <span className="inline-block w-4 h-4 mr-[0.4rem] bg-orange-600"></span>
+                                <span
+                                    className={`inline-block w-4 h-4 mr-[0.4rem] ${TailwindGroundMaterialTypeColor.CONS_MOSTLY_FINE}`}
+                                ></span>
                                 Mostly fine-grained
                             </p>
                             <p className="flex items-center text-[0.7rem]">
-                                <span className="inline-block w-4 h-4 mr-[0.4rem] bg-red-500"></span>
+                                <span
+                                    className={`inline-block w-4 h-4 mr-[0.4rem] ${TailwindGroundMaterialTypeColor.CONS_FINE}`}
+                                ></span>
                                 Fine-grained
                             </p>
                         </div>
@@ -84,23 +105,33 @@ const Legend: React.FC = () => {
                         <h2 className="mb-1 text-sm font-bold">Other</h2>
                         <div className="flex flex-col justify-between flex-1">
                             <p className="flex items-center text-[0.7rem]">
-                                <span className="inline-block w-4 h-4 mr-[0.4rem] bg-pink-400"></span>
+                                <span
+                                    className={`inline-block w-4 h-4 mr-[0.4rem] ${TailwindGroundMaterialTypeColor.TILL}`}
+                                ></span>
                                 Till
                             </p>
                             <p className="flex items-center text-[0.7rem]">
-                                <span className="inline-block w-4 h-4 mr-[0.4rem] bg-gray-300"></span>
+                                <span
+                                    className={`inline-block w-4 h-4 mr-[0.4rem] ${TailwindGroundMaterialTypeColor.CARBONATE}`}
+                                ></span>
                                 Carbonate (e.g., limestone)
                             </p>
                             <p className="flex items-center text-[0.7rem]">
-                                <span className="inline-block w-4 h-4 mr-[0.4rem] bg-green-600"></span>
+                                <span
+                                    className={`inline-block w-4 h-4 mr-[0.4rem] ${TailwindGroundMaterialTypeColor.VOLCANIC}`}
+                                ></span>
                                 Volcanic (e.g., basalt)
                             </p>
                             <p className="flex items-center text-[0.7rem]">
-                                <span className="inline-block w-4 h-4 mr-[0.4rem] bg-purple-700"></span>
+                                <span
+                                    className={`inline-block w-4 h-4 mr-[0.4rem] ${TailwindGroundMaterialTypeColor.EVAPORITE}`}
+                                ></span>
                                 Evaporite (e.g., gypsum)
                             </p>
                             <p className="flex items-center text-[0.7rem]">
-                                <span className="inline-block w-4 h-4 mr-[0.4rem] bg-blue-800"></span>
+                                <span
+                                    className={`inline-block w-4 h-4 mr-[0.4rem] ${TailwindGroundMaterialTypeColor.ENDOGENOUS}`}
+                                ></span>
                                 Endogenous (e.g., granite)
                             </p>
                         </div>

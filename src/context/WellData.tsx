@@ -79,6 +79,28 @@ export enum GroundMaterialTypeColor {
     NA = "#FFFFFF", // White
 }
 
+export enum TailwindGroundMaterialTypeColor {
+    UNC_COARSE = "bg-[#8B4513]", // SaddleBrown
+    UNC_MOSTLY_COARSE = "bg-[#A0522D]", // Sienna
+    UNC_MIX_COARSE_FINE = "bg-[#CD853F]", // Peru
+    UNC_MOSTLY_FINE = "bg-[#DEB887]", // BurlyWood
+    UNC_FINE = "bg-[#F4A460]", // SandyBrown
+    //
+    TILL = "bg-[#808080]", // Gray
+    //
+    CONS_COARSE = "bg-[#FFCDD2]", // Light Pink
+    CONS_MOSTLY_COARSE = "bg-[#EF9A9A]", // Salmon
+    CONS_MIX_COARSE_FINE = "bg-[#E57373]", // Light Coral
+    CONS_MOSTLY_FINE = "bg-[#D9534F]", // Crimson
+    CONS_FINE = "bg-[#C64B4B]", // Dark Red
+    //
+    CARBONATE = "bg-[#B0C4DE]", // LightSteelBlue
+    ENDOGENOUS = "bg-[#5F9EA0]", // CadetBlue
+    VOLCANIC = "bg-[#483D8B]", // DarkSlateBlue
+    EVAPORITE = "bg-[#4682B4]", // SteelBlue
+    NA = "bg-[#FFFFFF]", // White
+}
+
 export interface Layer {
     type: GroundMaterialType[];
     color: GroundMaterialTypeColor;
