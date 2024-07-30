@@ -1,6 +1,8 @@
 import { animated, useSpring } from "@react-spring/web";
 import { useDrag } from "@use-gesture/react";
 import React, { useContext, useEffect, useRef, useState } from "react";
+import DownArrow from "../../assets/DownArrow.svg"; // Assume you have a DownArrow SVG
+import UpArrow from "../../assets/UpArrow.svg";
 import { TooltipContext } from "../../context/AppContext"; // adjust the import path as needed
 
 interface DraggableComponentProps {
@@ -26,6 +28,8 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
     const heightOfSearchBarRef = useRef(45);
     const componentLeftMarginRef = useRef(8);
     const { selectedWellData } = useContext(TooltipContext);
+
+    const [isExpanded, setIsExpanded] = useState(false); // Track if the bottom sheet is expanded
 
     // Initial Y position based on parent or window height
     const [initialY, setInitialY] = useState(
@@ -106,6 +110,26 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
         }
     );
 
+    const handleButtonClick = () => {
+        if (componentRef.current && parentRef.current) {
+            const componentHeight = componentRef.current.offsetHeight;
+            const parentHeight = parentRef.current.offsetHeight;
+            const componentLeftMargin = componentLeftMarginRef.current;
+            const topBoundA =
+                parentHeight - componentHeight - componentLeftMargin;
+            const topBoundB =
+                heightOfSearchBarRef.current + componentLeftMargin;
+            const topBound = Math.max(topBoundA, topBoundB);
+            const bottomBound = parentHeight - peekHeight;
+            const currentY = y.get();
+
+            // Toggle between topBound and bottomBound
+            const newY = currentY === bottomBound ? topBound : bottomBound;
+            setIsExpanded(currentY === bottomBound); // Update the state based on the new position
+            api.start({ y: newY });
+        }
+    };
+
     if (!selectedWellData) return <></>;
 
     return (
@@ -118,6 +142,16 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
             }}
             className="absolute mx-2 top-0 left-0 z-50 visible w-[calc(100%-1rem)] bg-headerBackgroundColor text-white border-[1px] border-borderColor rounded-xl cursor-move shadow-topShadow md:hidden"
         >
+            <button
+                id="slide-footer-up-or-down"
+                className="flex justify-center items-center absolute w-7 h-7 rounded-full left-2 top-2 bg-[#6A6A6A] drop-shadow-md"
+                onClick={handleButtonClick}
+            >
+                <img
+                    src={isExpanded ? DownArrow : UpArrow}
+                    alt="toggle-arrow"
+                />
+            </button>
             <div
                 id="scrollable-content"
                 className="w-full h-full overflow-y-scroll"

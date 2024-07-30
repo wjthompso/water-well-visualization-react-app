@@ -10,7 +10,7 @@ import {
 } from "cesium";
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { BillboardGraphics, EllipseGraphics, Entity } from "resium";
-import MapIconWaterPresent from "../../assets/MapIconWaterPresent.png";
+import MapIconNoWaterIcon from "../../assets/MapIconNoWaterIcon.svg";
 import { TooltipContext } from "../../context/AppContext"; // Adjust the import path as necessary
 import { WellData } from "../../context/WellData";
 
@@ -169,7 +169,7 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
                             onMouseLeave={handleMouseOut}
                         >
                             <BillboardGraphics
-                                image={MapIconWaterPresent} // Replace with the correct path to MapIcon.png
+                                image={MapIconNoWaterIcon} // Replace with the correct path to MapIcon.png
                                 verticalOrigin={VerticalOrigin.BOTTOM}
                                 scaleByDistance={
                                     new NearFarScalar(1.5e2, 0.7, 1.5e5, 0.2) // Adjust scale based on distance
