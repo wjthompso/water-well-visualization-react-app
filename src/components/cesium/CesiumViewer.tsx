@@ -20,8 +20,8 @@ import {
 import DraggableComponent from "../DraggableFooter/DraggableFooter";
 import LoadingSpinner from "../LoadingSpinner/LoadingSpinner";
 import CustomSearchBar from "../Searchbar/CustomSearchbar";
-import CylinderEntities from "./CylinderEntities";
 import Tooltip from "./Tooltip";
+import CylinderEntities from "./WaterWells";
 
 interface Chunk {
     topLeft: {

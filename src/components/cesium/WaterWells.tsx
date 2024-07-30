@@ -19,7 +19,7 @@ interface CylinderEntitiesProps {
     wellDataWithoutElevationAdjustments: WellData[];
 }
 
-const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
+const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
     terrainProvider,
     wellDataWithoutElevationAdjustments,
 }) => {
@@ -174,6 +174,7 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
                                 scaleByDistance={
                                     new NearFarScalar(1.5e2, 0.7, 1.5e5, 0.2) // Adjust scale based on distance
                                 }
+                                eyeOffset={new Cartesian3(0, 0, -5000)} // Adjust this value to ensure the icon is rendered in front of terrain
                             />
                         </Entity>
                         {well.layers.map((layer, layerIndex) => {
@@ -220,6 +221,6 @@ const PreMemoizedCylinderEntities: React.FC<CylinderEntitiesProps> = ({
     );
 };
 
-const CylinderEntities = React.memo(PreMemoizedCylinderEntities);
+const WaterWell = React.memo(PreMemoizedWaterWells);
 
-export default CylinderEntities;
+export default WaterWell;

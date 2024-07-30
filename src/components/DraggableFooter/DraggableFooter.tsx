@@ -140,7 +140,7 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
                 y,
                 touchAction: "none",
             }}
-            className="absolute mx-2 top-0 left-0 z-50 visible w-[calc(100%-1rem)] bg-headerBackgroundColor text-white border-[1px] border-borderColor rounded-xl cursor-move shadow-topShadow md:hidden"
+            className="absolute mx-2 top-0 left-0 z-50 visible w-[calc(100%-1rem)] bg-headerBackgroundColor text-white border-[1px] border-borderColor rounded-xl cursor-move shadow-topShadow md:hidden shadow-xl"
         >
             <button
                 id="slide-footer-up-or-down"
