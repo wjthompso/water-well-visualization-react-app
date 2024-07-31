@@ -1,4 +1,5 @@
 import {
+    CallbackProperty,
     Cartesian3,
     Cartographic,
     Math as CesiumMath,
@@ -7,9 +8,21 @@ import {
     NearFarScalar,
     sampleTerrainMostDetailed,
     VerticalOrigin,
+    Viewer,
 } from "cesium";
-import React, { useCallback, useContext, useEffect, useState } from "react";
-import { BillboardGraphics, EllipseGraphics, Entity } from "resium";
+import React, {
+    MutableRefObject,
+    useCallback,
+    useContext,
+    useEffect,
+    useState,
+} from "react";
+import {
+    BillboardGraphics,
+    CesiumComponentRef,
+    EllipseGraphics,
+    Entity,
+} from "resium";
 import MapIconNoWaterIcon from "../../assets/MapIconNoWaterIcon.svg";
 import { TooltipContext } from "../../context/AppContext"; // Adjust the import path as necessary
 import { WellData } from "../../context/WellData";
@@ -17,11 +30,13 @@ import { WellData } from "../../context/WellData";
 interface CylinderEntitiesProps {
     terrainProvider: CesiumTerrainProvider | undefined | null;
     wellDataWithoutElevationAdjustments: WellData[];
+    viewerRef: MutableRefObject<CesiumComponentRef<Viewer> | null>;
 }
 
 const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
     terrainProvider,
     wellDataWithoutElevationAdjustments,
+    viewerRef,
 }) => {
     const heightWellShouldShowAboveSurface = 1;
     const heightMapIconShouldShowAboveWell = 20;
@@ -159,6 +174,17 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
                         heightMapIconShouldShowAboveWell
                 );
 
+                const eyeOffsetCallback = new CallbackProperty(() => {
+                    const viewer = viewerRef.current?.cesiumElement;
+                    if (!viewer) return new Cartesian3(0, 0, -5000);
+                    const cameraPosition = viewer.camera.position;
+                    const distance = Cartesian3.distance(
+                        cameraPosition,
+                        indicatorStartPosition
+                    );
+                    return new Cartesian3(0, 0, -Math.min(distance - 20, 5000));
+                }, false);
+
                 return (
                     <React.Fragment key={wellIndex}>
                         <Entity
@@ -174,7 +200,7 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
                                 scaleByDistance={
                                     new NearFarScalar(1.5e2, 0.7, 1.5e5, 0.2) // Adjust scale based on distance
                                 }
-                                eyeOffset={new Cartesian3(0, 0, -5000)} // Adjust this value to ensure the icon is rendered in front of terrain
+                                eyeOffset={eyeOffsetCallback} // Dynamic eyeOffset
                             />
                         </Entity>
                         {well.layers.map((layer, layerIndex) => {

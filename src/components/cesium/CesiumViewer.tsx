@@ -403,6 +403,7 @@ const ResiumViewerComponent: React.FC = () => {
                         wellDataWithoutElevationAdjustments={
                             wellDataWithoutElevationAdjustments
                         }
+                        viewerRef={viewerRef}
                     />
                 </Viewer>
                 <Tooltip />
