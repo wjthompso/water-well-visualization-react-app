@@ -37,7 +37,7 @@ const RightSideBar: React.FC = () => {
                             id="well-info"
                             className="mb-4"
                         >
-                            <h1 className="lg:text-xl font-[900] mb-1 font-roboto">
+                            <h1 className="lg:text-xl font-[900] mb-1 font-roboto whitespace-normal break-words">
                                 {selectedWellData.StateWellID || "Unknown Well"}
                             </h1>
                             <h3 className="text-base font-roboto">

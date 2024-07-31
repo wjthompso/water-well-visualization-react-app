@@ -6,6 +6,7 @@ import {
     CesiumTerrainProvider,
     Viewer as CesiumViewer,
     createWorldTerrainAsync,
+    IonImageryProvider,
 } from "cesium";
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -222,6 +223,7 @@ const ResiumViewerComponent: React.FC = () => {
         wellDataWithoutElevationAdjustments,
         setWellDataWithoutElevationAdjustments,
     ] = useState<WellData[]>([]); // State to store well data without elevation adjustments
+    const [finishedLoading, setFinishedLoading] = useState<boolean>(false);
     const hasLoadedTerrainData = useRef(false);
     const hasFetchedQuadrants = useRef(false); // Ref to check if quadrants have been fetched
     const parentRefForDraggableComponent = useRef<HTMLDivElement>(null);
@@ -314,20 +316,27 @@ const ResiumViewerComponent: React.FC = () => {
                 if (toolbar) {
                     toolbar.style.top = "2.5rem";
                     if (window.innerWidth < 768) {
-                        toolbar.style.left = "2.5rem";
+                        toolbar.style.left = "-5rem";
                         toolbar.style.right = "auto";
                     } else {
-                        toolbar.style.left = "2.5rem";
+                        toolbar.style.left = "-5rem";
                         toolbar.style.right = "auto";
                     }
                 }
             }
         };
 
-        const checkViewerReady = setInterval(() => {
+        const checkViewerReady = setInterval(async () => {
             if (viewerRef.current?.cesiumElement) {
                 const viewer = viewerRef.current.cesiumElement as CesiumViewer;
                 clearInterval(checkViewerReady);
+
+                viewer.imageryLayers.removeAll();
+
+                // Add Bing Maps Aerial with Labels
+                const imageryProvider = await IonImageryProvider.fromAssetId(3);
+                viewer.imageryLayers.addImageryProvider(imageryProvider);
+
                 enableUndergroundView(viewer);
                 moveCameraToDangermond(viewer);
                 makeGroundTranslucentAsYouGetCloser(viewer);
@@ -339,6 +348,9 @@ const ResiumViewerComponent: React.FC = () => {
                 const moveHandler = () => handleCameraMove(camera);
 
                 scene.camera.changed.addEventListener(moveHandler);
+
+                setFinishedLoading(true);
+                console.log("Base layer loaded");
 
                 return () => {
                     scene.camera.changed.removeEventListener(moveHandler);
@@ -355,10 +367,10 @@ const ResiumViewerComponent: React.FC = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // This is here so that we actually pass a non-null terrainProvider to CylinderEntities
     if (!terrainProvider) {
-        // return <div>Loading terrain data...</div>;
         return (
-            <div className="flex items-center justify-center w-full h-full md:pr-[272px] bg-headerBackgroundColor">
+            <div className="flex items-center justify-center w-full h-full md:pr-[272px] bg-headerBackgroundColor z-50">
                 <LoadingSpinner />
             </div>
         );
@@ -370,6 +382,11 @@ const ResiumViewerComponent: React.FC = () => {
             className="relative box-border w-[100vw] h-full p-0 m-0 overflow-hidden"
             ref={parentRefForDraggableComponent}
         >
+            {!terrainProvider || !finishedLoading ? (
+                <div className="flex items-center justify-center w-full h-full md:pr-[272px] bg-headerBackgroundColor z-[100]">
+                    <LoadingSpinner />
+                </div>
+            ) : null}
             <CustomSearchBar
                 viewerRef={viewerRef}
                 searchBarRef={searchBarRef}
@@ -392,8 +409,8 @@ const ResiumViewerComponent: React.FC = () => {
                     timeline={false}
                     navigationHelpButton={false} // Hide the navigation help button
                     homeButton={false} // Hide the home button
-                    sceneModePicker={false} // Hide the scene mode picker
-                    baseLayerPicker={false} // Hide the base layer picker
+                    // sceneModePicker={true} // Hide the scene mode picker
+                    baseLayerPicker={true} // Hide the base layer picker
                     geocoder={false} // Hide the geocoder
                     selectionIndicator={false} // Hide the selection indicator
                     infoBox={false} // Hide the info box
