@@ -19,7 +19,7 @@ const RightSideBar: React.FC = () => {
     return (
         <div
             id="rightSideBar"
-            className="hidden md:block absolute right-0 top-0 w-[17rem] h-full z-[999] bg-sideBarBackgroundColor border-l-[0.5px] border-borderColor"
+            className="hidden md:block absolute right-0 top-0 w-[19rem] h-full z-[999] bg-sideBarBackgroundColor border-l-[0.5px] border-borderColor"
         >
             <h1
                 id="main-label"
@@ -35,9 +35,9 @@ const RightSideBar: React.FC = () => {
                     <>
                         <div
                             id="well-info"
-                            className="mb-4"
+                            className="max-w-full mb-4"
                         >
-                            <h1 className="lg:text-xl font-[900] mb-1 font-roboto whitespace-normal break-words">
+                            <h1 className="lg:text-xl font-[900] mb-1 font-roboto break-words text-ellipsis max-w-full">
                                 {selectedWellData.StateWellID || "Unknown Well"}
                             </h1>
                             <h3 className="text-base font-roboto">

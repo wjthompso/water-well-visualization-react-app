@@ -89,7 +89,7 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
         <div
             ref={searchBarRef}
             id="custom-search-bar-container"
-            className="absolute z-30 w-full md:w-[17rem] md:right-[calc(271px+0.5rem)] md:top-[0.4rem] px-2 py-1 bg-headerBackgroundColor border-b-[0.5px] md:border-none border-borderColor md:px-0 md:py-0 md:bg-transparent md:shadow-xl"
+            className="absolute z-30 w-full md:w-[17rem] md:right-[calc(19rem+0.5rem)] md:top-[0.4rem] px-2 py-1 bg-headerBackgroundColor border-b-[0.5px] md:border-none border-borderColor md:px-0 md:py-0 md:bg-transparent md:shadow-xl"
             onFocus={() => setSearchBarInFocus(true)}
             onBlur={() => setTimeout(() => setSearchBarInFocus(false), 300)}
         >
