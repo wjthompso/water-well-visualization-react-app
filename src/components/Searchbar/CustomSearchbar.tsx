@@ -44,7 +44,6 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
             const data = await response.json();
 
             if (data.status === "OK") {
-                console.log("Geocoding results:", data.results);
                 setResults(data.results);
             } else {
                 console.error("Error fetching geocoding results:", data.status);

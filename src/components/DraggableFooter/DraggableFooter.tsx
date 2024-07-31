@@ -30,6 +30,7 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
     const { selectedWellData } = useContext(TooltipContext);
 
     const [isExpanded, setIsExpanded] = useState(false); // Track if the bottom sheet is expanded
+    const [showComponent, setShowComponent] = useState(false); // Replace ref with state
 
     // Initial Y position based on parent or window height
     const [initialY, setInitialY] = useState(
@@ -49,6 +50,28 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
             heightOfSearchBarRef.current = searchBarRef.current.offsetHeight;
         }
     }, [searchBarRef]);
+
+    // Update the showComponent state based on window width
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 769) {
+                setShowComponent(false);
+                setShowComponent(true);
+            } else {
+                setShowComponent(true);
+                setShowComponent(false);
+            }
+        };
+
+        window.addEventListener("resize", handleResize);
+
+        // Call the handleResize function to set the initial state
+        handleResize();
+
+        return () => {
+            window.removeEventListener("resize", handleResize);
+        };
+    }, []);
 
     // Update the left margin of the component once available
     useEffect(() => {
@@ -74,7 +97,7 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
                 componentRef.current.style.height = `${parentHeightMinusMargin}px`;
             }
         }
-    }, [componentRef, parentRef, selectedWellData]);
+    }, [componentRef, parentRef, selectedWellData, showComponent]); // Now depends on showComponent state
 
     // Update the initial Y value once the parentRef is available
     useEffect(() => {
@@ -98,7 +121,6 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
                     heightOfSearchBarRef.current + componentLeftMargin;
                 const topBound = Math.max(topBoundA, topBoundB);
                 const bottomBound = parentHeight - peekHeight;
-                // console.log("topBound", topBound, "bottomBound", bottomBound);
                 const newY = Math.min(Math.max(oy, topBound), bottomBound);
                 api.start({ y: newY, immediate: true });
             }

@@ -350,7 +350,6 @@ const ResiumViewerComponent: React.FC = () => {
                 scene.camera.changed.addEventListener(moveHandler);
 
                 setFinishedLoading(true);
-                console.log("Base layer loaded");
 
                 return () => {
                     scene.camera.changed.removeEventListener(moveHandler);
