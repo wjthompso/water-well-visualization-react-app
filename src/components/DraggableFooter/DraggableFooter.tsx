@@ -62,6 +62,7 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
     // Set the height property of the component after filling in the content to enable scrolling
     useEffect(() => {
         if (componentRef.current && parentRef.current) {
+            componentRef.current.style.height = "";
             const parentHeight = parentRef.current.offsetHeight;
             const componentHeight = componentRef.current.offsetHeight;
             const componentLeftMargin = componentLeftMarginRef.current;
@@ -71,7 +72,6 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
                     heightOfSearchBarRef.current -
                     componentLeftMargin * 2;
                 componentRef.current.style.height = `${parentHeightMinusMargin}px`;
-                console.log("parentHeightMinusMargin", parentHeightMinusMargin);
             }
         }
     }, [componentRef, parentRef, selectedWellData]);
@@ -185,19 +185,7 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
                                     : "N/A"}
                             </p>
                         </div>
-                        <div className="flex items-center justify-center ml-1">
-                            {/* <button className="flex items-center justify-start w-28 h-12 py-2 border-[1px] border-borderColor rounded">
-                                <img
-                                    className="flex w-[1.75rem] mx-2 sm:mx-2 justify-self-start"
-                                    src={PDFIcon}
-                                    alt="PDF Report Icon"
-                                />
-                                <p className="flex justify-start text-[0.75rem] w-12 font-bold text-white text-left">
-                                    {" "}
-                                    DRILL REPORT
-                                </p>{" "}
-                            </button> */}
-                        </div>
+                        <div className="flex items-center justify-center ml-1"></div>
                     </div>
                 </div>
                 <div
