@@ -1,30 +1,44 @@
-# React + TypeScript + Vite
+# 3D Water Well Map Visualization
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This project is a 3D map visualization built using Cesium to dynamically display all of the water wells in the United States. It provides an interactive experience where users can explore and analyze water well data across the country in real-time.
 
-Currently, two official plugins are available:
+![Screenshot of the widescreen version of the 3D Water Well Map Visualization](src/assets/Desktop-Screenshot.jpg)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Project Description
 
-## Expanding the ESLint configuration
+-   **Technology Stack:** The project is built with React, TypeScript, and Vite, utilizing CesiumJS for 3D geospatial visualization.
+-   **Functionality:** The application dynamically loads and visualizes data for millions of water wells across the U.S. as the user interacts with the map.
+-   **Performance:** Data is loaded and rendered efficiently to minimize latency, ensuring smooth performance even with large datasets.
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+![Screenshot of the mobile version of the 3D Water Well Map Visualization](src/assets/Mobile-Screenshot.jpg)
 
-- Configure the top-level `parserOptions` property like this:
+## Getting Started
 
-```js
-export default {
-  // other rules...
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-  },
-}
-```
+### Prerequisites
 
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+Ensure you have the following installed:
+
+-   **Node.js** (version 14 or later)
+-   **pnpm** (or npm/yarn if you prefer)
+
+### Setup Instructions
+
+After cloning the repo:
+
+1. **Install the dependencies:**
+
+    ```bash
+    pnpm install
+    ```
+
+2. **Start the Development Server:**
+
+    ```bash
+    pnpm run dev
+    ```
+
+3. **Build for Production**
+
+    ```bash
+    pnpm run build
+    ```
