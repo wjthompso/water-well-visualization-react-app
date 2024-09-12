@@ -46,6 +46,8 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
     const { setTooltipString, setTooltipX, setTooltipY, setSelectedWellData } =
         useContext(TooltipContext);
 
+    const maxRenderDistance = 1609.34 * 3; // 2 miles in meters
+
     useEffect(() => {
         if (!terrainProvider) {
             console.log("Terrain provider is not ready yet");
@@ -182,8 +184,16 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
                         cameraPosition,
                         indicatorStartPosition
                     );
+
                     return new Cartesian3(0, 0, -Math.min(distance - 20, 5000));
                 }, false);
+
+                const viewer = viewerRef.current?.cesiumElement;
+                const cameraPosition = viewer?.camera.position;
+                const distanceFromCamera = Cartesian3.distance(
+                    cameraPosition,
+                    indicatorStartPosition
+                );
 
                 return (
                     <React.Fragment key={wellIndex}>
@@ -195,51 +205,57 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
                             onMouseLeave={handleMouseOut}
                         >
                             <BillboardGraphics
-                                image={MapIconNoWaterIcon} // Replace with the correct path to MapIcon.png
+                                image={MapIconNoWaterIcon}
                                 verticalOrigin={VerticalOrigin.BOTTOM}
                                 scaleByDistance={
-                                    new NearFarScalar(1.5e2, 0.7, 1.5e5, 0.2) // Adjust scale based on distance
+                                    new NearFarScalar(1.5e2, 0.7, 1.5e5, 0.2)
                                 }
-                                eyeOffset={eyeOffsetCallback} // Dynamic eyeOffset
+                                eyeOffset={eyeOffsetCallback}
                             />
                         </Entity>
-                        {well.layers.map((layer, layerIndex) => {
-                            const layerStartPositionCartesian =
-                                Cartesian3.fromDegrees(
-                                    well.longitude,
-                                    well.latitude,
-                                    layer.startDepth
-                                );
+                        {distanceFromCamera < maxRenderDistance &&
+                            well.layers.map((layer, layerIndex) => {
+                                const layerStartPositionCartesian =
+                                    Cartesian3.fromDegrees(
+                                        well.longitude,
+                                        well.latitude,
+                                        layer.startDepth
+                                    );
 
-                            return (
-                                <Entity
-                                    key={`cylinder_${wellIndex}_${layerIndex}`}
-                                    position={layerStartPositionCartesian}
-                                    onClick={() => handleClick(wellIndex)}
-                                    onMouseMove={() =>
-                                        handleMouseOver(wellIndex, layerIndex)
-                                    }
-                                    onMouseLeave={handleMouseOut}
-                                >
-                                    <EllipseGraphics
-                                        semiMinorAxis={5.0}
-                                        semiMajorAxis={5.0}
-                                        height={
-                                            heightWellShouldShowAboveSurface +
-                                            layer.startDepth
+                                return (
+                                    <Entity
+                                        key={`cylinder_${wellIndex}_${layerIndex}`}
+                                        position={layerStartPositionCartesian}
+                                        onClick={() => handleClick(wellIndex)}
+                                        onMouseMove={() =>
+                                            handleMouseOver(
+                                                wellIndex,
+                                                layerIndex
+                                            )
                                         }
-                                        extrudedHeight={
-                                            heightWellShouldShowAboveSurface +
-                                            layer.endDepth
-                                        }
-                                        rotation={CesiumMath.toRadians(-40.0)}
-                                        material={Color.fromCssColorString(
-                                            layer.color
-                                        )}
-                                    />
-                                </Entity>
-                            );
-                        })}
+                                        onMouseLeave={handleMouseOut}
+                                    >
+                                        <EllipseGraphics
+                                            semiMinorAxis={5.0}
+                                            semiMajorAxis={5.0}
+                                            height={
+                                                heightWellShouldShowAboveSurface +
+                                                layer.startDepth
+                                            }
+                                            extrudedHeight={
+                                                heightWellShouldShowAboveSurface +
+                                                layer.endDepth
+                                            }
+                                            rotation={CesiumMath.toRadians(
+                                                -40.0
+                                            )}
+                                            material={Color.fromCssColorString(
+                                                layer.color
+                                            )}
+                                        />
+                                    </Entity>
+                                );
+                            })}
                     </React.Fragment>
                 );
             })}
