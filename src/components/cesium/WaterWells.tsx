@@ -26,9 +26,9 @@ import {
     EllipseGraphics,
     Entity,
 } from "resium";
-import MapIconNoWaterIcon from "../../assets/MapIconNoWaterIcon.png";
 import { TooltipContext } from "../../context/AppContext"; // Adjust the import path as necessary
 import { WellData } from "../../context/WellData";
+import { createPieChartWellIcon } from "../../utilities/createPieChartWellIcon";
 
 interface CylinderEntitiesProps {
     terrainProvider: CesiumTerrainProvider | undefined | null;
@@ -379,6 +379,13 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
 
                 // Check if cylinders for this well should be rendered
                 const shouldRenderCylinders = cylindersToRender.includes(well);
+                const viewer = viewerRef.current?.cesiumElement;
+                const cameraPosition =
+                    viewer?.camera.position ?? new Cartesian3();
+                const distanceFromCamera = Cartesian3.distance(
+                    cameraPosition,
+                    indicatorStartPosition
+                );
 
                 return (
                     <React.Fragment key={wellIndex}>
@@ -391,10 +398,10 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
                             onMouseLeave={handleMouseOut}
                         >
                             <BillboardGraphics
-                                image={MapIconNoWaterIcon}
+                                image={createPieChartWellIcon(well)}
                                 verticalOrigin={VerticalOrigin.BOTTOM}
                                 scaleByDistance={
-                                    new NearFarScalar(1.5e2, 0.7, 1.5e5, 0.2)
+                                    new NearFarScalar(1.5e2, 0.15, 1.5e7, 0.075)
                                 }
                                 eyeOffset={eyeOffsetCallback}
                             />
