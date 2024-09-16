@@ -189,7 +189,8 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
                 }, false);
 
                 const viewer = viewerRef.current?.cesiumElement;
-                const cameraPosition = viewer?.camera.position;
+                const cameraPosition =
+                    viewer?.camera.position ?? new Cartesian3();
                 const distanceFromCamera = Cartesian3.distance(
                     cameraPosition,
                     indicatorStartPosition

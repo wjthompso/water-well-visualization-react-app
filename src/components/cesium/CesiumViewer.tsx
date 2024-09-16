@@ -55,19 +55,24 @@ interface RawWellData {
 }
 
 const fetchQuadrants = async (): Promise<Chunk[]> => {
-    const response = await fetch("http://localhost:3000/keys");
+    const response = await fetch(
+        "https://waterwelldepthmap.bren.ucsb.edu/api/keys"
+    );
     const chunks: Chunk[] = await response.json();
     return chunks;
 };
 
 const fetchWellData = async (locationKey: string): Promise<RawWellData[]> => {
-    const response = await fetch("http://localhost:3000/keys", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ key: locationKey }),
-    });
+    const response = await fetch(
+        "https://waterwelldepthmap.bren.ucsb.edu/api/keys",
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ key: locationKey }),
+        }
+    );
     const wellData: RawWellData[] = await response.json();
     return wellData;
 };
