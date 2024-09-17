@@ -23,7 +23,7 @@ import {
     EllipseGraphics,
     Entity,
 } from "resium";
-import MapIconNoWaterIcon from "../../assets/MapIconNoWaterIcon.svg";
+import MapIconNoWaterIcon from "../../assets/MapIconNoWaterIcon.png";
 import { TooltipContext } from "../../context/AppContext"; // Adjust the import path as necessary
 import { WellData } from "../../context/WellData";
 
