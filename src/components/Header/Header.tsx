@@ -27,7 +27,7 @@ const Header: FC = () => {
                 <div className="flex-grow"></div>
                 <div
                     id="element-the-same-width-as-the-logo"
-                    className="mr-4 flex-shrink-0 w-[15rem] h-[3.5rem]"
+                    className="mr-4 flex-shrink-0 max-w-[15rem] h-[3.5rem]"
                 ></div>
             </div>
         </header>
