@@ -162,7 +162,7 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
                 y,
                 touchAction: "none",
             }}
-            className="absolute mx-2 top-0 left-0 z-50 visible w-[calc(100%-1rem)] bg-headerBackgroundColor text-white border-[1px] border-borderColor rounded-xl cursor-move shadow-topShadow md:hidden shadow-xl"
+            className="absolute mx-2 top-0 left-0 z-50 visible w-[calc(100%-1rem)] bg-headerBackgroundColor text-white border-[1px] border-borderColor rounded-xl cursor-move shadow-topShadow md:hidden shadow-xl flex flex-col"
         >
             <button
                 id="slide-footer-up-or-down"
@@ -174,123 +174,109 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
                     alt="toggle-arrow"
                 />
             </button>
-            <div
-                id="scrollable-content"
-                className="w-full h-full overflow-y-scroll"
-            >
-                <div className="px-8">
-                    <div
-                        id="bar-to-indicate-draggability"
-                        className="w-20 px-4 py-1 mx-auto mt-4 bg-gray-300 rounded"
-                    ></div>
-                    <h2 className="mt-2 mb-4 text-2xl font-bold text-center select-none">
-                        Selected Well Info
-                    </h2>
-                    <div
-                        id="selected-well-info"
-                        className="flex flex-col mb-4"
-                    >
-                        {/* Well ID */}
-                        <div className="flex w-full mb-1">
-                            <div className="flex flex-col w-1/4">
-                                <p className="text-sm font-semibold">
-                                    Well ID:
-                                </p>
-                            </div>
-                            <div className="flex flex-col w-3/4 pl-2">
-                                <p className="text-sm whitespace-normal">
-                                    {selectedWellData?.StateWellID || "N/A"}
-                                </p>
-                            </div>
+            <div className="px-8">
+                <div
+                    id="bar-to-indicate-draggability"
+                    className="w-20 px-4 py-1 mx-auto mt-4 bg-gray-300 rounded"
+                ></div>
+                <h2 className="mt-2 mb-4 text-2xl font-bold text-center select-none">
+                    Selected Well Info
+                </h2>
+                <div
+                    id="selected-well-info"
+                    className="flex flex-col mb-4"
+                >
+                    {/* Well ID */}
+                    <div className="flex w-full mb-2">
+                        <div className="flex flex-col w-1/4">
+                            <p className="text-sm font-semibold">Well ID:</p>
                         </div>
-
-                        {/* Latitude */}
-                        <div className="flex w-full mb-1">
-                            <div className="flex flex-col w-1/4">
-                                <p className="text-sm font-semibold">
-                                    Latitude:
-                                </p>
-                            </div>
-                            <div className="flex flex-col w-3/4 pl-2">
-                                <p className="text-sm whitespace-normal">
-                                    {selectedWellData
-                                        ? `${selectedWellData.latitude}°`
-                                        : "N/A"}
-                                </p>
-                            </div>
+                        <div className="flex flex-col w-3/4 pl-2">
+                            <p className="text-sm whitespace-normal">
+                                {selectedWellData?.StateWellID || "N/A"}
+                            </p>
                         </div>
+                    </div>
 
-                        {/* Longitude */}
-                        <div className="flex w-full">
-                            <div className="flex flex-col w-1/4">
-                                <p className="text-sm font-semibold">
-                                    Longitude:
-                                </p>
-                            </div>
-                            <div className="flex flex-col w-3/4 pl-2">
-                                <p className="text-sm whitespace-normal">
-                                    {selectedWellData
-                                        ? `${selectedWellData.longitude}°`
-                                        : "N/A"}
-                                </p>
-                            </div>
+                    {/* Latitude */}
+                    <div className="flex w-full mb-2">
+                        <div className="flex flex-col w-1/4">
+                            <p className="text-sm font-semibold">Latitude:</p>
+                        </div>
+                        <div className="flex flex-col w-3/4 pl-2">
+                            <p className="text-sm whitespace-normal">
+                                {selectedWellData
+                                    ? `${selectedWellData.latitude}°`
+                                    : "N/A"}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Longitude */}
+                    <div className="flex w-full">
+                        <div className="flex flex-col w-1/4">
+                            <p className="text-sm font-semibold">Longitude:</p>
+                        </div>
+                        <div className="flex flex-col w-3/4 pl-2">
+                            <p className="text-sm whitespace-normal">
+                                {selectedWellData
+                                    ? `${selectedWellData.longitude}°`
+                                    : "N/A"}
+                            </p>
                         </div>
                     </div>
                 </div>
+            </div>
+            <div
+                id="divider-bar"
+                className="w-[calc(100%)] h-[1px] bg-borderColor"
+            ></div>
+            <div className="flex-grow px-4 py-4 overflow-y-auto">
+                <h3 className="flex justify-center mb-4 text-2xl font-bold">
+                    Well lithology
+                </h3>
                 <div
-                    id="divider-bar"
-                    className="w-[calc(100%)] h-[1px] bg-borderColor"
-                ></div>
-                <div className="px-4 py-4">
-                    <h3 className="flex justify-center mb-2 text-2xl font-bold">
-                        Well lithology
-                    </h3>
-                    <div
-                        id="well-lithology-table"
-                        className="flex flex-col"
-                    >
-                        {selectedWellData?.layers.map((layer, index) => (
+                    id="well-lithology-table"
+                    className="flex flex-col"
+                >
+                    {selectedWellData?.layers.map((layer, index) => (
+                        <div
+                            key={index}
+                            className="flex"
+                        >
                             <div
-                                key={index}
-                                className="flex"
+                                className={`w-2 bg-${layer.color}`}
+                                style={{
+                                    backgroundColor: hexToRgba(layer.color, 1),
+                                }}
+                            ></div>
+                            <div
+                                className={`flex flex-col justify-between flex-1 p-2`}
+                                style={{
+                                    backgroundColor: hexToRgba(
+                                        layer.color,
+                                        0.5
+                                    ),
+                                }}
                             >
-                                <div
-                                    className={`w-2 bg-${layer.color}`}
-                                    style={{
-                                        backgroundColor: hexToRgba(
-                                            layer.color,
-                                            1
-                                        ),
-                                    }}
-                                ></div>
-                                <div
-                                    className={`flex flex-col justify-between flex-1 p-2`}
-                                    style={{
-                                        backgroundColor: hexToRgba(
-                                            layer.color,
-                                            0.5
-                                        ),
-                                    }}
-                                >
-                                    <div className="flex justify-between">
-                                        <div>
-                                            <p className="font-semibold">
-                                                {layer.type.join(", ")}
-                                            </p>
-                                            <p>{layer.description || "N/A"}</p>
-                                        </div>
-                                        <p className="w-[20%] flex flex-row justify-start">
-                                            {`${Math.round(
-                                                layer.unAdjustedStartDepth
-                                            )}-${Math.round(
-                                                layer.unAdjustedEndDepth
-                                            )} ft`}
+                                <div className="flex justify-between">
+                                    <div>
+                                        <p className="font-semibold">
+                                            {layer.type.join(", ")}
                                         </p>
+                                        <p>{layer.description || "N/A"}</p>
                                     </div>
+                                    <p className="w-[20%] flex flex-row justify-start">
+                                        {`${Math.round(
+                                            layer.unAdjustedStartDepth
+                                        )}-${Math.round(
+                                            layer.unAdjustedEndDepth
+                                        )} ft`}
+                                    </p>
                                 </div>
                             </div>
-                        )) || <p className="text-center">No data available</p>}
-                    </div>
+                        </div>
+                    )) || <p className="text-center">No data available</p>}
                 </div>
             </div>
         </animated.div>
