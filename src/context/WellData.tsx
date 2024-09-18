@@ -39,17 +39,17 @@
 // }
 
 export enum GroundMaterialType {
-    UCG = "Unconsolidated: Coarse-grained material",
-    UMC = "Unconsolidated: Mostly coarse-grained material",
+    UCG = "Unconsolidated: Coarse-grained",
+    UMC = "Unconsolidated: Mostly coarse-grained",
     UMIX = "Unconsolidated: Mixture of coarse and fine grained",
-    UFC = "Unconsolidated: Mostly fine-grained material",
-    UFG = "Unconsolidated: Fine grained material",
+    UFC = "Unconsolidated: Mostly fine-grained",
+    UFG = "Unconsolidated: Fine grained",
     TILL = "Till/drift",
-    CCG = "Consolidated: Coarse-grained material",
-    CMCG = "Consolidated: Mostly coarse-grained material",
-    CMIX = "Consolidated: Mixture of coarse and fine grained",
-    CMFC = "Consolidated: Mostly fine-grained low-permeability",
-    CFGP = "Consolidated: Fine grained low-permeability",
+    CCG = "Consolidated: Coarse-grained",
+    CMCG = "Consolidated: Mostly coarse-grained",
+    CMIX = "Consolidated: Coarse & fine grained mix",
+    CMFC = "Consolidated: Mostly fine-grained",
+    CFGP = "Consolidated: Fine grained",
     CARB = "Mostly carbonate rock",
     ENDO = "Endogenous",
     VOLC = "Volcanic",
@@ -58,47 +58,47 @@ export enum GroundMaterialType {
 }
 
 export enum GroundMaterialTypeColor {
-    UCG = "#8B4513", // SaddleBrown
-    UMC = "#A0522D", // Sienna
-    UMIX = "#CD853F", // Peru
-    UFC = "#DEB887", // BurlyWood
-    UFG = "#F4A460", // SandyBrown
+    UCG = "#002347", // Dark blue
+    UMC = "#003B77", // 003B7
+    UMIX = "#005AB5", // Peru
+    UFC = "#4C93DC", // BurlyWood
+    UFG = "#9CC4ED", // SandyBrown
     //
-    TILL = "#808080", // Gray
     //
-    CCG = "#FFCDD2", // Light Pink
-    CMCG = "#EF9A9A", // Salmon
-    CMIX = "#E57373", // Light Coral
-    CMFC = "#D9534F", // Crimson
-    CFGP = "#C64B4B", // Dark Red
+    CCG = "#620000", // Light Pink
+    CMCG = "#AF0C0C", // Salmon
+    CMIX = "#FF0000", // Light Coral
+    CMFC = "#FF413C", // Crimson
+    CFGP = "#FF9390 ", // Dark Red
     //
-    CARB = "#B0C4DE", // LightSteelBlue
-    ENDO = "#5F9EA0", // CadetBlue
-    VOLC = "#483D8B", // DarkSlateBlue
-    EVAP = "#4682B4", // SteelBlue
+    TILL = "#FF0084", // Gray
+    CARB = "#41FDFE", // LightSteelBlue
+    VOLC = "#45BE44", // DarkSlateBlue
+    EVAP = "#F8E627", // SteelBlue
+    ENDO = "#884B9E", // CadetBlue
     NA = "#FFFFFF", // White
 }
 
 export enum TailwindGroundMaterialTypeColor {
-    UNC_COARSE = "bg-[#8B4513]", // SaddleBrown
-    UNC_MOSTLY_COARSE = "bg-[#A0522D]", // Sienna
-    UNC_MIX_COARSE_FINE = "bg-[#CD853F]", // Peru
-    UNC_MOSTLY_FINE = "bg-[#DEB887]", // BurlyWood
-    UNC_FINE = "bg-[#F4A460]", // SandyBrown
+    UNC_COARSE = "bg-[#002347]", // Dark blue (UCG)
+    UNC_MOSTLY_COARSE = "bg-[#003B77]", // Medium blue (UMC)
+    UNC_MIX_COARSE_FINE = "bg-[#005AB5]", // Bright blue (UMIX)
+    UNC_MOSTLY_FINE = "bg-[#4C93DC]", // Light blue (UFC)
+    UNC_FINE = "bg-[#9CC4E4]", // Very light blue (UFG)
     //
-    TILL = "bg-[#808080]", // Gray
+    TILL = "bg-[#FF0084]", // Pink (TILL)
     //
-    CONS_COARSE = "bg-[#FFCDD2]", // Light Pink
-    CONS_MOSTLY_COARSE = "bg-[#EF9A9A]", // Salmon
-    CONS_MIX_COARSE_FINE = "bg-[#E57373]", // Light Coral
-    CONS_MOSTLY_FINE = "bg-[#D9534F]", // Crimson
-    CONS_FINE = "bg-[#C64B4B]", // Dark Red
+    CONS_COARSE = "bg-[#620000]", // Dark red (CCG)
+    CONS_MOSTLY_COARSE = "bg-[#AF0C0C]", // Medium red (CMCG)
+    CONS_MIX_COARSE_FINE = "bg-[#FF0000]", // Bright red (CMIX)
+    CONS_MOSTLY_FINE = "bg-[#FF413C]", // Light red (CMFC)
+    CONS_FINE = "bg-[#FF9390]", // Very light red (CFGP)
     //
-    CARBONATE = "bg-[#B0C4DE]", // LightSteelBlue
-    ENDOGENOUS = "bg-[#5F9EA0]", // CadetBlue
-    VOLCANIC = "bg-[#483D8B]", // DarkSlateBlue
-    EVAPORITE = "bg-[#4682B4]", // SteelBlue
-    NA = "bg-[#FFFFFF]", // White
+    CARBONATE = "bg-[#41FDFE]", // Cyan (CARB)
+    ENDOGENOUS = "bg-[#884B9E]", // Purple (ENDO)
+    VOLCANIC = "bg-[#45BE44]", // Green (VOLC)
+    EVAPORITE = "bg-[#F8E627]", // Yellow (EVAP)
+    NA = "bg-[#FFFFFF]", // White (NA)
 }
 
 export interface Layer {

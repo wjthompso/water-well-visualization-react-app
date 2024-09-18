@@ -1,5 +1,6 @@
 import React, { useContext } from "react";
 import { TooltipContext } from "../../context/AppContext"; // adjust the import path as needed
+import WellLithologyTable from "../WellLithologyTable/WellLithologyTable";
 
 const formatCoordinate = (value: number, isLatitude: boolean) => {
     const absoluteValue = Math.abs(value);
@@ -55,35 +56,15 @@ const RightSideBar: React.FC = () => {
                         {selectedWellData && (
                             <div
                                 id="lithology-breakdown"
-                                className="text-black"
+                                className="text-white"
                             >
                                 <h1 className="text-xl font-[600] mb-2 font-roboto text-white">
                                     Lithology breakdown
                                 </h1>
-                                {selectedWellData.layers.map((layer, index) => (
-                                    <div
-                                        key={index}
-                                        className={`grid grid-cols-3 gap-2 p-2 text-sm`}
-                                        style={{ backgroundColor: layer.color }}
-                                    >
-                                        <p className="col-span-2">
-                                            <b>{layer.type.join(", ")}</b>
-                                            {layer.description
-                                                ? `, ${layer.description}`
-                                                : ""}
-                                        </p>
-                                        <p>
-                                            {Math.floor(
-                                                layer.unAdjustedStartDepth
-                                            )}
-                                            -
-                                            {Math.floor(
-                                                layer.unAdjustedEndDepth
-                                            )}{" "}
-                                            ft
-                                        </p>
-                                    </div>
-                                ))}
+
+                                <WellLithologyTable
+                                    selectedWellData={selectedWellData}
+                                />
                             </div>
                         )}
                     </>

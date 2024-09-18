@@ -4,20 +4,12 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import DownArrow from "../../assets/DownArrow.svg"; // Assume you have a DownArrow SVG
 import UpArrow from "../../assets/UpArrow.svg";
 import { TooltipContext } from "../../context/AppContext"; // adjust the import path as needed
+import WellLithologyTable from "../WellLithologyTable/WellLithologyTable";
 
 interface DraggableComponentProps {
     parentRef: React.RefObject<HTMLDivElement>;
     searchBarRef: React.RefObject<HTMLDivElement>;
 }
-
-const hexToRgba = (hex: string, alpha: number): string => {
-    const bigint = parseInt(hex.slice(1), 16);
-    const r = (bigint >> 16) & 255;
-    const g = (bigint >> 8) & 255;
-    const b = bigint & 255;
-
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-};
 
 const DraggableComponent: React.FC<DraggableComponentProps> = ({
     parentRef,
@@ -167,7 +159,7 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
                 y,
                 touchAction: "none",
             }}
-            className="absolute mx-2 top-0 left-0 z-50 visible w-[calc(100%-1rem)] bg-headerBackgroundColor text-white border-[1px] border-borderColor rounded-xl cursor-move shadow-topShadow md:hidden shadow-xl flex flex-col"
+            className="absolute mx-2 top-0 left-0 z-50 visible w-[calc(100%-1rem)] bg-headerBackgroundColor text-white border-[1px] border-borderColor rounded-xl cursor-move shadow-topShadow md:hidden flex flex-col"
         >
             <button
                 id="slide-footer-up-or-down"
@@ -240,49 +232,9 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
                 <h3 className="flex justify-center mb-4 text-2xl font-bold">
                     Well lithology
                 </h3>
-                <div
-                    id="well-lithology-table"
-                    className="flex flex-col"
-                >
-                    {selectedWellData?.layers.map((layer, index) => (
-                        <div
-                            key={index}
-                            className="flex"
-                        >
-                            <div
-                                className={`w-2 bg-${layer.color}`}
-                                style={{
-                                    backgroundColor: hexToRgba(layer.color, 1),
-                                }}
-                            ></div>
-                            <div
-                                className={`flex flex-col justify-between flex-1 p-2`}
-                                style={{
-                                    backgroundColor: hexToRgba(
-                                        layer.color,
-                                        0.5
-                                    ),
-                                }}
-                            >
-                                <div className="flex justify-between">
-                                    <div className="flex-1 pr-[1rem]">
-                                        <p className="font-semibold">
-                                            {layer.type.join(", ")}
-                                        </p>
-                                        <p>{layer.description || "N/A"}</p>
-                                    </div>
-                                    <p className="w-[5rem] flex flex-row justify-start">
-                                        {`${Math.round(
-                                            layer.unAdjustedStartDepth
-                                        )}-${Math.round(
-                                            layer.unAdjustedEndDepth
-                                        )} ft`}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    )) || <p className="text-center">No data available</p>}
-                </div>
+                <WellLithologyTable
+                    selectedWellData={selectedWellData}
+                ></WellLithologyTable>
             </div>
         </animated.div>
     );
