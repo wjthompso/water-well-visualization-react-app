@@ -123,6 +123,11 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
                 const bottomBound = parentHeight - peekHeight;
                 const newY = Math.min(Math.max(oy, topBound), bottomBound);
                 api.start({ y: newY, immediate: true });
+                if (newY === bottomBound) {
+                    setIsExpanded(false);
+                } else if (newY === topBound) {
+                    setIsExpanded(true);
+                }
             }
             return memo;
         },
