@@ -186,28 +186,55 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
                     <h2 className="mt-2 mb-4 text-2xl font-bold text-center select-none">
                         Selected Well Info
                     </h2>
-                    <div className="grid grid-cols-[2.2fr_3fr_2fr] mb-4">
-                        <div className="flex flex-col">
-                            <p className="text-sm font-semibold">Well ID:</p>
-                            <p className="text-sm font-semibold">Latitude:</p>
-                            <p className="text-sm font-semibold">Longitude:</p>
+                    <div
+                        id="selected-well-info"
+                        className="flex flex-col mb-4"
+                    >
+                        {/* Well ID */}
+                        <div className="flex w-full mb-1">
+                            <div className="flex flex-col w-1/4">
+                                <p className="text-sm font-semibold">
+                                    Well ID:
+                                </p>
+                            </div>
+                            <div className="flex flex-col w-3/4 pl-2">
+                                <p className="text-sm whitespace-normal">
+                                    {selectedWellData?.StateWellID || "N/A"}
+                                </p>
+                            </div>
                         </div>
-                        <div className="flex flex-col pl-2">
-                            <p className="overflow-hidden text-sm text-ellipsis whitespace-nowrap">
-                                {selectedWellData?.StateWellID || "N/A"}
-                            </p>
-                            <p className="text-sm">
-                                {selectedWellData
-                                    ? `${selectedWellData.latitude}°`
-                                    : "N/A"}
-                            </p>
-                            <p className="text-sm">
-                                {selectedWellData
-                                    ? `${selectedWellData.longitude}°`
-                                    : "N/A"}
-                            </p>
+
+                        {/* Latitude */}
+                        <div className="flex w-full mb-1">
+                            <div className="flex flex-col w-1/4">
+                                <p className="text-sm font-semibold">
+                                    Latitude:
+                                </p>
+                            </div>
+                            <div className="flex flex-col w-3/4 pl-2">
+                                <p className="text-sm whitespace-normal">
+                                    {selectedWellData
+                                        ? `${selectedWellData.latitude}°`
+                                        : "N/A"}
+                                </p>
+                            </div>
                         </div>
-                        <div className="flex items-center justify-center ml-1"></div>
+
+                        {/* Longitude */}
+                        <div className="flex w-full">
+                            <div className="flex flex-col w-1/4">
+                                <p className="text-sm font-semibold">
+                                    Longitude:
+                                </p>
+                            </div>
+                            <div className="flex flex-col w-3/4 pl-2">
+                                <p className="text-sm whitespace-normal">
+                                    {selectedWellData
+                                        ? `${selectedWellData.longitude}°`
+                                        : "N/A"}
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div
