@@ -46,7 +46,7 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
     const { setTooltipString, setTooltipX, setTooltipY, setSelectedWellData } =
         useContext(TooltipContext);
 
-    const maxRenderDistance = 1609.34 * 3; // 2 miles in meters
+    const maxRenderDistance = 1609.34 * 1; // 2 miles in meters
 
     useEffect(() => {
         if (!terrainProvider) {

@@ -265,13 +265,13 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
                                 }}
                             >
                                 <div className="flex justify-between">
-                                    <div>
+                                    <div className="flex-1 pr-[1rem]">
                                         <p className="font-semibold">
                                             {layer.type.join(", ")}
                                         </p>
                                         <p>{layer.description || "N/A"}</p>
                                     </div>
-                                    <p className="w-[20%] flex flex-row justify-start">
+                                    <p className="w-[5rem] flex flex-row justify-start">
                                         {`${Math.round(
                                             layer.unAdjustedStartDepth
                                         )}-${Math.round(
