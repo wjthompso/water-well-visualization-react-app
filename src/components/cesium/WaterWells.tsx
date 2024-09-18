@@ -15,6 +15,8 @@ import React, {
     useCallback,
     useContext,
     useEffect,
+    useMemo,
+    useRef,
     useState,
 } from "react";
 import {
@@ -40,14 +42,80 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
 }) => {
     const heightWellShouldShowAboveSurface = 1;
     const heightMapIconShouldShowAboveWell = 20;
-    const [wellDataWithHeights, setWellDataWithHeights] = useState(
-        [] as WellData[]
+    const [wellDataWithHeights, setWellDataWithHeights] = useState<WellData[]>(
+        []
     );
     const { setTooltipString, setTooltipX, setTooltipY, setSelectedWellData } =
         useContext(TooltipContext);
 
-    const maxRenderDistance = 1609.34 * 1; // 2 miles in meters
+    const maxRenderDistance = 1609.34 * 2; // 1 mile in meters
 
+    // State to store camera position
+    const [cameraPosition, setCameraPosition] = useState<Cartesian3 | null>(
+        null
+    );
+
+    // Ref to store throttle timeout
+    const throttleTimeout = useRef<NodeJS.Timeout | null>(null);
+
+    // Set up camera changed listener
+    useEffect(() => {
+        const viewer = viewerRef.current?.cesiumElement;
+        if (!viewer) return;
+
+        const handleCameraChange = () => {
+            if (throttleTimeout.current === null) {
+                throttleTimeout.current = setTimeout(() => {
+                    const cameraPos = viewer.camera.position.clone();
+                    setCameraPosition(cameraPos);
+                    throttleTimeout.current = null;
+                }, 100); // Throttle updates to once every 100ms
+            }
+        };
+
+        viewer.camera.changed.addEventListener(handleCameraChange);
+
+        // Initialize camera position
+        setCameraPosition(viewer.camera.position.clone());
+
+        return () => {
+            viewer.camera.changed.removeEventListener(handleCameraChange);
+            if (throttleTimeout.current) {
+                clearTimeout(throttleTimeout.current);
+            }
+        };
+    }, [viewerRef]);
+
+    // Memoize the cylinders to render based on camera position
+    const cylindersToRender = useMemo(() => {
+        if (!cameraPosition || wellDataWithHeights.length === 0) return [];
+
+        return wellDataWithHeights.filter((well) => {
+            if (
+                well.layers.length === 0 ||
+                well.layers[0].startDepth === undefined
+            ) {
+                return false;
+            }
+
+            const indicatorStartPosition = Cartesian3.fromDegrees(
+                well.longitude,
+                well.latitude,
+                well.layers[0].startDepth +
+                    heightWellShouldShowAboveSurface +
+                    heightMapIconShouldShowAboveWell
+            );
+
+            const distanceFromCamera = Cartesian3.distance(
+                cameraPosition,
+                indicatorStartPosition
+            );
+
+            return distanceFromCamera < maxRenderDistance;
+        });
+    }, [cameraPosition, wellDataWithHeights, maxRenderDistance]);
+
+    // Effect to sample terrain heights
     useEffect(() => {
         if (!terrainProvider) {
             console.log("Terrain provider is not ready yet");
@@ -115,20 +183,13 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
     }, [handleMouseMove]);
 
     const handleMouseOver = useCallback(
-        (index: number, layer: number) => {
-            const types = wellDataWithHeights[index].layers[layer].type;
-            const stringDescription =
-                wellDataWithHeights[index].layers[layer].description;
+        (well: WellData, layerIndex: number) => {
+            const layer = well.layers[layerIndex];
+            const types = layer.type;
+            const stringDescription = layer.description;
             const startDepth =
-                Math.round(
-                    wellDataWithHeights[index].layers[layer]
-                        .unAdjustedStartDepth * 100
-                ) / 100;
-            const endDepth =
-                Math.round(
-                    wellDataWithHeights[index].layers[layer]
-                        .unAdjustedEndDepth * 100
-                ) / 100;
+                Math.round(layer.unAdjustedStartDepth * 100) / 100;
+            const endDepth = Math.round(layer.unAdjustedEndDepth * 100) / 100;
             setTooltipString({
                 startDepth,
                 endDepth,
@@ -136,7 +197,7 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
                 type: types,
             });
         },
-        [setTooltipString, wellDataWithHeights]
+        [setTooltipString]
     );
 
     const handleMouseOut = useCallback(() => {
@@ -144,18 +205,18 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
     }, [setTooltipString]);
 
     const handleIconMouseOver = useCallback(
-        (index: number) => {
-            const StateWellID = wellDataWithHeights[index].StateWellID;
+        (well: WellData) => {
+            const StateWellID = well.StateWellID;
             setTooltipString(`${StateWellID}`);
         },
-        [setTooltipString, wellDataWithHeights]
+        [setTooltipString]
     );
 
     const handleClick = useCallback(
-        (index: number) => {
-            setSelectedWellData(wellDataWithHeights[index]);
+        (well: WellData) => {
+            setSelectedWellData(well);
         },
-        [setSelectedWellData, wellDataWithHeights]
+        [setSelectedWellData]
     );
 
     return (
@@ -179,30 +240,26 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
                 const eyeOffsetCallback = new CallbackProperty(() => {
                     const viewer = viewerRef.current?.cesiumElement;
                     if (!viewer) return new Cartesian3(0, 0, -5000);
-                    const cameraPosition = viewer.camera.position;
+                    const cameraPos = viewer.camera.position;
                     const distance = Cartesian3.distance(
-                        cameraPosition,
+                        cameraPos,
                         indicatorStartPosition
                     );
 
                     return new Cartesian3(0, 0, -Math.min(distance - 20, 5000));
                 }, false);
 
-                const viewer = viewerRef.current?.cesiumElement;
-                const cameraPosition =
-                    viewer?.camera.position ?? new Cartesian3();
-                const distanceFromCamera = Cartesian3.distance(
-                    cameraPosition,
-                    indicatorStartPosition
-                );
+                // Check if cylinders for this well should be rendered
+                const shouldRenderCylinders = cylindersToRender.includes(well);
 
                 return (
                     <React.Fragment key={wellIndex}>
+                        {/* Always render the billboard */}
                         <Entity
                             key={`billboard_${wellIndex}`}
                             position={indicatorStartPosition}
-                            onClick={() => handleClick(wellIndex)}
-                            onMouseMove={() => handleIconMouseOver(wellIndex)}
+                            onClick={() => handleClick(well)}
+                            onMouseMove={() => handleIconMouseOver(well)}
                             onMouseLeave={handleMouseOut}
                         >
                             <BillboardGraphics
@@ -214,7 +271,9 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
                                 eyeOffset={eyeOffsetCallback}
                             />
                         </Entity>
-                        {distanceFromCamera < maxRenderDistance &&
+
+                        {/* Conditionally render cylinders based on distance */}
+                        {shouldRenderCylinders &&
                             well.layers.map((layer, layerIndex) => {
                                 const layerStartPositionCartesian =
                                     Cartesian3.fromDegrees(
@@ -227,12 +286,9 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
                                     <Entity
                                         key={`cylinder_${wellIndex}_${layerIndex}`}
                                         position={layerStartPositionCartesian}
-                                        onClick={() => handleClick(wellIndex)}
+                                        onClick={() => handleClick(well)}
                                         onMouseMove={() =>
-                                            handleMouseOver(
-                                                wellIndex,
-                                                layerIndex
-                                            )
+                                            handleMouseOver(well, layerIndex)
                                         }
                                         onMouseLeave={handleMouseOut}
                                     >
