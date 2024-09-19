@@ -3,6 +3,10 @@ export default {
     content: ["./src/**/*.{html,js,ts,jsx,tsx}"],
     theme: {
         extend: {
+            height: {
+                "full-cesium-height": "calc(var(--vh) * 100 - 3.5rem)",
+                "mobile-cesium-height": "calc(var(--vh) * 100 - 89px)",
+            },
             fontFamily: {
                 lora: ["Lora", "serif"],
                 roboto: ["Roboto", "sans-serif"], // Add Roboto font here
