@@ -65,6 +65,10 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
     // Ref to track click timeout for detecting double clicks
     const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+    // State to track the currently zoomed-in well
+    const [currentlyZoomedWell, setCurrentlyZoomedWell] =
+        useState<WellData | null>(null);
+
     // Set up camera changed listener
     useEffect(() => {
         const viewer = viewerRef.current?.cesiumElement;
@@ -173,6 +177,7 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
         }
     }, [terrainProvider, wellDataWithoutElevationAdjustments]);
 
+    // Handle mouse movement for tooltips
     const handleMouseMove = useCallback(
         (event: MouseEvent) => {
             setTooltipX(event.clientX);
@@ -189,6 +194,7 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
         };
     }, [handleMouseMove]);
 
+    // Handle mouse over on well layers
     const handleMouseOver = useCallback(
         (well: WellData, layerIndex: number) => {
             const layer = well.layers[layerIndex];
@@ -207,10 +213,12 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
         [setTooltipString]
     );
 
+    // Handle mouse out from well layers
     const handleMouseOut = useCallback(() => {
         setTooltipString("");
     }, [setTooltipString]);
 
+    // Handle mouse over on well icon
     const handleIconMouseOver = useCallback(
         (well: WellData) => {
             const StateWellID = well.StateWellID;
@@ -219,37 +227,51 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
         [setTooltipString]
     );
 
+    // Function to fly to or fly out from a well
     const flyToWell = useCallback(
         (well: WellData) => {
             const viewer = viewerRef.current?.cesiumElement;
             if (!viewer) return;
 
-            if (isCameraMoving) {
-                console.log("Camera is already moving");
-                return;
-            }
+            // Determine if we're already zoomed into this well
+            const isAlreadyZoomedIn =
+                currentlyZoomedWell &&
+                currentlyZoomedWell.StateWellID === well.StateWellID;
 
-            const { longitude, latitude, layers } = well;
+            let destination: Cartesian3;
 
-            // Ensure layers are available and startDepth is defined
-            let cameraHeight;
-            if (layers.length > 0 && layers[0].startDepth !== undefined) {
-                const startDepth = layers[0].startDepth;
-                cameraHeight = startDepth + 500; // 500 meters above the well
+            if (isAlreadyZoomedIn) {
+                // Fly out to a higher altitude, keeping the well centered
+                const flyOutHeight = 10000; // Adjust as needed for higher altitude
+                destination = Cartesian3.fromDegrees(
+                    well.longitude,
+                    well.latitude - 0.05,
+                    flyOutHeight
+                );
             } else {
-                cameraHeight = 500; // Default altitude if data is missing
-            }
+                // Fly into the well
+                let cameraHeight;
+                if (
+                    well.layers.length > 0 &&
+                    well.layers[0].startDepth !== undefined
+                ) {
+                    const startDepth = well.layers[0].startDepth;
+                    cameraHeight = startDepth + 500; // 500 meters above the well
+                } else {
+                    cameraHeight = 500; // Default altitude if data is missing
+                }
 
-            const destination = Cartesian3.fromDegrees(
-                longitude,
-                latitude - 0.0025, // Adjust latitude slightly if needed
-                cameraHeight
-            );
+                destination = Cartesian3.fromDegrees(
+                    well.longitude,
+                    well.latitude - 0.0025, // Adjust latitude slightly if needed
+                    cameraHeight
+                );
+            }
 
             // Set isCameraMoving to true
             setIsCameraMoving(true);
 
-            // Fly the camera to the calculated destination
+            // Fly the camera to the destination
             viewer.camera.flyTo({
                 destination: destination,
                 orientation: {
@@ -257,36 +279,53 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
                     pitch: CesiumMath.toRadians(-60), // 60 degrees downward
                     roll: 0.0, // No roll
                 },
-                duration: 2, // Flight duration in seconds
+                duration: 1, // Flight duration in seconds
                 complete: () => {
-                    console.log(
-                        `Camera has flown to well: ${well.StateWellID}`
-                    );
+                    if (isAlreadyZoomedIn) {
+                        // After flying out, clear the currentlyZoomedWell
+                        setCurrentlyZoomedWell(null);
+                        console.log(
+                            `Camera has flown out from well: ${well.StateWellID}`
+                        );
+                    } else {
+                        // After flying in, set the currentlyZoomedWell
+                        setCurrentlyZoomedWell(well);
+                        console.log(
+                            `Camera has flown to well: ${well.StateWellID}`
+                        );
+                    }
                     // Set isCameraMoving to false
                     setIsCameraMoving(false);
                 },
                 cancel: () => {
-                    console.log("Flight to well was canceled.");
+                    console.log("Flight to/from well was canceled.");
                     // Set isCameraMoving to false
                     setIsCameraMoving(false);
                 },
             });
         },
-        [viewerRef]
+        [viewerRef, currentlyZoomedWell]
     );
 
+    // Handle click (single and double click)
     const handleClick = useCallback(
         (well: WellData) => {
+            // Prevent handling clicks while the camera is moving
+            if (isCameraMoving) {
+                console.log("Camera is already moving, ignoring click");
+                return;
+            }
+
             // Double-click detection
             if (clickTimeoutRef.current !== null) {
                 clearTimeout(clickTimeoutRef.current);
                 clickTimeoutRef.current = null;
 
-                // Handle double-click
-                console.log("Double click detected, flying to well.");
+                // Handle double-click: Fly to or fly out from the well
+                console.log("Double click detected, toggling camera view.");
                 flyToWell(well);
             } else {
-                // Handle single-click
+                // Handle single-click: Select the well data
                 clickTimeoutRef.current = setTimeout(() => {
                     setSelectedWellData(well);
                     console.log("Single click detected, well data selected.");
@@ -296,9 +335,10 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
                 }, 250); // Timeout duration in milliseconds
             }
         },
-        [flyToWell, setSelectedWellData]
+        [isCameraMoving, flyToWell, setSelectedWellData]
     );
 
+    // Clean up the click timeout on unmount
     useEffect(() => {
         return () => {
             if (clickTimeoutRef.current !== null) {
