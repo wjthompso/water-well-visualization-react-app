@@ -100,7 +100,7 @@ function moveCameraToDangermond(viewer: CesiumViewer) {
 }
 
 function enableUndergroundView(viewer: CesiumViewer) {
-    viewer.scene.screenSpaceCameraController.enableCollisionDetection = false;
+    viewer.scene.screenSpaceCameraController.enableCollisionDetection = true;
 }
 
 function makeGroundTranslucentAsYouGetCloser(viewer: CesiumViewer) {
@@ -110,7 +110,9 @@ function makeGroundTranslucentAsYouGetCloser(viewer: CesiumViewer) {
     const scene = viewer.scene;
     scene.camera.changed.addEventListener(function () {
         const cameraHeight = scene.camera.positionCartographic.height;
-        if (cameraHeight < 2000) {
+        if (cameraHeight < 500) {
+            globe.translucency.frontFaceAlpha = 0.2;
+        } else if (cameraHeight < 2000) {
             globe.translucency.frontFaceAlpha = 0.5;
         } else {
             globe.translucency.frontFaceAlpha = 1;
