@@ -62,6 +62,9 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
     // State to track if the camera is moving
     const [isCameraMoving, setIsCameraMoving] = useState<boolean>(false);
 
+    // Ref to track click timeout for detecting double clicks
+    const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
     // Set up camera changed listener
     useEffect(() => {
         const viewer = viewerRef.current?.cesiumElement;
@@ -156,7 +159,6 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
                         layers,
                         startDepth: height - well.startDepth,
                         endDepth: height - well.endDepth,
-                        // elevation: height, // No elevation property used
                     };
                 });
 
@@ -217,21 +219,15 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
         [setTooltipString]
     );
 
-    const handleClick = useCallback(
+    const flyToWell = useCallback(
         (well: WellData) => {
-            // If the camera is already moving, ignore the click
-            if (isCameraMoving) {
-                console.log("Camera is already moving, ignoring click");
-                return;
-            }
-
-            setSelectedWellData(well);
-
-            console.log("I received a click!");
-
-            // Fly to the well's location
             const viewer = viewerRef.current?.cesiumElement;
             if (!viewer) return;
+
+            if (isCameraMoving) {
+                console.log("Camera is already moving");
+                return;
+            }
 
             const { longitude, latitude, layers } = well;
 
@@ -276,8 +272,40 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
                 },
             });
         },
-        [isCameraMoving, setSelectedWellData, viewerRef]
+        [viewerRef]
     );
+
+    const handleClick = useCallback(
+        (well: WellData) => {
+            // Double-click detection
+            if (clickTimeoutRef.current !== null) {
+                clearTimeout(clickTimeoutRef.current);
+                clickTimeoutRef.current = null;
+
+                // Handle double-click
+                console.log("Double click detected, flying to well.");
+                flyToWell(well);
+            } else {
+                // Handle single-click
+                clickTimeoutRef.current = setTimeout(() => {
+                    setSelectedWellData(well);
+                    console.log("Single click detected, well data selected.");
+
+                    // Clear the timeout
+                    clickTimeoutRef.current = null;
+                }, 250); // Timeout duration in milliseconds
+            }
+        },
+        [flyToWell, setSelectedWellData]
+    );
+
+    useEffect(() => {
+        return () => {
+            if (clickTimeoutRef.current !== null) {
+                clearTimeout(clickTimeoutRef.current);
+            }
+        };
+    }, []);
 
     return (
         <>
