@@ -1,3 +1,4 @@
+// ResiumViewerComponent.tsx
 import {
     Camera,
     Cartesian3,
@@ -7,6 +8,7 @@ import {
     Viewer as CesiumViewer,
     createWorldTerrainAsync,
     IonImageryProvider,
+    ScreenSpaceEventType, // Import this
 } from "cesium";
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -257,9 +259,6 @@ const ResiumViewerComponent: React.FC = () => {
             currentLat >= quadrant.topLeft.lat
         ) {
             // The camera is still within the current chunk, no need to do anything
-            // console.log(
-            //     "We correctly determined that we're in the same chunk as before"
-            // );
             return;
         }
 
@@ -348,6 +347,11 @@ const ResiumViewerComponent: React.FC = () => {
                 moveCameraToDangermond(viewer);
                 makeGroundTranslucentAsYouGetCloser(viewer);
                 repositionToolbar();
+
+                // **Disable Cesium's default double-click behavior**
+                viewer.screenSpaceEventHandler.removeInputAction(
+                    ScreenSpaceEventType.LEFT_DOUBLE_CLICK
+                );
 
                 const scene = viewer.scene;
                 const camera = scene.camera;

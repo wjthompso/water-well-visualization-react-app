@@ -1,3 +1,4 @@
+// WaterWell.tsx
 import {
     CallbackProperty,
     Cartesian3,
@@ -48,7 +49,7 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
     const { setTooltipString, setTooltipX, setTooltipY, setSelectedWellData } =
         useContext(TooltipContext);
 
-    const maxRenderDistance = 1609.34 * 2; // 1 mile in meters
+    const maxRenderDistance = 1609.34 * 2; // 2 miles in meters
 
     // State to store camera position
     const [cameraPosition, setCameraPosition] = useState<Cartesian3 | null>(
@@ -57,6 +58,9 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
 
     // Ref to store throttle timeout
     const throttleTimeout = useRef<NodeJS.Timeout | null>(null);
+
+    // State to track if the camera is moving
+    const [isCameraMoving, setIsCameraMoving] = useState<boolean>(false);
 
     // Set up camera changed listener
     useEffect(() => {
@@ -152,6 +156,7 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
                         layers,
                         startDepth: height - well.startDepth,
                         endDepth: height - well.endDepth,
+                        // elevation: height, // No elevation property used
                     };
                 });
 
@@ -214,9 +219,64 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
 
     const handleClick = useCallback(
         (well: WellData) => {
+            // If the camera is already moving, ignore the click
+            if (isCameraMoving) {
+                console.log("Camera is already moving, ignoring click");
+                return;
+            }
+
             setSelectedWellData(well);
+
+            console.log("I received a click!");
+
+            // Fly to the well's location
+            const viewer = viewerRef.current?.cesiumElement;
+            if (!viewer) return;
+
+            const { longitude, latitude, layers } = well;
+
+            // Ensure layers are available and startDepth is defined
+            let cameraHeight;
+            if (layers.length > 0 && layers[0].startDepth !== undefined) {
+                const startDepth = layers[0].startDepth;
+                cameraHeight = startDepth + 500; // 500 meters above the well
+            } else {
+                cameraHeight = 500; // Default altitude if data is missing
+            }
+
+            const destination = Cartesian3.fromDegrees(
+                longitude,
+                latitude - 0.0025, // Adjust latitude slightly if needed
+                cameraHeight
+            );
+
+            // Set isCameraMoving to true
+            setIsCameraMoving(true);
+
+            // Fly the camera to the calculated destination
+            viewer.camera.flyTo({
+                destination: destination,
+                orientation: {
+                    heading: CesiumMath.toRadians(0), // Facing north
+                    pitch: CesiumMath.toRadians(-60), // 60 degrees downward
+                    roll: 0.0, // No roll
+                },
+                duration: 2, // Flight duration in seconds
+                complete: () => {
+                    console.log(
+                        `Camera has flown to well: ${well.StateWellID}`
+                    );
+                    // Set isCameraMoving to false
+                    setIsCameraMoving(false);
+                },
+                cancel: () => {
+                    console.log("Flight to well was canceled.");
+                    // Set isCameraMoving to false
+                    setIsCameraMoving(false);
+                },
+            });
         },
-        [setSelectedWellData]
+        [isCameraMoving, setSelectedWellData, viewerRef]
     );
 
     return (
