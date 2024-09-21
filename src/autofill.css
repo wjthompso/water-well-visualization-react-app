@@ -1,0 +1,9 @@
+/* src/autofill.css */
+@layer utilities {
+  input:-webkit-autofill {
+    @apply text-white bg-headerBackgroundColor;
+    background-color: #2F2E2E !important; /* Apply the background color directly */
+    -webkit-box-shadow: 0 0 0px 1000px #2F2E2E inset; /* Fall-back shadow to cover the autofill */
+    -webkit-text-fill-color: #ffffff !important; /* Ensure the text color is white */
+  }
+}

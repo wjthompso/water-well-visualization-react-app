@@ -1,6 +1,6 @@
 // CustomSearchBar.tsx
 import { Cartesian3, Math as CesiumMath, Viewer as CesiumViewer } from "cesium";
-import { debounce } from "lodash"; // Install lodash if not already installed
+import { debounce } from "lodash";
 import React, { useEffect, useState } from "react";
 import { CesiumComponentRef } from "resium";
 import SearchIcon from "../../assets/SearchIcon.svg";
@@ -13,13 +13,7 @@ interface CustomSearchBarProps {
 
 interface GeocodeResult {
     place_id: string;
-    formatted_address: string;
-    geometry: {
-        location: {
-            lat: number;
-            lng: number;
-        };
-    };
+    description: string;
 }
 
 const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
@@ -30,57 +24,78 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
     const [results, setResults] = useState<GeocodeResult[]>([]);
     const [searchBarInFocus, setSearchBarInFocus] = useState<boolean>(false);
 
-    const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_APS_API_KEY;
-
-    const fetchGeocodingResults = async (searchQuery: string) => {
+    const fetchPlacesAutocompleteResults = async (searchQuery: string) => {
         if (searchQuery.trim() === "") return;
 
         try {
             const response = await fetch(
-                `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
+                `https://waterwelldepthmap.bren.ucsb.edu/api/places-autocomplete?input=${encodeURIComponent(
                     searchQuery
-                )}&key=${GOOGLE_API_KEY}`
+                )}`, // Updated to use your backend API
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                        // Assuming CORS will be properly handled on your backend
+                    },
+                }
             );
             const data = await response.json();
 
             if (data.status === "OK") {
-                setResults(data.results);
+                setResults(data.predictions);
             } else {
-                console.error("Error fetching geocoding results:", data.status);
+                console.error("Error fetching places autocomplete results:", data.status);
             }
         } catch (error) {
-            console.error("Error fetching geocoding results:", error);
+            console.error("Error fetching places autocomplete results:", error);
         }
     };
 
     // Debounced search function
-    const debouncedFetchGeocodingResults = debounce(fetchGeocodingResults, 500);
+    const debouncedFetchPlacesAutocompleteResults = debounce(fetchPlacesAutocompleteResults, 500);
 
     useEffect(() => {
-        debouncedFetchGeocodingResults(query);
+        debouncedFetchPlacesAutocompleteResults(query);
 
-        // Cleanup the debounce effect on unmount
         return () => {
-            debouncedFetchGeocodingResults.cancel();
+            debouncedFetchPlacesAutocompleteResults.cancel();
         };
     }, [query]);
 
-    const handleResultClick = (result: GeocodeResult) => {
-        const { lat, lng } = result.geometry.location;
+    const handleResultClick = async (result: GeocodeResult) => {
+        try {
+            const response = await fetch(
+                `https://waterwelldepthmap.bren.ucsb.edu/api/place-details?place_id=${result.place_id}`,
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
 
-        if (viewerRef.current && viewerRef.current.cesiumElement) {
-            const viewer = viewerRef.current.cesiumElement as CesiumViewer;
-            viewer.camera.flyTo({
-                destination: Cartesian3.fromDegrees(lng, lat, 5000),
-                orientation: {
-                    heading: CesiumMath.toRadians(0),
-                    pitch: CesiumMath.toRadians(-60),
-                    roll: 0.0,
-                },
-            });
+            const data = await response.json();
 
-            setResults([]);
-            setQuery(result.formatted_address);
+            if (data.status === "OK") {
+                const { lat, lng } = data.result.geometry.location;
+                if (viewerRef.current && viewerRef.current.cesiumElement) {
+                    const viewer = viewerRef.current.cesiumElement as CesiumViewer;
+                    viewer.camera.flyTo({
+                        destination: Cartesian3.fromDegrees(lng, lat, 5000),
+                        orientation: {
+                            heading: CesiumMath.toRadians(0),
+                            pitch: CesiumMath.toRadians(-60),
+                            roll: 0.0,
+                        },
+                    });
+                }
+
+                setResults([]);
+                setQuery(result.description);
+            } else {
+                console.error("Error fetching place details:", data.status);
+            }
+        } catch (error) {
+            console.error("Error fetching place details:", error);
         }
     };
 
@@ -125,7 +140,7 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
                                 onClick={() => handleResultClick(result)}
                                 className="flex items-center px-2 min-h-[2.2rem] text-white cursor-pointer hover:bg-gray-600 border-t-[1px] border-t-gray-200"
                             >
-                                {result.formatted_address}
+                                {result.description}
                             </li>
                         ))}
                     </ul>
