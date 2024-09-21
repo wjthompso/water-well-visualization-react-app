@@ -39,7 +39,9 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
                     },
                 }
             );
+
             const data = await response.json();
+            console.log("data", data);
 
             if (data.status === "OK") {
                 setResults(data.predictions);
@@ -72,11 +74,13 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
                     },
                 }
             );
-
+    
             const data = await response.json();
-
-            if (data.status === "OK") {
-                const { lat, lng } = data.result.geometry.location;
+    
+            // Check if 'geometry' exists in the response data
+            if (data && data.geometry && data.geometry.location) {
+                const { lat, lng } = data.geometry.location;
+                
                 if (viewerRef.current && viewerRef.current.cesiumElement) {
                     const viewer = viewerRef.current.cesiumElement as CesiumViewer;
                     viewer.camera.flyTo({
@@ -86,18 +90,20 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
                             pitch: CesiumMath.toRadians(-60),
                             roll: 0.0,
                         },
+                        duration: 2,
                     });
                 }
-
+    
                 setResults([]);
                 setQuery(result.description);
             } else {
-                console.error("Error fetching place details:", data.status);
+                console.error("Error: Unable to fetch location data. The 'geometry' field is missing.");
             }
         } catch (error) {
             console.error("Error fetching place details:", error);
         }
     };
+    
 
     return (
         <div
