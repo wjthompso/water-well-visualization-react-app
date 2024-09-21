@@ -32,8 +32,6 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
 
     const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_APS_API_KEY;
 
-    console.log("Google API key:", GOOGLE_API_KEY);
-
     const fetchGeocodingResults = async (searchQuery: string) => {
         if (searchQuery.trim() === "") return;
 
