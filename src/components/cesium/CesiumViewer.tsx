@@ -3,15 +3,16 @@ import {
     Camera,
     Cartesian3,
     Cartographic,
+    Color as CesiumColor,
     Math as CesiumMath,
     CesiumTerrainProvider,
     Viewer as CesiumViewer,
     createWorldTerrainAsync,
     IonImageryProvider,
-    ScreenSpaceEventType, // Import this
+    ScreenSpaceEventType
 } from "cesium";
 import "cesium/Build/Cesium/Widgets/widgets.css";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CesiumComponentRef, Viewer } from "resium";
 import "../../App.css";
 import {
@@ -23,6 +24,7 @@ import {
 import DraggableComponent from "../DraggableFooter/DraggableFooter";
 import LoadingSpinner from "../LoadingSpinner/LoadingSpinner";
 import CustomSearchBar from "../Searchbar/CustomSearchbar";
+import GroundPolylinePrimitiveComponent from "./GroundPolylinePrimitiveComponent"; // Import the component
 import Tooltip from "./Tooltip";
 import CylinderEntities from "./WaterWells";
 
@@ -241,14 +243,14 @@ const ResiumViewerComponent: React.FC = () => {
     const showWellsRef = useRef(true);
     // Variables to store the previous camera position
     const prevCameraPosition = useRef<Cartographic | null>(null);
-    
-    const maxRenderDistance = 1609.34 * 50; // 15 miles
+    const thresholdHeight = 1609.34 * 50; // 3 miles in meters
 
+    // Update showWellsRef whenever showWells changes
     useEffect(() => {
         showWellsRef.current = showWells;
-      }, [showWells]);
+    }, [showWells]);
 
-    const handleCameraMove = useCallback(async (camera: Camera) => {        
+    const handleCameraMove = useCallback(async (camera: Camera) => {
         const cartographicPosition = Cartographic.fromCartesian(
             camera.position
         );
@@ -365,28 +367,25 @@ const ResiumViewerComponent: React.FC = () => {
 
                 const moveHandler = () => handleCameraMove(camera);
 
-                // Add the camera height handler
+                // Add the camera height handler using camera.changed
                 const cameraHeightHandler = () => {
-                    console.log("Camera height changed");
-                    const cameraHeight = viewer.scene.camera.positionCartographic.height
-                    console.log("Camera height:", cameraHeight);
-                    console.log("Max render distance:", maxRenderDistance);
-                    const thresholdHeight = maxRenderDistance
-                    const newShowWells = cameraHeight <= thresholdHeight
+                    const cameraHeight = scene.camera.positionCartographic.height;
+                    const newShowWells = cameraHeight <= thresholdHeight;
                     if (showWellsRef.current !== newShowWells) {
-                    setShowWells(newShowWells);
-                    showWellsRef.current = newShowWells;
+                        setShowWells(newShowWells);
+                        showWellsRef.current = newShowWells;
                     }
                 };
-  
+
+                // Attach the handlers
                 scene.camera.moveEnd.addEventListener(moveHandler);
                 scene.camera.moveEnd.addEventListener(cameraHeightHandler);
 
                 setFinishedLoading(true);
 
                 return () => {
-                    scene.camera.moveEnd.removeEventListener(cameraHeightHandler);
                     scene.camera.moveEnd.removeEventListener(moveHandler);
+                    scene.camera.moveEnd.removeEventListener(cameraHeightHandler);
                 };
             }
         }, 100);
@@ -399,6 +398,26 @@ const ResiumViewerComponent: React.FC = () => {
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // Compute positions for the chunk outline
+    const chunkOutlinePositions = useMemo(() => {
+        if (!currentQuadrant) return null;
+        const { topLeft, bottomRight } = currentQuadrant;
+
+        // Define the other two corners
+        const topRight = { lat: topLeft.lat, lon: bottomRight.lon };
+        const bottomLeft = { lat: bottomRight.lat, lon: topLeft.lon };
+
+        // Create positions forming a rectangle (closed loop)
+        const positions = [
+            Cartesian3.fromDegrees(topLeft.lon, topLeft.lat),
+            Cartesian3.fromDegrees(topRight.lon, topRight.lat),
+            Cartesian3.fromDegrees(bottomRight.lon, bottomRight.lat),
+            Cartesian3.fromDegrees(bottomLeft.lon, bottomLeft.lat),
+            Cartesian3.fromDegrees(topLeft.lon, topLeft.lat), // Close the loop
+        ];
+        return positions;
+    }, [currentQuadrant]);
 
     // This is here so that we actually pass a non-null terrainProvider to CylinderEntities
     if (!terrainProvider) {
@@ -448,13 +467,23 @@ const ResiumViewerComponent: React.FC = () => {
                     selectionIndicator={false} // Hide the selection indicator
                     infoBox={false} // Hide the info box
                 >
+                    {/* Conditionally render wells based on camera height */}
                     {showWells && (
-                                <CylinderEntities
-                                terrainProvider={terrainProvider}
-                                wellDataWithoutElevationAdjustments={wellDataWithoutElevationAdjustments}
-                                viewerRef={viewerRef}
-                                />
-                            )}
+                        <CylinderEntities
+                            terrainProvider={terrainProvider}
+                            wellDataWithoutElevationAdjustments={wellDataWithoutElevationAdjustments}
+                            viewerRef={viewerRef}
+                        />
+                    )}
+                    
+                    {/* Conditionally render the chunk boundary */}
+                    {chunkOutlinePositions && (
+                        <GroundPolylinePrimitiveComponent
+                            positions={chunkOutlinePositions}
+                            width={2.0}
+                            color={CesiumColor.WHITE}
+                        />
+                    )}
                 </Viewer>
                 <Tooltip />
             </div>
