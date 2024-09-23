@@ -401,7 +401,7 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
                                 image={createPieChartWellIcon(well)}
                                 verticalOrigin={VerticalOrigin.BOTTOM}
                                 scaleByDistance={
-                                    new NearFarScalar(1.5e2, 0.15, 1.5e7, 0.075)
+                                    new NearFarScalar(1.5e2, 0.12, 1.5e7, 0.075)
                                 }
                                 eyeOffset={eyeOffsetCallback}
                             />
