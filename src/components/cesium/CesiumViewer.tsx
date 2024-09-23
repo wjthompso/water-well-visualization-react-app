@@ -12,9 +12,10 @@ import {
     ScreenSpaceEventType
 } from "cesium";
 import "cesium/Build/Cesium/Widgets/widgets.css";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { CesiumComponentRef, Viewer } from "resium";
 import "../../App.css";
+import { TooltipContext } from "../../context/AppContext";
 import {
     GroundMaterialType,
     GroundMaterialTypeColor,
@@ -244,6 +245,8 @@ const ResiumViewerComponent: React.FC = () => {
     // Variables to store the previous camera position
     const prevCameraPosition = useRef<Cartographic | null>(null);
     const thresholdHeight = 1609.34 * 50; // 3 miles in meters
+    const { setTooltipString } = useContext(TooltipContext);
+
 
     // Update showWellsRef whenever showWells changes
     useEffect(() => {
@@ -374,6 +377,10 @@ const ResiumViewerComponent: React.FC = () => {
                     if (showWellsRef.current !== newShowWells) {
                         setShowWells(newShowWells);
                         showWellsRef.current = newShowWells;
+
+                        if (!newShowWells) {
+                            setTooltipString("");
+                        }
                     }
                 };
 
