@@ -7,6 +7,25 @@ const Tooltip: React.FC<TooltipProps> = () => {
     const { tooltipX, tooltipY, tooltipString } = useContext(TooltipContext);
     const tooltipRef = useRef<HTMLDivElement>(null);
     const [tooltipWidth, setTooltipWidth] = useState(0);
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        // Function to detect mobile devices
+        const checkIfMobile = () => {
+            const userAgent = navigator.userAgent || navigator.vendor;
+            // Regex to detect mobile devices
+            if (/android|iphone|ipad|ipod|opera mini|iemobile|wpdesktop/i.test(userAgent)) {
+                setIsMobile(true);
+            } else {
+                setIsMobile(false);
+            }
+        };
+
+        checkIfMobile();
+        window.addEventListener("resize", checkIfMobile);
+
+        return () => window.removeEventListener("resize", checkIfMobile);
+    }, []);
 
     useEffect(() => {
         if (tooltipRef.current) {
@@ -18,6 +37,11 @@ const Tooltip: React.FC<TooltipProps> = () => {
     const isStringTooltip = (str: string | object): str is string => {
         return typeof str === "string";
     };
+
+    // If on mobile, don't render the tooltip at all
+    if (isMobile) {
+        return null;
+    }
 
     return (
         <>
