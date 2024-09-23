@@ -1,6 +1,13 @@
 import { WellData } from "../context/WellData";
 
+const pieChartCache = new Map<string, string>();
+
 export function createPieChartWellIcon(well: WellData): string {
+    // Check if the result is already cached
+    const wellID = well.StateWellID ?? '';
+    if (pieChartCache.has(wellID)) {
+        return pieChartCache.get(wellID)!;
+    }
     const baseSize = 50;
     const scaleFactor = 4; // Try a lower value
     const radius = baseSize * scaleFactor;
@@ -69,5 +76,10 @@ export function createPieChartWellIcon(well: WellData): string {
     }
 
     // Convert high-res canvas to PNG URL
-    return canvas.toDataURL("image/png");
+    const dataUrl = canvas.toDataURL("image/png");
+
+    // Store the result in the cache
+    pieChartCache.set(wellID, dataUrl);
+
+    return dataUrl;
 }
