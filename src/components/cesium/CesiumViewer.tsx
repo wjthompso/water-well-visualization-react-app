@@ -237,11 +237,18 @@ const ResiumViewerComponent: React.FC = () => {
     const hasFetchedQuadrants = useRef(false); // Ref to check if quadrants have been fetched
     const parentRefForDraggableComponent = useRef<HTMLDivElement>(null);
     const searchBarRef = useRef<HTMLDivElement>(null);
-
+    const [showWells, setShowWells] = useState(true);
+    const showWellsRef = useRef(true);
     // Variables to store the previous camera position
     const prevCameraPosition = useRef<Cartographic | null>(null);
+    
+    const maxRenderDistance = 1609.34 * 50; // 15 miles
 
-    const handleCameraMove = useCallback(async (camera: Camera) => {
+    useEffect(() => {
+        showWellsRef.current = showWells;
+      }, [showWells]);
+
+    const handleCameraMove = useCallback(async (camera: Camera) => {        
         const cartographicPosition = Cartographic.fromCartesian(
             camera.position
         );
@@ -358,12 +365,28 @@ const ResiumViewerComponent: React.FC = () => {
 
                 const moveHandler = () => handleCameraMove(camera);
 
-                scene.camera.changed.addEventListener(moveHandler);
+                // Add the camera height handler
+                const cameraHeightHandler = () => {
+                    console.log("Camera height changed");
+                    const cameraHeight = viewer.scene.camera.positionCartographic.height
+                    console.log("Camera height:", cameraHeight);
+                    console.log("Max render distance:", maxRenderDistance);
+                    const thresholdHeight = maxRenderDistance
+                    const newShowWells = cameraHeight <= thresholdHeight
+                    if (showWellsRef.current !== newShowWells) {
+                    setShowWells(newShowWells);
+                    showWellsRef.current = newShowWells;
+                    }
+                };
+  
+                scene.camera.moveEnd.addEventListener(moveHandler);
+                scene.camera.moveEnd.addEventListener(cameraHeightHandler);
 
                 setFinishedLoading(true);
 
                 return () => {
-                    scene.camera.changed.removeEventListener(moveHandler);
+                    scene.camera.moveEnd.removeEventListener(cameraHeightHandler);
+                    scene.camera.moveEnd.removeEventListener(moveHandler);
                 };
             }
         }, 100);
@@ -425,13 +448,13 @@ const ResiumViewerComponent: React.FC = () => {
                     selectionIndicator={false} // Hide the selection indicator
                     infoBox={false} // Hide the info box
                 >
-                    <CylinderEntities
-                        terrainProvider={terrainProvider}
-                        wellDataWithoutElevationAdjustments={
-                            wellDataWithoutElevationAdjustments
-                        }
-                        viewerRef={viewerRef}
-                    />
+                    {showWells && (
+                                <CylinderEntities
+                                terrainProvider={terrainProvider}
+                                wellDataWithoutElevationAdjustments={wellDataWithoutElevationAdjustments}
+                                viewerRef={viewerRef}
+                                />
+                            )}
                 </Viewer>
                 <Tooltip />
             </div>
