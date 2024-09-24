@@ -484,7 +484,7 @@ const ResiumViewerComponent: React.FC = () => {
                     )}
                     
                     {/* Conditionally render the chunk boundary */}
-                    {chunkOutlinePositions && (
+                    {chunkOutlinePositions && showWells &&  (
                         <GroundPolylinePrimitiveComponent
                             positions={chunkOutlinePositions}
                             width={2.0}
