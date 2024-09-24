@@ -113,16 +113,40 @@ function makeGroundTranslucentAsYouGetCloser(viewer: CesiumViewer) {
     globe.depthTestAgainstTerrain = true;
     globe.translucency.enabled = true;
     const scene = viewer.scene;
-    scene.camera.changed.addEventListener(function () {
-        const cameraHeight = scene.camera.positionCartographic.height;
-        if (cameraHeight < 500) {
+
+    // Define a handler function
+    const handleCameraChange = () => {
+        const cameraCartographic = Cartographic.fromCartesian(scene.camera.position);
+        
+        // Get the terrain height relative to the globe at the camera's position
+        const terrainHeight = globe.getHeight(cameraCartographic);
+        
+        // If terrainHeight is undefined (i.e., not fully loaded), assume sea level (0)
+        const terrainElevation = terrainHeight !== undefined ? terrainHeight : 0;
+
+        // Calculate the camera height above the terrain
+        const cameraHeightAboveTerrain = cameraCartographic.height - terrainElevation;
+
+        // Adjust the globe's translucency based on height above the terrain
+        if (cameraHeightAboveTerrain < 500) {
             globe.translucency.frontFaceAlpha = 0.2;
-        } else if (cameraHeight < 2000) {
+        } else if (cameraHeightAboveTerrain < 2000) {
             globe.translucency.frontFaceAlpha = 0.5;
         } else {
             globe.translucency.frontFaceAlpha = 1;
         }
-    });
+    };
+
+    // Add event listener for when the camera changes
+    scene.camera.changed.addEventListener(handleCameraChange);
+
+    // Optional: Initialize the translucency based on the current camera position
+    handleCameraChange();
+
+    // Cleanup function to remove the event listener when no longer needed
+    return () => {
+        scene.camera.changed.removeEventListener(handleCameraChange);
+    };
 }
 
 function mapMaterialType(material: string): keyof typeof GroundMaterialType {
