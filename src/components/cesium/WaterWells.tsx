@@ -312,7 +312,6 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
         (well: WellData) => {
             // Prevent handling clicks while the camera is moving
             if (isCameraMoving) {
-                console.log("Camera is already moving, ignoring click");
                 return;
             }
 
@@ -322,13 +321,11 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
                 clickTimeoutRef.current = null;
 
                 // Handle double-click: Fly to or fly out from the well
-                console.log("Double click detected, toggling camera view.");
                 flyToWell(well);
             } else {
+                setSelectedWellData(well);
                 // Handle single-click: Select the well data
                 clickTimeoutRef.current = setTimeout(() => {
-                    setSelectedWellData(well);
-                    console.log("Single click detected, well data selected.");
 
                     // Clear the timeout
                     clickTimeoutRef.current = null;
