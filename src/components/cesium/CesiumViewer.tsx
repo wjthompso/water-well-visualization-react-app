@@ -9,10 +9,17 @@ import {
     Viewer as CesiumViewer,
     createWorldTerrainAsync,
     IonImageryProvider,
-    ScreenSpaceEventType
+    ScreenSpaceEventType,
 } from "cesium";
 import "cesium/Build/Cesium/Widgets/widgets.css";
-import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 import { CesiumComponentRef, Viewer } from "resium";
 import "../../App.css";
 import { TooltipContext } from "../../context/AppContext";
@@ -116,16 +123,20 @@ function makeGroundTranslucentAsYouGetCloser(viewer: CesiumViewer) {
 
     // Define a handler function
     const handleCameraChange = () => {
-        const cameraCartographic = Cartographic.fromCartesian(scene.camera.position);
-        
+        const cameraCartographic = Cartographic.fromCartesian(
+            scene.camera.position
+        );
+
         // Get the terrain height relative to the globe at the camera's position
         const terrainHeight = globe.getHeight(cameraCartographic);
-        
+
         // If terrainHeight is undefined (i.e., not fully loaded), assume sea level (0)
-        const terrainElevation = terrainHeight !== undefined ? terrainHeight : 0;
+        const terrainElevation =
+            terrainHeight !== undefined ? terrainHeight : 0;
 
         // Calculate the camera height above the terrain
-        const cameraHeightAboveTerrain = cameraCartographic.height - terrainElevation;
+        const cameraHeightAboveTerrain =
+            cameraCartographic.height - terrainElevation;
 
         // Adjust the globe's translucency based on height above the terrain
         if (cameraHeightAboveTerrain < 500) {
@@ -147,6 +158,14 @@ function makeGroundTranslucentAsYouGetCloser(viewer: CesiumViewer) {
     return () => {
         scene.camera.changed.removeEventListener(handleCameraChange);
     };
+}
+
+function decreaseLevelOfDetail(viewer: CesiumViewer) {
+    // viewer.scene.globe.maximumScreenSpaceError = 3;
+    console.log(
+        "Decreasing level of detail",
+        viewer.scene.globe.maximumScreenSpaceError
+    );
 }
 
 function mapMaterialType(material: string): keyof typeof GroundMaterialType {
@@ -246,11 +265,24 @@ function fillInMissingLayers(wellData: WellData[]): WellData[] {
 }
 
 const ResiumViewerComponent: React.FC = () => {
+    // Grid parameters
+    const minLat = 24.536111;
+    const maxLat = 49.36843957;
+    const minLon = -124.592902859999;
+    const maxLon = -67.4433;
+    const chunkSplitN = 119;
+
+    const latStep = (maxLat - minLat) / chunkSplitN;
+    const lonStep = (maxLon - minLon) / chunkSplitN;
+
+    const roundToSix = (num: number) => Math.round(num * 1e6) / 1e6;
+
     const viewerRef = useRef<CesiumComponentRef<CesiumViewer> | null>(null);
     const [terrainProvider, setTerrainProvider] = useState<
         CesiumTerrainProvider | undefined
     >(undefined);
     const quadrantsRef = useRef<Chunk[]>([]); // Use ref for quadrants
+    const quadrantsMapRef = useRef<Map<string, Chunk>>(new Map());
     const currentQuadrantRef = useRef<Chunk | null | undefined>(null);
     const [currentQuadrant, setCurrentQuadrant] = useState<
         Chunk | null | undefined
@@ -268,57 +300,92 @@ const ResiumViewerComponent: React.FC = () => {
     const showWellsRef = useRef(true);
     // Variables to store the previous camera position
     const prevCameraPosition = useRef<Cartographic | null>(null);
-    const thresholdHeight = 1609.34 * 50; // 3 miles in meters
+    const thresholdHeight = 1609.34 * 50; // 50 miles in meters
     const { setTooltipString } = useContext(TooltipContext);
-
 
     // Update showWellsRef whenever showWells changes
     useEffect(() => {
         showWellsRef.current = showWells;
     }, [showWells]);
 
+    const calculateChunkKey = (
+        lat: number,
+        lon: number
+    ): { chunkKey: string; chunk: Chunk } => {
+        let latIndex = Math.floor((lat - minLat) / latStep);
+        let lonIndex = Math.floor((lon - minLon) / lonStep);
+
+        // Correct indices if on the boundary
+        if (latIndex >= chunkSplitN) latIndex = chunkSplitN - 1;
+        if (latIndex < 0) latIndex = 0;
+        if (lonIndex >= chunkSplitN) lonIndex = chunkSplitN - 1;
+        if (lonIndex < 0) lonIndex = 0;
+
+        const topLeftLat = roundToSix(minLat + latIndex * latStep);
+        const topLeftLon = roundToSix(minLon + lonIndex * lonStep);
+        const bottomRightLat = roundToSix(minLat + (latIndex + 1) * latStep);
+        const bottomRightLon = roundToSix(minLon + (lonIndex + 1) * lonStep);
+
+        const chunkKey = `${topLeftLat},${topLeftLon}-${bottomRightLat},${bottomRightLon}`;
+
+        const chunk: Chunk = {
+            topLeft: { lat: topLeftLat, lon: topLeftLon },
+            bottomRight: { lat: bottomRightLat, lon: bottomRightLon },
+        };
+
+        return { chunkKey, chunk };
+    };
+
     const handleCameraMove = useCallback(async (camera: Camera) => {
         const cartographicPosition = Cartographic.fromCartesian(
             camera.position
         );
-        const currentLat = CesiumMath.toDegrees(cartographicPosition.latitude);
-        const currentLon = CesiumMath.toDegrees(cartographicPosition.longitude);
+        const currentLat = Number(
+            CesiumMath.toDegrees(cartographicPosition.latitude).toFixed(6)
+        );
+        const currentLon = Number(
+            CesiumMath.toDegrees(cartographicPosition.longitude).toFixed(6)
+        );
 
         const quadrant = currentQuadrantRef.current;
-
         // Check if the camera is still within the current chunk
         if (
             quadrant &&
-            currentLon >= quadrant.topLeft.lon &&
-            currentLon <= quadrant.bottomRight.lon &&
+            currentLat >= quadrant.topLeft.lat &&
             currentLat <= quadrant.bottomRight.lat &&
-            currentLat >= quadrant.topLeft.lat
+            currentLon >= quadrant.topLeft.lon &&
+            currentLon <= quadrant.bottomRight.lon
         ) {
-            // The camera is still within the current chunk, no need to do anything
             return;
         }
 
-        // Find the new chunk that contains the current camera position
-        const newChunk = quadrantsRef.current.find((chunk) => {
-            return (
-                currentLon >= chunk.topLeft.lon &&
-                currentLon <= chunk.bottomRight.lon &&
-                currentLat <= chunk.bottomRight.lat &&
-                currentLat >= chunk.topLeft.lat
-            );
-        });
+        // Calculate the chunkKey for the current position
+        const { chunkKey, chunk } = calculateChunkKey(currentLat, currentLon);
+        const calculatedCurrentChunk = chunk;
 
-        if (newChunk && newChunk !== quadrant) {
-            // We have moved to a new chunk, fetch the new data
-            const locationKey: string = createLocationKey(newChunk);
-            const rawWellData: RawWellData[] = await fetchWellData(locationKey);
-            const processedWellData: WellData[] =
-                processRawWellData(rawWellData);
-            const filledWellData: WellData[] =
-                fillInMissingLayers(processedWellData);
-            setWellDataWithoutElevationAdjustments(filledWellData);
-            setCurrentQuadrant(newChunk);
-            currentQuadrantRef.current = newChunk;
+        // Check if the chunkKey exists in quadrantsMapRef
+        if (quadrantsMapRef.current.has(chunkKey)) {
+            // Retrieve the exact chunk from quadrantsMapRef
+            const chunk = quadrantsMapRef.current.get(chunkKey);
+
+            if (chunk) {
+                // Proceed to fetch data for this chunk using the exact chunk
+                const locationKey = createLocationKey(chunk);
+                const rawWellData = await fetchWellData(locationKey);
+                const processedWellData = processRawWellData(rawWellData);
+                const filledWellData = fillInMissingLayers(processedWellData);
+                setWellDataWithoutElevationAdjustments(filledWellData);
+                setCurrentQuadrant(chunk);
+                currentQuadrantRef.current = chunk;
+            } else {
+                console.log(
+                    "Chunk not found in quadrantsMapRef, although it's key is valid, this should not happen."
+                );
+            }
+        } else {
+            // Optionally, set currentQuadrant to null
+            setCurrentQuadrant(calculatedCurrentChunk);
+            currentQuadrantRef.current = calculatedCurrentChunk;
         }
 
         // Update the previous position
@@ -332,10 +399,9 @@ const ResiumViewerComponent: React.FC = () => {
     useEffect(() => {
         const loadTerrainData = async () => {
             const terrainData = await createWorldTerrainAsync({
-                requestWaterMask:false, 
-                requestVertexNormals:false
-            }
-            );
+                requestWaterMask: false,
+                requestVertexNormals: false,
+            });
             setTerrainProvider(terrainData);
             hasLoadedTerrainData.current = true;
         };
@@ -345,6 +411,23 @@ const ResiumViewerComponent: React.FC = () => {
                 hasFetchedQuadrants.current = true;
                 const quadrantData: Chunk[] = await fetchQuadrants();
                 quadrantsRef.current = quadrantData;
+
+                // Create a Map of chunkKeys to chunks
+                quadrantsMapRef.current = new Map(
+                    quadrantData.map((chunk) => {
+                        const topLeftLat = roundToSix(chunk.topLeft.lat);
+                        const topLeftLon = roundToSix(chunk.topLeft.lon);
+                        const bottomRightLat = roundToSix(
+                            chunk.bottomRight.lat
+                        );
+                        const bottomRightLon = roundToSix(
+                            chunk.bottomRight.lon
+                        );
+                        const chunkKey = `${topLeftLat},${topLeftLon}-${bottomRightLat},${bottomRightLon}`;
+
+                        return [chunkKey, chunk];
+                    })
+                );
             }
         };
 
@@ -386,6 +469,7 @@ const ResiumViewerComponent: React.FC = () => {
                 enableUndergroundView(viewer);
                 moveCameraToDangermond(viewer);
                 makeGroundTranslucentAsYouGetCloser(viewer);
+                decreaseLevelOfDetail(viewer);
                 repositionToolbar();
 
                 // **Disable Cesium's default double-click behavior**
@@ -400,7 +484,8 @@ const ResiumViewerComponent: React.FC = () => {
 
                 // Add the camera height handler using camera.changed
                 const cameraHeightHandler = () => {
-                    const cameraHeight = scene.camera.positionCartographic.height;
+                    const cameraHeight =
+                        scene.camera.positionCartographic.height;
                     const newShowWells = cameraHeight <= thresholdHeight;
                     if (showWellsRef.current !== newShowWells) {
                         setShowWells(newShowWells);
@@ -420,7 +505,9 @@ const ResiumViewerComponent: React.FC = () => {
 
                 return () => {
                     scene.camera.moveEnd.removeEventListener(moveHandler);
-                    scene.camera.moveEnd.removeEventListener(cameraHeightHandler);
+                    scene.camera.moveEnd.removeEventListener(
+                        cameraHeightHandler
+                    );
                 };
             }
         }, 100);
@@ -496,7 +583,6 @@ const ResiumViewerComponent: React.FC = () => {
                     timeline={false}
                     navigationHelpButton={false} // Hide the navigation help button
                     homeButton={false} // Hide the home button
-                    // sceneModePicker={true} // Hide the scene mode picker
                     baseLayerPicker={true} // Hide the base layer picker
                     geocoder={false} // Hide the geocoder
                     selectionIndicator={false} // Hide the selection indicator
@@ -506,13 +592,15 @@ const ResiumViewerComponent: React.FC = () => {
                     {showWells && (
                         <CylinderEntities
                             terrainProvider={terrainProvider}
-                            wellDataWithoutElevationAdjustments={wellDataWithoutElevationAdjustments}
+                            wellDataWithoutElevationAdjustments={
+                                wellDataWithoutElevationAdjustments
+                            }
                             viewerRef={viewerRef}
                         />
                     )}
-                    
+
                     {/* Conditionally render the chunk boundary */}
-                    {chunkOutlinePositions && showWells &&  (
+                    {chunkOutlinePositions && showWells && (
                         <GroundPolylinePrimitiveComponent
                             positions={chunkOutlinePositions}
                             width={2.0}
