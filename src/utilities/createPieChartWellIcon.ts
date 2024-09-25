@@ -9,7 +9,7 @@ export function createPieChartWellIcon(well: WellData): string {
         return pieChartCache.get(wellID)!;
     }
     const baseSize = 50;
-    const scaleFactor = 0.5; // Try a lower value
+    const scaleFactor = 1; // Try a lower value
     const radius = baseSize * scaleFactor;
     const centerX = radius;
     const centerY = radius;
