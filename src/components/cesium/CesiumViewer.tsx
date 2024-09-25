@@ -331,7 +331,11 @@ const ResiumViewerComponent: React.FC = () => {
 
     useEffect(() => {
         const loadTerrainData = async () => {
-            const terrainData = await createWorldTerrainAsync();
+            const terrainData = await createWorldTerrainAsync({
+                requestWaterMask:false, 
+                requestVertexNormals:false
+            }
+            );
             setTerrainProvider(terrainData);
             hasLoadedTerrainData.current = true;
         };
