@@ -140,10 +140,13 @@ function makeGroundTranslucentAsYouGetCloser(viewer: CesiumViewer) {
 
         // Adjust the globe's translucency based on height above the terrain
         if (cameraHeightAboveTerrain < 500) {
+            viewer.scene.globe.maximumScreenSpaceError = 8;
             globe.translucency.frontFaceAlpha = 0.2;
         } else if (cameraHeightAboveTerrain < 2000) {
+            viewer.scene.globe.maximumScreenSpaceError = 4;
             globe.translucency.frontFaceAlpha = 0.5;
         } else {
+            viewer.scene.globe.maximumScreenSpaceError = 2;
             globe.translucency.frontFaceAlpha = 1;
         }
     };
@@ -161,7 +164,7 @@ function makeGroundTranslucentAsYouGetCloser(viewer: CesiumViewer) {
 }
 
 function decreaseLevelOfDetail(viewer: CesiumViewer) {
-    // viewer.scene.globe.maximumScreenSpaceError = 3;
+    viewer.scene.globe.maximumScreenSpaceError = 6;
     console.log(
         "Decreasing level of detail",
         viewer.scene.globe.maximumScreenSpaceError
@@ -303,6 +306,9 @@ const ResiumViewerComponent: React.FC = () => {
     const thresholdHeight = 1609.34 * 50; // 50 miles in meters
     const { setTooltipString } = useContext(TooltipContext);
 
+    // Ref to store the interval ID
+    const moveIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
     // Update showWellsRef whenever showWells changes
     useEffect(() => {
         showWellsRef.current = showWells;
@@ -379,7 +385,7 @@ const ResiumViewerComponent: React.FC = () => {
                 currentQuadrantRef.current = chunk;
             } else {
                 console.log(
-                    "Chunk not found in quadrantsMapRef, although it's key is valid, this should not happen."
+                    "Chunk not found in quadrantsMapRef, although its key is valid, this should not happen."
                 );
             }
         } else {
@@ -477,10 +483,29 @@ const ResiumViewerComponent: React.FC = () => {
                 const scene = viewer.scene;
                 const camera = scene.camera;
 
-                const moveHandler = () => handleCameraMove(camera);
+                // Handler to run periodically during movement
+                const periodicMoveHandler = () => handleCameraMove(camera);
 
-                // Add the camera height handler using camera.changed
-                const cameraHeightHandler = () => {
+                // Handler to manage interval on moveStart
+                const onMoveStart = () => {
+                    if (moveIntervalRef.current === null) {
+                        moveIntervalRef.current = setInterval(
+                            periodicMoveHandler,
+                            500 // 500 milliseconds
+                        );
+                    }
+                };
+
+                // Handler to manage interval on moveEnd
+                const onMoveEnd = async () => {
+                    if (moveIntervalRef.current !== null) {
+                        clearInterval(moveIntervalRef.current);
+                        moveIntervalRef.current = null;
+                        // Perform a final moveHandler call to capture the latest position
+                        await handleCameraMove(camera);
+                    }
+
+                    // Handle camera height for showing/hiding wells
                     const cameraHeight =
                         scene.camera.positionCartographic.height;
                     const newShowWells = cameraHeight <= thresholdHeight;
@@ -495,16 +520,21 @@ const ResiumViewerComponent: React.FC = () => {
                 };
 
                 // Attach the handlers
-                scene.camera.moveEnd.addEventListener(moveHandler);
-                scene.camera.moveEnd.addEventListener(cameraHeightHandler);
+                scene.camera.moveStart.addEventListener(onMoveStart);
+                scene.camera.moveEnd.addEventListener(onMoveEnd);
+
+                // **Invoke handleCameraMove for the initial camera position**
+                await handleCameraMove(camera);
 
                 setFinishedLoading(true);
 
                 return () => {
-                    scene.camera.moveEnd.removeEventListener(moveHandler);
-                    scene.camera.moveEnd.removeEventListener(
-                        cameraHeightHandler
-                    );
+                    scene.camera.moveStart.removeEventListener(onMoveStart);
+                    scene.camera.moveEnd.removeEventListener(onMoveEnd);
+                    if (moveIntervalRef.current !== null) {
+                        clearInterval(moveIntervalRef.current);
+                        moveIntervalRef.current = null;
+                    }
                 };
             }
         }, 100);
