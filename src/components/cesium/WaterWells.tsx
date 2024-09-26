@@ -284,21 +284,14 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
                     if (isAlreadyZoomedIn) {
                         // After flying out, clear the currentlyZoomedWell
                         setCurrentlyZoomedWell(null);
-                        console.log(
-                            `Camera has flown out from well: ${well.StateWellID}`
-                        );
                     } else {
                         // After flying in, set the currentlyZoomedWell
                         setCurrentlyZoomedWell(well);
-                        console.log(
-                            `Camera has flown to well: ${well.StateWellID}`
-                        );
                     }
                     // Set isCameraMoving to false
                     setIsCameraMoving(false);
                 },
                 cancel: () => {
-                    console.log("Flight to/from well was canceled.");
                     // Set isCameraMoving to false
                     setIsCameraMoving(false);
                 },
@@ -326,7 +319,6 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
                 setSelectedWellData(well);
                 // Handle single-click: Select the well data
                 clickTimeoutRef.current = setTimeout(() => {
-
                     // Clear the timeout
                     clickTimeoutRef.current = null;
                 }, 250); // Timeout duration in milliseconds
@@ -398,7 +390,12 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
                                 image={createPieChartWellIcon(well)}
                                 verticalOrigin={VerticalOrigin.BOTTOM}
                                 scaleByDistance={
-                                    new NearFarScalar(1.5e2, 0.15*4, 1.5e5, 0.05*4)
+                                    new NearFarScalar(
+                                        1.5e2,
+                                        0.15 * 4,
+                                        1.5e5,
+                                        0.05 * 4
+                                    )
                                 }
                                 eyeOffset={eyeOffsetCallback}
                             />

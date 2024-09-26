@@ -385,16 +385,13 @@ const ResiumViewerComponent: React.FC = () => {
         } else {
             // Optionally, set currentQuadrant to null
             setCurrentQuadrant(calculatedCurrentChunk);
+            setWellDataWithoutElevationAdjustments([]);
             currentQuadrantRef.current = calculatedCurrentChunk;
         }
 
         // Update the previous position
         prevCameraPosition.current = cartographicPosition;
     }, []);
-
-    useEffect(() => {
-        currentQuadrantRef.current = currentQuadrant;
-    }, [currentQuadrant]);
 
     useEffect(() => {
         const loadTerrainData = async () => {
@@ -588,16 +585,17 @@ const ResiumViewerComponent: React.FC = () => {
                     selectionIndicator={false} // Hide the selection indicator
                     infoBox={false} // Hide the info box
                 >
-                    {/* Conditionally render wells based on camera height */}
-                    {showWells && (
-                        <CylinderEntities
-                            terrainProvider={terrainProvider}
-                            wellDataWithoutElevationAdjustments={
-                                wellDataWithoutElevationAdjustments
-                            }
-                            viewerRef={viewerRef}
-                        />
-                    )}
+                    {/* Conditionally render wells based on camera height & whether or not we have wells to render */}
+                    {showWells &&
+                        wellDataWithoutElevationAdjustments.length > 0 && (
+                            <CylinderEntities
+                                terrainProvider={terrainProvider}
+                                wellDataWithoutElevationAdjustments={
+                                    wellDataWithoutElevationAdjustments
+                                }
+                                viewerRef={viewerRef}
+                            />
+                        )}
 
                     {/* Conditionally render the chunk boundary */}
                     {chunkOutlinePositions && showWells && (
