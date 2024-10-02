@@ -9,20 +9,20 @@ import {
 import React, { useEffect, useState } from "react";
 import { Entity, GeoJsonDataSource } from "resium";
 
-interface StateAggregationsProps {
-    viewer: any; // Change 'any' to the appropriate CesiumViewer type if available
+interface CountyAggregationsProps {
+    viewer: any; // Replace 'any' with the appropriate CesiumViewer type if available
 }
 
-interface StateFeature {
-    name: string;
+interface CountyFeature {
+    name: string; // e.g., "Cecil, Maryland"
     geometry: any;
     wellCount: number;
     centroid: { lat: number; lon: number };
 }
 
-const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
-    const [stateFeatures, setStateFeatures] = useState<StateFeature[]>([]);
-    const [showStates, setShowStates] = useState<boolean>(true);
+const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
+    const [countyFeatures, setCountyFeatures] = useState<CountyFeature[]>([]);
+    const [showCounties, setShowCounties] = useState<boolean>(false);
 
     // Centroid calculation based on the polygon area
     const calculateCentroid = (
@@ -78,34 +78,59 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
         };
     };
 
-    // Fetch state polygons and aggregation data
+    // Fetch county polygons and aggregation data
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // Fetch state polygons
-                const polygonsResponse = await fetch(
-                    "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/USA_States_Generalized/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson"
-                );
-                const polygonsData = await polygonsResponse.json();
-
-                // Fetch state aggregations
+                // Fetch county aggregations
                 const aggregationsResponse = await fetch(
-                    "http://localhost:3000/state-aggregations"
+                    "http://localhost:3000/county-aggregations"
                 );
                 const aggregationsData = await aggregationsResponse.json();
 
+                // Fetch county polygons (handle pagination)
+                let allFeatures: any[] = [];
+                let resultOffset = 0;
+                const pageSize = 2000;
+                let fetchedAll = false;
+
+                while (!fetchedAll) {
+                    const queryParams = new URLSearchParams({
+                        where: `1=1`,
+                        outFields: "*",
+                        outSR: "4326",
+                        f: "geojson",
+                        resultOffset: resultOffset.toString(),
+                        resultRecordCount: pageSize.toString(),
+                    });
+
+                    const polygonsResponse = await fetch(
+                        `https://services.arcgis.com/P3ePLMYs2RVChkJx/ArcGIS/rest/services/USA_Counties_Generalized/FeatureServer/0/query?${queryParams.toString()}`
+                    );
+                    const polygonsData = await polygonsResponse.json();
+
+                    if (polygonsData.features.length > 0) {
+                        allFeatures = allFeatures.concat(polygonsData.features);
+                        resultOffset += pageSize;
+                    } else {
+                        fetchedAll = true;
+                    }
+                }
+
                 // Combine data
-                const combinedData: StateFeature[] = polygonsData.features.map(
+                const combinedData: CountyFeature[] = allFeatures.map(
                     (feature: any) => {
+                        const countyName = feature.properties.NAME;
                         const stateName = feature.properties.STATE_NAME;
-                        const wellCount = aggregationsData[stateName] || 0;
+                        const fullName = `${countyName}, ${stateName}`;
+                        const wellCount = aggregationsData[fullName] || 0;
 
                         // Calculate centroid
                         const coordinates = feature.geometry.coordinates;
                         const centroid = calculateCentroid(coordinates);
 
                         return {
-                            name: stateName,
+                            name: fullName,
                             geometry: feature.geometry,
                             wellCount,
                             centroid,
@@ -113,21 +138,21 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
                     }
                 );
 
-                setStateFeatures(combinedData);
+                setCountyFeatures(combinedData);
             } catch (error) {
-                console.error("Error fetching state data:", error);
+                console.error("Error fetching county data:", error);
             }
         };
 
         fetchData();
     }, []);
 
-    // Handle camera zoom level to show/hide state polygons
+    // Handle camera zoom level to show/hide county polygons
     useEffect(() => {
         const handleCameraChange = () => {
             const cameraHeight = viewer.camera.positionCartographic.height;
             const thresholdHeight = 2000000; // Adjust as needed
-            setShowStates(cameraHeight > thresholdHeight);
+            setShowCounties(cameraHeight <= thresholdHeight);
         };
 
         viewer.camera.changed.addEventListener(handleCameraChange);
@@ -138,17 +163,17 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
         };
     }, [viewer]);
 
-    if (!showStates) {
+    if (!showCounties) {
         return null;
     }
 
     return (
         <>
-            {/* Render state polygons */}
+            {/* Render county polygons */}
             <GeoJsonDataSource
                 data={{
                     type: "FeatureCollection",
-                    features: stateFeatures.map((feature) => ({
+                    features: countyFeatures.map((feature) => ({
                         type: "Feature",
                         geometry: feature.geometry,
                         properties: {
@@ -159,12 +184,12 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
                 }}
                 stroke={Color.WHITE}
                 fill={Color.TRANSPARENT}
-                strokeWidth={1}
+                strokeWidth={0.5}
                 clampToGround={true}
             />
 
             {/* Render blue circles and labels */}
-            {stateFeatures.map((feature) => (
+            {countyFeatures.map((feature) => (
                 <React.Fragment key={feature.name}>
                     {/* Blue Circle */}
                     <Entity
@@ -174,8 +199,8 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
                             feature.centroid.lat
                         )}
                         ellipse={{
-                            semiMajorAxis: 80000, // Adjust size as needed
-                            semiMinorAxis: 80000, // Adjust size as needed
+                            semiMajorAxis: 10000, // Adjust size as needed
+                            semiMinorAxis: 10000, // Adjust size as needed
                             material: Color.BLUE.withAlpha(0.5),
                             outline: true,
                             outlineColor: Color.WHITE,
@@ -194,7 +219,7 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
                             font: "14pt sans-serif",
                             fillColor: Color.WHITE,
                             outlineColor: Color.BLACK,
-                            outlineWidth: 2,
+                            outlineWidth: 1,
                             style: LabelStyle.FILL_AND_OUTLINE,
                             verticalOrigin: VerticalOrigin.CENTER,
                             horizontalOrigin: HorizontalOrigin.CENTER,
@@ -202,10 +227,10 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
                             disableDepthTestDistance: Number.POSITIVE_INFINITY,
                             // Dynamic scaling by distance
                             scaleByDistance: new NearFarScalar(
+                                1.0e5,
+                                2.0, // At 100,000 meters, scale by 2x
                                 1.0e6,
-                                2.0, // At 1,000,000 meters, scale by 2x
-                                1.0e7,
-                                0.1 // At 10,000,000 meters, scale by 0.5x
+                                0.1 // At 1,000,000 meters, scale by 0.1x
                             ),
                         }}
                     />
@@ -215,4 +240,4 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
     );
 };
 
-export default StateAggregations;
+export default CountyAggregations;

@@ -32,6 +32,7 @@ import {
 import DraggableComponent from "../DraggableFooter/DraggableFooter";
 import LoadingSpinner from "../LoadingSpinner/LoadingSpinner";
 import CustomSearchBar from "../Searchbar/CustomSearchbar";
+import CountyAggregations from "./CountyAggregations";
 import GroundPolylinePrimitiveComponent from "./GroundPolylinePrimitiveComponent"; // Import the component
 import StateAggregations from "./StateAggregationComponent"; // Import the new StateAggregations component
 import Tooltip from "./Tooltip";
@@ -652,9 +653,14 @@ const ResiumViewerComponent: React.FC = () => {
 
                     {/* Render StateAggregations */}
                     {finishedLoading && viewerRef.current?.cesiumElement && (
-                        <StateAggregations
-                            viewer={viewerRef.current.cesiumElement}
-                        />
+                        <>
+                            <StateAggregations
+                                viewer={viewerRef.current.cesiumElement}
+                            />
+                            <CountyAggregations
+                                viewer={viewerRef.current.cesiumElement}
+                            />
+                        </>
                     )}
                 </Viewer>
                 <Tooltip />
