@@ -36,32 +36,41 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
         const polygons = isMultiPolygon ? coordinates : [coordinates];
 
         polygons.forEach((polygon: any) => {
-            const ring = polygon[0]; // The first ring is the outer boundary
+            // 'polygon' is an array of rings (the first is outer boundary, others are holes)
+            polygon.forEach((ring: any, ringIndex: number) => {
+                let area = 0;
+                let centroidLon = 0;
+                let centroidLat = 0;
 
-            let area = 0;
-            let centroidLon = 0;
-            let centroidLat = 0;
+                for (let i = 0; i < ring.length - 1; i++) {
+                    const [lon1, lat1] = ring[i];
+                    const [lon2, lat2] = ring[i + 1];
 
-            for (let i = 0; i < ring.length - 1; i++) {
-                const [lon1, lat1] = ring[i];
-                const [lon2, lat2] = ring[i + 1];
+                    const partialArea = lon1 * lat2 - lon2 * lat1;
+                    area += partialArea;
+                    centroidLon += (lon1 + lon2) * partialArea;
+                    centroidLat += (lat1 + lat2) * partialArea;
+                }
 
-                const partialArea = lon1 * lat2 - lon2 * lat1;
-                area += partialArea;
-                centroidLon += (lon1 + lon2) * partialArea;
-                centroidLat += (lat1 + lat2) * partialArea;
-            }
+                if (area !== 0) {
+                    area = area / 2;
+                    centroidLon = centroidLon / (6 * area);
+                    centroidLat = centroidLat / (6 * area);
 
-            if (area !== 0) {
-                area = area / 2;
-                centroidLon = centroidLon / (6 * area);
-                centroidLat = centroidLat / (6 * area);
-            }
-
-            totalLon += centroidLon * Math.abs(area);
-            totalLat += centroidLat * Math.abs(area);
-            totalArea += Math.abs(area);
+                    // For holes (interior rings), subtract their contribution
+                    const weight = ringIndex === 0 ? 1 : -1; // Outer ring vs. hole
+                    totalLon += centroidLon * area * weight;
+                    totalLat += centroidLat * area * weight;
+                    totalArea += area * weight;
+                }
+            });
         });
+
+        if (totalArea === 0) {
+            // Prevent division by zero
+            console.error("Total area is zero during centroid calculation.");
+            return { lon: 0, lat: 0 };
+        }
 
         return {
             lon: totalLon / totalArea,
