@@ -151,8 +151,10 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
     useEffect(() => {
         const handleCameraChange = () => {
             const cameraHeight = viewer.camera.positionCartographic.height;
-            const thresholdHeight = 2000000; // Adjust as needed
-            setShowCounties(cameraHeight <= thresholdHeight);
+            const thresholdHeight = 1609.34 * 50; // Adjust as needed
+            setShowCounties(
+                cameraHeight >= thresholdHeight && cameraHeight < 2000000
+            );
         };
 
         viewer.camera.changed.addEventListener(handleCameraChange);
@@ -227,10 +229,10 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
                             disableDepthTestDistance: Number.POSITIVE_INFINITY,
                             // Dynamic scaling by distance
                             scaleByDistance: new NearFarScalar(
-                                1.0e5,
+                                1.0e4,
                                 2.0, // At 100,000 meters, scale by 2x
-                                1.0e6,
-                                0.1 // At 1,000,000 meters, scale by 0.1x
+                                5.0e6,
+                                0.05 // At 1,000,000 meters, scale by 0.1x
                             ),
                         }}
                     />
