@@ -33,6 +33,7 @@ import DraggableComponent from "../DraggableFooter/DraggableFooter";
 import LoadingSpinner from "../LoadingSpinner/LoadingSpinner";
 import CustomSearchBar from "../Searchbar/CustomSearchbar";
 import GroundPolylinePrimitiveComponent from "./GroundPolylinePrimitiveComponent"; // Import the component
+import StateAggregations from "./StateAggregationComponent"; // Import the new StateAggregations component
 import Tooltip from "./Tooltip";
 import CylinderEntities from "./WaterWells";
 
@@ -303,7 +304,7 @@ const ResiumViewerComponent: React.FC = () => {
     const showWellsRef = useRef(true);
     // Variables to store the previous camera position
     const prevCameraPosition = useRef<Cartographic | null>(null);
-    const thresholdHeight = 1609.34 * 50; // 50 miles in meters
+    const thresholdHeight = 1609.34 * 50; // 3,000,000 meters (~1,864 miles)
     const { setTooltipString } = useContext(TooltipContext);
 
     // Ref to store the interval ID
@@ -401,36 +402,44 @@ const ResiumViewerComponent: React.FC = () => {
 
     useEffect(() => {
         const loadTerrainData = async () => {
-            const terrainData = await createWorldTerrainAsync({
-                requestWaterMask: false,
-                requestVertexNormals: false,
-            });
-            setTerrainProvider(terrainData);
-            hasLoadedTerrainData.current = true;
+            try {
+                const terrainData = await createWorldTerrainAsync({
+                    requestWaterMask: false,
+                    requestVertexNormals: false,
+                });
+                setTerrainProvider(terrainData);
+                hasLoadedTerrainData.current = true;
+            } catch (error) {
+                console.error("Error loading terrain data:", error);
+            }
         };
 
         const getQuadrants = async () => {
             if (!hasFetchedQuadrants.current) {
                 hasFetchedQuadrants.current = true;
-                const quadrantData: Chunk[] = await fetchQuadrants();
-                quadrantsRef.current = quadrantData;
+                try {
+                    const quadrantData: Chunk[] = await fetchQuadrants();
+                    quadrantsRef.current = quadrantData;
 
-                // Create a Map of chunkKeys to chunks
-                quadrantsMapRef.current = new Map(
-                    quadrantData.map((chunk) => {
-                        const topLeftLat = roundToSix(chunk.topLeft.lat);
-                        const topLeftLon = roundToSix(chunk.topLeft.lon);
-                        const bottomRightLat = roundToSix(
-                            chunk.bottomRight.lat
-                        );
-                        const bottomRightLon = roundToSix(
-                            chunk.bottomRight.lon
-                        );
-                        const chunkKey = `${topLeftLat},${topLeftLon}-${bottomRightLat},${bottomRightLon}`;
+                    // Create a Map of chunkKeys to chunks
+                    quadrantsMapRef.current = new Map(
+                        quadrantData.map((chunk) => {
+                            const topLeftLat = roundToSix(chunk.topLeft.lat);
+                            const topLeftLon = roundToSix(chunk.topLeft.lon);
+                            const bottomRightLat = roundToSix(
+                                chunk.bottomRight.lat
+                            );
+                            const bottomRightLon = roundToSix(
+                                chunk.bottomRight.lon
+                            );
+                            const chunkKey = `${topLeftLat},${topLeftLon}-${bottomRightLat},${bottomRightLon}`;
 
-                        return [chunkKey, chunk];
-                    })
-                );
+                            return [chunkKey, chunk];
+                        })
+                    );
+                } catch (error) {
+                    console.error("Error fetching quadrants:", error);
+                }
             }
         };
 
@@ -465,9 +474,14 @@ const ResiumViewerComponent: React.FC = () => {
 
                 viewer.imageryLayers.removeAll();
 
-                // Add Bing Maps Aerial with Labels
-                const imageryProvider = await IonImageryProvider.fromAssetId(3);
-                viewer.imageryLayers.addImageryProvider(imageryProvider);
+                try {
+                    // Add Bing Maps Aerial with Labels
+                    const imageryProvider =
+                        await IonImageryProvider.fromAssetId(3);
+                    viewer.imageryLayers.addImageryProvider(imageryProvider);
+                } catch (error) {
+                    console.error("Error adding imagery provider:", error);
+                }
 
                 enableUndergroundView(viewer);
                 moveCameraToDangermond(viewer);
@@ -610,7 +624,7 @@ const ResiumViewerComponent: React.FC = () => {
                     timeline={false}
                     navigationHelpButton={false} // Hide the navigation help button
                     homeButton={false} // Hide the home button
-                    baseLayerPicker={true} // Hide the base layer picker
+                    baseLayerPicker={true} // Enable base layer picker
                     geocoder={false} // Hide the geocoder
                     selectionIndicator={false} // Hide the selection indicator
                     infoBox={false} // Hide the info box
@@ -633,6 +647,13 @@ const ResiumViewerComponent: React.FC = () => {
                             positions={chunkOutlinePositions}
                             width={2.0}
                             color={CesiumColor.WHITE}
+                        />
+                    )}
+
+                    {/* Render StateAggregations */}
+                    {finishedLoading && viewerRef.current?.cesiumElement && (
+                        <StateAggregations
+                            viewer={viewerRef.current.cesiumElement}
                         />
                     )}
                 </Viewer>
