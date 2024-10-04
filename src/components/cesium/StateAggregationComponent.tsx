@@ -8,9 +8,11 @@ import {
 } from "cesium";
 import React, { useEffect, useState } from "react";
 import { Entity, GeoJsonDataSource } from "resium";
+import { useCameraPosition } from "../../context/CameraPositionContext";
+import { useStatePolygons } from "../../context/StatePolygonContext";
 
 interface StateAggregationsProps {
-    viewer: any; // Change 'any' to the appropriate CesiumViewer type if available
+    viewer: any;
 }
 
 interface StateFeature {
@@ -23,8 +25,9 @@ interface StateFeature {
 const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
     const [stateFeatures, setStateFeatures] = useState<StateFeature[]>([]);
     const [showStates, setShowStates] = useState<boolean>(true);
+    const { cameraPosition } = useCameraPosition();
+    const { statePolygons, loading } = useStatePolygons();
 
-    // Centroid calculation based on the polygon area
     const calculateCentroid = (
         coordinates: any
     ): { lat: number; lon: number } => {
@@ -36,7 +39,6 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
         const polygons = isMultiPolygon ? coordinates : [coordinates];
 
         polygons.forEach((polygon: any) => {
-            // 'polygon' is an array of rings (the first is outer boundary, others are holes)
             polygon.forEach((ring: any, ringIndex: number) => {
                 let area = 0;
                 let centroidLon = 0;
@@ -57,8 +59,7 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
                     centroidLon = centroidLon / (6 * area);
                     centroidLat = centroidLat / (6 * area);
 
-                    // For holes (interior rings), subtract their contribution
-                    const weight = ringIndex === 0 ? 1 : -1; // Outer ring vs. hole
+                    const weight = ringIndex === 0 ? 1 : -1;
                     totalLon += centroidLon * area * weight;
                     totalLat += centroidLat * area * weight;
                     totalArea += area * weight;
@@ -67,8 +68,6 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
         });
 
         if (totalArea === 0) {
-            // Prevent division by zero
-            console.error("Total area is zero during centroid calculation.");
             return { lon: 0, lat: 0 };
         }
 
@@ -78,34 +77,23 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
         };
     };
 
-    // Fetch state polygons and aggregation data
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // Fetch state polygons
-                const polygonsResponse = await fetch(
-                    "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/USA_States_Generalized/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson"
-                );
-                const polygonsData = await polygonsResponse.json();
-
-                // Fetch state aggregations
                 const aggregationsResponse = await fetch(
                     "http://localhost:3000/state-aggregations"
                 );
                 const aggregationsData = await aggregationsResponse.json();
 
-                // Combine data
-                const combinedData: StateFeature[] = polygonsData.features.map(
-                    (feature: any) => {
-                        const stateName = feature.properties.STATE_NAME;
-                        const wellCount = aggregationsData[stateName] || 0;
-
-                        // Calculate centroid
-                        const coordinates = feature.geometry.coordinates;
-                        const centroid = calculateCentroid(coordinates);
+                const combinedData: StateFeature[] = statePolygons.map(
+                    (feature) => {
+                        const wellCount = aggregationsData[feature.name] || 0;
+                        const centroid = calculateCentroid(
+                            feature.geometry.coordinates
+                        );
 
                         return {
-                            name: stateName,
+                            name: feature.name,
                             geometry: feature.geometry,
                             wellCount,
                             centroid,
@@ -119,32 +107,30 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
             }
         };
 
-        fetchData();
-    }, []);
+        if (!loading) {
+            fetchData();
+        }
+    }, [statePolygons, loading]);
 
-    // Handle camera zoom level to show/hide state polygons
     useEffect(() => {
         const handleCameraChange = () => {
             const cameraHeight = viewer.camera.positionCartographic.height;
-            const thresholdHeight = 2000000; // Adjust as needed
+            const thresholdHeight = 2000000;
             setShowStates(cameraHeight > thresholdHeight);
         };
 
         viewer.camera.changed.addEventListener(handleCameraChange);
-
-        // Cleanup
         return () => {
             viewer.camera.changed.removeEventListener(handleCameraChange);
         };
     }, [viewer]);
 
-    if (!showStates) {
+    if (!showStates || loading) {
         return null;
     }
 
     return (
         <>
-            {/* Render state polygons */}
             <GeoJsonDataSource
                 data={{
                     type: "FeatureCollection",
@@ -163,10 +149,8 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
                 clampToGround={true}
             />
 
-            {/* Render blue circles and labels */}
             {stateFeatures.map((feature) => (
                 <React.Fragment key={feature.name}>
-                    {/* Blue Circle */}
                     <Entity
                         key={`circle-${feature.name}`}
                         position={Cartesian3.fromDegrees(
@@ -174,15 +158,14 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
                             feature.centroid.lat
                         )}
                         ellipse={{
-                            semiMajorAxis: 80000, // Adjust size as needed
-                            semiMinorAxis: 80000, // Adjust size as needed
+                            semiMajorAxis: 80000,
+                            semiMinorAxis: 80000,
                             material: Color.BLUE.withAlpha(0.5),
                             outline: true,
                             outlineColor: Color.WHITE,
                         }}
                     />
 
-                    {/* Label/Text inside the circle */}
                     <Entity
                         key={`label-${feature.name}`}
                         position={Cartesian3.fromDegrees(
@@ -200,12 +183,11 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
                             horizontalOrigin: HorizontalOrigin.CENTER,
                             pixelOffset: new Cartesian3(0, 0, 0),
                             disableDepthTestDistance: Number.POSITIVE_INFINITY,
-                            // Dynamic scaling by distance
                             scaleByDistance: new NearFarScalar(
                                 1.0e6,
-                                2.0, // At 1,000,000 meters, scale by 2x
+                                2.0,
                                 1.0e7,
-                                0.1 // At 10,000,000 meters, scale by 0.5x
+                                0.1
                             ),
                         }}
                     />

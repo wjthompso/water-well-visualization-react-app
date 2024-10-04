@@ -1,5 +1,7 @@
+import pointInPolygon from "@turf/boolean-point-in-polygon";
 import {
     Cartesian3,
+    Math as CesiumMath,
     Color,
     HorizontalOrigin,
     LabelStyle,
@@ -8,21 +10,26 @@ import {
 } from "cesium";
 import React, { useEffect, useState } from "react";
 import { Entity, GeoJsonDataSource } from "resium";
+import { useCameraPosition } from "../../context/CameraPositionContext";
+import { useStatePolygons } from "../../context/StatePolygonContext";
 
 interface CountyAggregationsProps {
-    viewer: any; // Replace 'any' with the appropriate CesiumViewer type if available
+    viewer: any;
 }
 
 interface CountyFeature {
-    name: string; // e.g., "Cecil, Maryland"
+    name: string;
     geometry: any;
     wellCount: number;
     centroid: { lat: number; lon: number };
 }
 
 const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
+    const { cameraPosition, setCameraPosition } = useCameraPosition(); // Track camera position
+    const { statePolygons, loading } = useStatePolygons();
     const [countyFeatures, setCountyFeatures] = useState<CountyFeature[]>([]);
     const [showCounties, setShowCounties] = useState<boolean>(false);
+    const [selectedState, setSelectedState] = useState<string | null>(null);
 
     // Centroid calculation based on the polygon area
     const calculateCentroid = (
@@ -36,7 +43,6 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
         const polygons = isMultiPolygon ? coordinates : [coordinates];
 
         polygons.forEach((polygon: any) => {
-            // 'polygon' is an array of rings (the first is outer boundary, others are holes)
             polygon.forEach((ring: any, ringIndex: number) => {
                 let area = 0;
                 let centroidLon = 0;
@@ -57,8 +63,7 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
                     centroidLon = centroidLon / (6 * area);
                     centroidLat = centroidLat / (6 * area);
 
-                    // For holes (interior rings), subtract their contribution
-                    const weight = ringIndex === 0 ? 1 : -1; // Outer ring vs. hole
+                    const weight = ringIndex === 0 ? 1 : -1;
                     totalLon += centroidLon * area * weight;
                     totalLat += centroidLat * area * weight;
                     totalArea += area * weight;
@@ -67,8 +72,6 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
         });
 
         if (totalArea === 0) {
-            // Prevent division by zero
-            console.error("Total area is zero during centroid calculation.");
             return { lon: 0, lat: 0 };
         }
 
@@ -78,54 +81,35 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
         };
     };
 
-    // Fetch county polygons and aggregation data
+    // Fetch county polygons and aggregations
     useEffect(() => {
         const fetchData = async () => {
+            if (!selectedState) return;
+
             try {
-                // Fetch county aggregations
                 const aggregationsResponse = await fetch(
                     "http://localhost:3000/county-aggregations"
                 );
                 const aggregationsData = await aggregationsResponse.json();
 
-                // Fetch county polygons (handle pagination)
-                let allFeatures: any[] = [];
-                let resultOffset = 0;
-                const pageSize = 2000;
-                let fetchedAll = false;
+                const queryParams = new URLSearchParams({
+                    where: `STATE_NAME='${selectedState}'`,
+                    outFields: "*",
+                    outSR: "4326",
+                    f: "geojson",
+                });
 
-                while (!fetchedAll) {
-                    const queryParams = new URLSearchParams({
-                        where: `1=1`,
-                        outFields: "*",
-                        outSR: "4326",
-                        f: "geojson",
-                        resultOffset: resultOffset.toString(),
-                        resultRecordCount: pageSize.toString(),
-                    });
+                const polygonsResponse = await fetch(
+                    `https://services.arcgis.com/P3ePLMYs2RVChkJx/ArcGIS/rest/services/USA_Counties_Generalized/FeatureServer/0/query?${queryParams.toString()}`
+                );
+                const polygonsData = await polygonsResponse.json();
 
-                    const polygonsResponse = await fetch(
-                        `https://services.arcgis.com/P3ePLMYs2RVChkJx/ArcGIS/rest/services/USA_Counties_Generalized/FeatureServer/0/query?${queryParams.toString()}`
-                    );
-                    const polygonsData = await polygonsResponse.json();
-
-                    if (polygonsData.features.length > 0) {
-                        allFeatures = allFeatures.concat(polygonsData.features);
-                        resultOffset += pageSize;
-                    } else {
-                        fetchedAll = true;
-                    }
-                }
-
-                // Combine data
-                const combinedData: CountyFeature[] = allFeatures.map(
+                const combinedData: CountyFeature[] = polygonsData.features.map(
                     (feature: any) => {
                         const countyName = feature.properties.NAME;
-                        const stateName = feature.properties.STATE_NAME;
-                        const fullName = `${countyName}, ${stateName}`;
+                        const fullName = `${countyName}, ${selectedState}`;
                         const wellCount = aggregationsData[fullName] || 0;
 
-                        // Calculate centroid
                         const coordinates = feature.geometry.coordinates;
                         const centroid = calculateCentroid(coordinates);
 
@@ -145,33 +129,65 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
         };
 
         fetchData();
-    }, []);
+    }, [selectedState]);
 
-    // Handle camera zoom level to show/hide county polygons
+    // Detect camera movement and update the camera position
     useEffect(() => {
         const handleCameraChange = () => {
-            const cameraHeight = viewer.camera.positionCartographic.height;
-            const thresholdHeight = 1609.34 * 50; // Adjust as needed
+            const cartographicPosition = viewer.camera.positionCartographic;
+            const cameraHeight = cartographicPosition.height;
+            const thresholdHeight = 1609.34 * 50;
+
             setShowCounties(
-                cameraHeight >= thresholdHeight && cameraHeight < 2000000
+                cameraHeight >= thresholdHeight && cameraHeight < 2_000_000
             );
+
+            // Update camera position context
+            setCameraPosition(cartographicPosition);
+
+            console.log("Camera Height:", cameraHeight);
+            console.log("Camera Position updated:", cartographicPosition);
         };
 
-        viewer.camera.changed.addEventListener(handleCameraChange);
-
-        // Cleanup
+        viewer.camera.moveEnd.addEventListener(handleCameraChange);
         return () => {
-            viewer.camera.changed.removeEventListener(handleCameraChange);
+            viewer.camera.moveEnd.removeEventListener(handleCameraChange);
         };
-    }, [viewer]);
+    }, [viewer, setCameraPosition]);
 
-    if (!showCounties) {
+    // Detect what state the camera is in
+    useEffect(() => {
+        if (!cameraPosition || loading) return;
+
+        // Convert the latitude and longitude from radians to degrees
+        const currentLat = CesiumMath.toDegrees(cameraPosition.latitude);
+        const currentLon = CesiumMath.toDegrees(cameraPosition.longitude);
+
+        console.log("Camera Position (Degrees):", { currentLat, currentLon });
+
+        const state = statePolygons.find((state) => {
+            const inside = pointInPolygon(
+                [currentLon, currentLat],
+                state.geometry
+            );
+            console.log(`Checking if inside ${state.name}:`, inside); // Log for each state
+            return inside;
+        });
+
+        if (state) {
+            console.log("Selected State:", state.name); // Log the selected state
+            setSelectedState(state.name);
+        } else {
+            console.log("No state found for current camera position");
+        }
+    }, [cameraPosition, statePolygons, loading]);
+
+    if (!showCounties || !selectedState) {
         return null;
     }
 
     return (
         <>
-            {/* Render county polygons */}
             <GeoJsonDataSource
                 data={{
                     type: "FeatureCollection",
@@ -190,10 +206,8 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
                 clampToGround={true}
             />
 
-            {/* Render blue circles and labels */}
             {countyFeatures.map((feature) => (
                 <React.Fragment key={feature.name}>
-                    {/* Blue Circle */}
                     <Entity
                         key={`circle-${feature.name}`}
                         position={Cartesian3.fromDegrees(
@@ -201,15 +215,14 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
                             feature.centroid.lat
                         )}
                         ellipse={{
-                            semiMajorAxis: 10000, // Adjust size as needed
-                            semiMinorAxis: 10000, // Adjust size as needed
+                            semiMajorAxis: 10000,
+                            semiMinorAxis: 10000,
                             material: Color.BLUE.withAlpha(0.5),
                             outline: true,
                             outlineColor: Color.WHITE,
                         }}
                     />
 
-                    {/* Label/Text inside the circle */}
                     <Entity
                         key={`label-${feature.name}`}
                         position={Cartesian3.fromDegrees(
@@ -227,12 +240,11 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
                             horizontalOrigin: HorizontalOrigin.CENTER,
                             pixelOffset: new Cartesian3(0, 0, 0),
                             disableDepthTestDistance: Number.POSITIVE_INFINITY,
-                            // Dynamic scaling by distance
                             scaleByDistance: new NearFarScalar(
                                 1.0e4,
-                                2.0, // At 100,000 meters, scale by 2x
+                                2.0,
                                 5.0e6,
-                                0.05 // At 1,000,000 meters, scale by 0.1x
+                                0.05
                             ),
                         }}
                     />
