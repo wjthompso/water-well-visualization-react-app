@@ -44,6 +44,7 @@ export const StatePolygonProvider: React.FC<{ children: React.ReactNode }> = ({
                 setError(err);
             } finally {
                 setLoading(false);
+                console.log("Setting loading to be false.");
             }
         };
 

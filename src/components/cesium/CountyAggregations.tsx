@@ -1,4 +1,5 @@
 import pointInPolygon from "@turf/boolean-point-in-polygon";
+import { point } from "@turf/helpers"; // Import the point helper
 import {
     Cartesian3,
     Math as CesiumMath,
@@ -84,9 +85,15 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
     // Fetch county polygons and aggregations
     useEffect(() => {
         const fetchData = async () => {
-            if (!selectedState) return;
+            if (!selectedState) {
+                console.log(`No state selected: ${selectedState}`);
+                return;
+            }
+            console.log(`State selected: ${selectedState}. Fetching data...`);
 
             try {
+                // Clear all existing entities before adding new ones
+
                 const aggregationsResponse = await fetch(
                     "http://localhost:3000/county-aggregations"
                 );
@@ -122,6 +129,7 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
                     }
                 );
 
+                console.log("countyFeatures", combinedData);
                 setCountyFeatures(combinedData);
             } catch (error) {
                 console.error("Error fetching county data:", error);
@@ -129,7 +137,7 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
         };
 
         fetchData();
-    }, [selectedState]);
+    }, [selectedState, viewer]);
 
     // Detect camera movement and update the camera position
     useEffect(() => {
@@ -150,6 +158,10 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
         };
 
         viewer.camera.moveEnd.addEventListener(handleCameraChange);
+
+        // Trigger handleCameraChange once on mount to set initial state
+        handleCameraChange();
+
         return () => {
             viewer.camera.moveEnd.removeEventListener(handleCameraChange);
         };
@@ -157,7 +169,14 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
 
     // Detect what state the camera is in
     useEffect(() => {
-        if (!cameraPosition || loading) return;
+        if (!cameraPosition || loading || statePolygons.length === 0) {
+            console.log(
+                `Camera position not available, loading, or no state polygons. cameraPosition: ${!cameraPosition}, loading: ${loading}, statePolygons.length: ${
+                    statePolygons.length
+                }`
+            );
+            return;
+        }
 
         // Convert the latitude and longitude from radians to degrees
         const currentLat = CesiumMath.toDegrees(cameraPosition.latitude);
@@ -165,12 +184,12 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
 
         console.log("Camera Position (Degrees):", { currentLat, currentLon });
 
+        // Create a Turf.js Point feature
+        const pointFeature = point([currentLon, currentLat]);
+
+        // Find the state that contains the point
         const state = statePolygons.find((state) => {
-            const inside = pointInPolygon(
-                [currentLon, currentLat],
-                state.geometry
-            );
-            console.log(`Checking if inside ${state.name}:`, inside); // Log for each state
+            const inside = pointInPolygon(pointFeature, state.geometry);
             return inside;
         });
 
@@ -179,10 +198,12 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
             setSelectedState(state.name);
         } else {
             console.log("No state found for current camera position");
+            // Optionally, you can set a default state or handle this case differently
         }
-    }, [cameraPosition, statePolygons, loading]);
+    }, [cameraPosition, statePolygons]);
 
     if (!showCounties || !selectedState) {
+        // console.log(`Not showing county aggregations. State: ${selectedState}`);
         return null;
     }
 
@@ -203,7 +224,7 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
                 stroke={Color.WHITE}
                 fill={Color.TRANSPARENT}
                 strokeWidth={0.5}
-                clampToGround={true}
+                clampToGround={false}
             />
 
             {countyFeatures.map((feature) => (
