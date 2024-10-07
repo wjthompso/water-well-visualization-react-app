@@ -9,7 +9,7 @@ import {
     NearFarScalar,
     VerticalOrigin,
 } from "cesium";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Entity, GeoJsonDataSource } from "resium";
 import { useCameraPosition } from "../../context/CameraPositionContext";
 import { useStatePolygons } from "../../context/StatePolygonContext";
@@ -31,6 +31,9 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
     const [countyFeatures, setCountyFeatures] = useState<CountyFeature[]>([]);
     const [showCounties, setShowCounties] = useState<boolean>(false);
     const [selectedState, setSelectedState] = useState<string | null>(null);
+
+    // Ref to store the interval ID
+    const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
     // Centroid calculation based on the polygon area
     const calculateCentroid = (
@@ -86,14 +89,10 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
     useEffect(() => {
         const fetchData = async () => {
             if (!selectedState) {
-                console.log(`No state selected: ${selectedState}`);
                 return;
             }
-            console.log(`State selected: ${selectedState}. Fetching data...`);
 
             try {
-                // Clear all existing entities before adding new ones
-
                 const aggregationsResponse = await fetch(
                     "http://localhost:3000/county-aggregations"
                 );
@@ -129,7 +128,6 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
                     }
                 );
 
-                console.log("countyFeatures", combinedData);
                 setCountyFeatures(combinedData);
             } catch (error) {
                 console.error("Error fetching county data:", error);
@@ -152,37 +150,54 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
 
             // Update camera position context
             setCameraPosition(cartographicPosition);
-
-            console.log("Camera Height:", cameraHeight);
-            console.log("Camera Position updated:", cartographicPosition);
         };
 
-        viewer.camera.moveEnd.addEventListener(handleCameraChange);
+        const startInterval = () => {
+            // If interval is already running, do nothing
+            if (intervalRef.current !== null) return;
+
+            // Start the interval
+            intervalRef.current = setInterval(handleCameraChange, 300);
+        };
+
+        const stopInterval = () => {
+            if (intervalRef.current !== null) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+            }
+            // Call handleCameraChange one last time
+            handleCameraChange();
+        };
+
+        // Add event listeners
+        viewer.camera.moveStart.addEventListener(startInterval);
+        viewer.camera.moveEnd.addEventListener(stopInterval);
 
         // Trigger handleCameraChange once on mount to set initial state
         handleCameraChange();
 
         return () => {
-            viewer.camera.moveEnd.removeEventListener(handleCameraChange);
+            // Remove event listeners
+            viewer.camera.moveStart.removeEventListener(startInterval);
+            viewer.camera.moveEnd.removeEventListener(stopInterval);
+
+            // Clear any remaining interval
+            if (intervalRef.current !== null) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+            }
         };
     }, [viewer, setCameraPosition]);
 
     // Detect what state the camera is in
     useEffect(() => {
         if (!cameraPosition || loading || statePolygons.length === 0) {
-            console.log(
-                `Camera position not available, loading, or no state polygons. cameraPosition: ${!cameraPosition}, loading: ${loading}, statePolygons.length: ${
-                    statePolygons.length
-                }`
-            );
             return;
         }
 
         // Convert the latitude and longitude from radians to degrees
         const currentLat = CesiumMath.toDegrees(cameraPosition.latitude);
         const currentLon = CesiumMath.toDegrees(cameraPosition.longitude);
-
-        console.log("Camera Position (Degrees):", { currentLat, currentLon });
 
         // Create a Turf.js Point feature
         const pointFeature = point([currentLon, currentLat]);
@@ -194,16 +209,11 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
         });
 
         if (state) {
-            console.log("Selected State:", state.name); // Log the selected state
             setSelectedState(state.name);
-        } else {
-            console.log("No state found for current camera position");
-            // Optionally, you can set a default state or handle this case differently
         }
     }, [cameraPosition, statePolygons]);
 
     if (!showCounties || !selectedState) {
-        // console.log(`Not showing county aggregations. State: ${selectedState}`);
         return null;
     }
 
