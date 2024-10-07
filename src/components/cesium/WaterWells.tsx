@@ -367,7 +367,8 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
                 }, false);
 
                 // Check if cylinders for this well should be rendered
-                const shouldRenderCylinders = cylindersToRender.includes(well);
+                const shouldRenderThisCylinder: boolean =
+                    cylindersToRender.includes(well);
                 const viewer = viewerRef.current?.cesiumElement;
                 const cameraPosition =
                     viewer?.camera.position ?? new Cartesian3();
@@ -402,7 +403,7 @@ const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
                         </Entity>
 
                         {/* Conditionally render cylinders based on distance */}
-                        {shouldRenderCylinders &&
+                        {shouldRenderThisCylinder &&
                             well.layers.map((layer, layerIndex) => {
                                 const layerStartPositionCartesian =
                                     Cartesian3.fromDegrees(
