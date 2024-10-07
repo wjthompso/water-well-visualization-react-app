@@ -160,7 +160,7 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
                         ellipse={{
                             semiMajorAxis: 80000,
                             semiMinorAxis: 80000,
-                            material: Color.BLUE.withAlpha(0.5),
+                            material: Color.BLUE.withAlpha(0.7),
                             outline: true,
                             outlineColor: Color.WHITE,
                         }}
@@ -174,7 +174,7 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
                         )}
                         label={{
                             text: feature.wellCount.toLocaleString(),
-                            font: "14pt sans-serif",
+                            font: "13pt sans-serif",
                             fillColor: Color.WHITE,
                             outlineColor: Color.BLACK,
                             outlineWidth: 2,

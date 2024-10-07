@@ -461,7 +461,7 @@ const ResiumViewerComponent: React.FC = () => {
                     if (moveIntervalRef.current === null) {
                         moveIntervalRef.current = setInterval(
                             periodicMoveHandler,
-                            500
+                            300
                         );
                     }
                 };

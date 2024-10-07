@@ -1,5 +1,5 @@
 import pointInPolygon from "@turf/boolean-point-in-polygon";
-import { point } from "@turf/helpers"; // Import the point helper
+import { point } from "@turf/helpers";
 import {
     Cartesian3,
     Math as CesiumMath,
@@ -10,9 +10,11 @@ import {
     VerticalOrigin,
 } from "cesium";
 import React, { useEffect, useRef, useState } from "react";
-import { Entity, GeoJsonDataSource } from "resium";
+import { Entity } from "resium";
 import { useCameraPosition } from "../../context/CameraPositionContext";
 import { useStatePolygons } from "../../context/StatePolygonContext";
+import GroundPolylinePrimitiveComponent from "./GroundPolylinePrimitiveComponent"; // Import the polyline component
+import GroundFilledPolygonComponent from "./GroundPrimitive";
 
 interface CountyAggregationsProps {
     viewer: any;
@@ -26,16 +28,14 @@ interface CountyFeature {
 }
 
 const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
-    const { cameraPosition, setCameraPosition } = useCameraPosition(); // Track camera position
+    const { cameraPosition, setCameraPosition } = useCameraPosition();
     const { statePolygons, loading } = useStatePolygons();
     const [countyFeatures, setCountyFeatures] = useState<CountyFeature[]>([]);
     const [showCounties, setShowCounties] = useState<boolean>(false);
     const [selectedState, setSelectedState] = useState<string | null>(null);
 
-    // Ref to store the interval ID
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Centroid calculation based on the polygon area
     const calculateCentroid = (
         coordinates: any
     ): { lat: number; lon: number } => {
@@ -85,7 +85,37 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
         };
     };
 
-    // Fetch county polygons and aggregations
+    const extractPolylines = (geometry: any): Cartesian3[][] => {
+        if (geometry.type === "Polygon") {
+            return geometry.coordinates.map((ring: any[]) =>
+                ring.map(([lon, lat]) => Cartesian3.fromDegrees(lon, lat))
+            );
+        } else if (geometry.type === "MultiPolygon") {
+            return geometry.coordinates.flatMap((polygon: any[]) =>
+                polygon.map((ring: any[]) =>
+                    ring.map(([lon, lat]) => Cartesian3.fromDegrees(lon, lat))
+                )
+            );
+        }
+        return [];
+    };
+
+    const extractPolygons = (geometry: any): Cartesian3[] => {
+        const positions: Cartesian3[] = [];
+        if (geometry.type === "Polygon") {
+            geometry.coordinates[0].forEach(([lon, lat]: [number, number]) => {
+                positions.push(Cartesian3.fromDegrees(lon, lat));
+            });
+        } else if (geometry.type === "MultiPolygon") {
+            geometry.coordinates.forEach((polygon: any) => {
+                polygon[0].forEach(([lon, lat]: [number, number]) => {
+                    positions.push(Cartesian3.fromDegrees(lon, lat));
+                });
+            });
+        }
+        return positions;
+    };
+
     useEffect(() => {
         const fetchData = async () => {
             if (!selectedState) {
@@ -137,26 +167,21 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
         fetchData();
     }, [selectedState, viewer]);
 
-    // Detect camera movement and update the camera position
     useEffect(() => {
         const handleCameraChange = () => {
             const cartographicPosition = viewer.camera.positionCartographic;
             const cameraHeight = cartographicPosition.height;
             const thresholdHeight = 1609.34 * 50;
 
-            setShowCounties(
-                cameraHeight >= thresholdHeight && cameraHeight < 2_000_000
-            );
+            const shouldShow =
+                cameraHeight >= thresholdHeight && cameraHeight < 2_000_000;
 
-            // Update camera position context
+            setShowCounties(shouldShow);
             setCameraPosition(cartographicPosition);
         };
 
         const startInterval = () => {
-            // If interval is already running, do nothing
             if (intervalRef.current !== null) return;
-
-            // Start the interval
             intervalRef.current = setInterval(handleCameraChange, 300);
         };
 
@@ -165,23 +190,17 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
                 clearInterval(intervalRef.current);
                 intervalRef.current = null;
             }
-            // Call handleCameraChange one last time
             handleCameraChange();
         };
 
-        // Add event listeners
         viewer.camera.moveStart.addEventListener(startInterval);
         viewer.camera.moveEnd.addEventListener(stopInterval);
 
-        // Trigger handleCameraChange once on mount to set initial state
         handleCameraChange();
 
         return () => {
-            // Remove event listeners
             viewer.camera.moveStart.removeEventListener(startInterval);
             viewer.camera.moveEnd.removeEventListener(stopInterval);
-
-            // Clear any remaining interval
             if (intervalRef.current !== null) {
                 clearInterval(intervalRef.current);
                 intervalRef.current = null;
@@ -189,20 +208,16 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
         };
     }, [viewer, setCameraPosition]);
 
-    // Detect what state the camera is in
     useEffect(() => {
         if (!cameraPosition || loading || statePolygons.length === 0) {
             return;
         }
 
-        // Convert the latitude and longitude from radians to degrees
         const currentLat = CesiumMath.toDegrees(cameraPosition.latitude);
         const currentLon = CesiumMath.toDegrees(cameraPosition.longitude);
 
-        // Create a Turf.js Point feature
         const pointFeature = point([currentLon, currentLat]);
 
-        // Find the state that contains the point
         const state = statePolygons.find((state) => {
             const inside = pointInPolygon(pointFeature, state.geometry);
             return inside;
@@ -219,41 +234,30 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
 
     return (
         <>
-            <GeoJsonDataSource
-                data={{
-                    type: "FeatureCollection",
-                    features: countyFeatures.map((feature) => ({
-                        type: "Feature",
-                        geometry: feature.geometry,
-                        properties: {
-                            name: feature.name,
-                            wellCount: feature.wellCount,
-                        },
-                    })),
-                }}
-                stroke={Color.WHITE}
-                fill={Color.TRANSPARENT}
-                strokeWidth={0.5}
-                clampToGround={false}
-            />
+            {countyFeatures.map((feature, index) => {
+                const positions = extractPolygons(feature.geometry);
+                const polylines = extractPolylines(feature.geometry);
+
+                return (
+                    <React.Fragment key={index}>
+                        <GroundFilledPolygonComponent
+                            positions={positions}
+                            color={Color.BLUE.withAlpha(0.7)}
+                        />
+                        {polylines.map((outlinePositions, outlineIndex) => (
+                            <GroundPolylinePrimitiveComponent
+                                key={`${index}-outline-${outlineIndex}`}
+                                positions={outlinePositions}
+                                width={2.0}
+                                color={Color.WHITE}
+                            />
+                        ))}
+                    </React.Fragment>
+                );
+            })}
 
             {countyFeatures.map((feature) => (
                 <React.Fragment key={feature.name}>
-                    <Entity
-                        key={`circle-${feature.name}`}
-                        position={Cartesian3.fromDegrees(
-                            feature.centroid.lon,
-                            feature.centroid.lat
-                        )}
-                        ellipse={{
-                            semiMajorAxis: 10000,
-                            semiMinorAxis: 10000,
-                            material: Color.BLUE.withAlpha(0.5),
-                            outline: true,
-                            outlineColor: Color.WHITE,
-                        }}
-                    />
-
                     <Entity
                         key={`label-${feature.name}`}
                         position={Cartesian3.fromDegrees(
@@ -275,8 +279,10 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
                                 1.0e4,
                                 2.0,
                                 5.0e6,
-                                0.05
+                                0.025
                             ),
+                            backgroundColor: Color.BLUE.withAlpha(0.8),
+                            backgroundPadding: new Cartesian3(7, 4),
                         }}
                     />
                 </React.Fragment>
