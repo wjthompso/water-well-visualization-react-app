@@ -1,5 +1,8 @@
+// StateAggregationComponent.tsx
+
 import {
     Cartesian3,
+    Viewer as CesiumViewer,
     Color,
     HorizontalOrigin,
     LabelStyle,
@@ -12,7 +15,7 @@ import { useCameraPosition } from "../../context/CameraPositionContext";
 import { useStatePolygons } from "../../context/StatePolygonContext";
 
 interface StateAggregationsProps {
-    viewer: any;
+    viewer: CesiumViewer; // Assuming CesiumViewer is correctly imported or defined
 }
 
 interface StateFeature {
@@ -27,6 +30,7 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
     const [showStates, setShowStates] = useState<boolean>(true);
     const { cameraPosition } = useCameraPosition();
     const { statePolygons, loading } = useStatePolygons();
+    const [clampToGround, setClampToGround] = useState<boolean>(true);
 
     const calculateCentroid = (
         coordinates: any
@@ -115,11 +119,19 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
     useEffect(() => {
         const handleCameraChange = () => {
             const cameraHeight = viewer.camera.positionCartographic.height;
-            const thresholdHeight = 2000000;
+            const thresholdHeight = 2000000; // Adjust as needed
             setShowStates(cameraHeight > thresholdHeight);
+
+            // Adjust clampToGround based on terrainExaggeration
+            const terrainExaggeration = viewer.scene.verticalExaggeration;
+            setClampToGround(terrainExaggeration !== 0.0);
         };
 
         viewer.camera.changed.addEventListener(handleCameraChange);
+
+        // Initial check
+        handleCameraChange();
+
         return () => {
             viewer.camera.changed.removeEventListener(handleCameraChange);
         };
@@ -146,7 +158,7 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
                 stroke={Color.WHITE}
                 fill={Color.TRANSPARENT}
                 strokeWidth={1}
-                clampToGround={true}
+                clampToGround={clampToGround}
             />
 
             {stateFeatures.map((feature) => (
