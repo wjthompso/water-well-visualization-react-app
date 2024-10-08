@@ -1,5 +1,6 @@
 // StateAggregationComponent.tsx
 
+import centerOfMass from "@turf/center";
 import {
     Cartesian3,
     Viewer as CesiumViewer,
@@ -7,10 +8,11 @@ import {
     HorizontalOrigin,
     LabelStyle,
     NearFarScalar,
+    PolygonHierarchy,
     VerticalOrigin,
 } from "cesium";
-import React, { useEffect, useState } from "react";
-import { Entity, GeoJsonDataSource } from "resium";
+import React, { useEffect, useRef, useState } from "react";
+import { Entity } from "resium";
 import { useCameraPosition } from "../../context/CameraPositionContext";
 import { useStatePolygons } from "../../context/StatePolygonContext";
 
@@ -27,58 +29,28 @@ interface StateFeature {
 
 const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
     const [stateFeatures, setStateFeatures] = useState<StateFeature[]>([]);
-    const [showStates, setShowStates] = useState<boolean>(true);
-    const { cameraPosition } = useCameraPosition();
+    const [showStates, setShowStates] = useState<boolean>(false);
+    const { cameraPosition, setCameraPosition } = useCameraPosition();
     const { statePolygons, loading } = useStatePolygons();
-    const [clampToGround, setClampToGround] = useState<boolean>(true);
+    const thresholdHeight = 2000000; // Adjust as needed
+    const intervalRef = useRef<NodeJS.Timeout | null>(null);
+    const raisedHeight = 9000;
 
     const calculateCentroid = (
-        coordinates: any
+        geometry: GeoJSON.Geometry
     ): { lat: number; lon: number } => {
-        let totalLon = 0;
-        let totalLat = 0;
-        let totalArea = 0;
-
-        const isMultiPolygon = Array.isArray(coordinates[0][0][0]);
-        const polygons = isMultiPolygon ? coordinates : [coordinates];
-
-        polygons.forEach((polygon: any) => {
-            polygon.forEach((ring: any, ringIndex: number) => {
-                let area = 0;
-                let centroidLon = 0;
-                let centroidLat = 0;
-
-                for (let i = 0; i < ring.length - 1; i++) {
-                    const [lon1, lat1] = ring[i];
-                    const [lon2, lat2] = ring[i + 1];
-
-                    const partialArea = lon1 * lat2 - lon2 * lat1;
-                    area += partialArea;
-                    centroidLon += (lon1 + lon2) * partialArea;
-                    centroidLat += (lat1 + lat2) * partialArea;
-                }
-
-                if (area !== 0) {
-                    area = area / 2;
-                    centroidLon = centroidLon / (6 * area);
-                    centroidLat = centroidLat / (6 * area);
-
-                    const weight = ringIndex === 0 ? 1 : -1;
-                    totalLon += centroidLon * area * weight;
-                    totalLat += centroidLat * area * weight;
-                    totalArea += area * weight;
-                }
-            });
+        const centroidFeature = centerOfMass({
+            type: "FeatureCollection",
+            features: [
+                {
+                    type: "Feature",
+                    geometry,
+                    properties: {},
+                },
+            ],
         });
-
-        if (totalArea === 0) {
-            return { lon: 0, lat: 0 };
-        }
-
-        return {
-            lon: totalLon / totalArea,
-            lat: totalLat / totalArea,
-        };
+        const [lon, lat] = centroidFeature.geometry.coordinates;
+        return { lat, lon };
     };
 
     useEffect(() => {
@@ -92,9 +64,7 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
                 const combinedData: StateFeature[] = statePolygons.map(
                     (feature) => {
                         const wellCount = aggregationsData[feature.name] || 0;
-                        const centroid = calculateCentroid(
-                            feature.geometry.coordinates
-                        );
+                        const centroid = calculateCentroid(feature.geometry);
 
                         return {
                             name: feature.name,
@@ -118,24 +88,69 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
 
     useEffect(() => {
         const handleCameraChange = () => {
-            const cameraHeight = viewer.camera.positionCartographic.height;
-            const thresholdHeight = 2000000; // Adjust as needed
-            setShowStates(cameraHeight > thresholdHeight);
+            if (!viewer?.scene) return;
 
-            // Adjust clampToGround based on terrainExaggeration
-            const terrainExaggeration = viewer.scene.verticalExaggeration;
-            setClampToGround(terrainExaggeration !== 0.0);
+            const cartographicPosition = viewer.camera.positionCartographic;
+            const cameraHeight = cartographicPosition?.height || 0;
+            setShowStates(cameraHeight > thresholdHeight);
+            setCameraPosition(cartographicPosition);
         };
 
-        viewer.camera.changed.addEventListener(handleCameraChange);
+        const startInterval = () => {
+            if (intervalRef.current) return;
+            intervalRef.current = setInterval(handleCameraChange, 300);
+        };
 
-        // Initial check
-        handleCameraChange();
+        const stopInterval = () => {
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+            }
+            handleCameraChange();
+        };
+
+        viewer?.camera.moveStart.addEventListener(startInterval);
+        viewer?.camera.moveEnd.addEventListener(stopInterval);
 
         return () => {
-            viewer.camera.changed.removeEventListener(handleCameraChange);
+            viewer?.camera.moveStart.removeEventListener(startInterval);
+            viewer?.camera.moveEnd.removeEventListener(stopInterval);
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+            }
         };
-    }, [viewer]);
+    }, [viewer, setCameraPosition]);
+
+    const convertGeometryToHierarchy = (
+        geometry: GeoJSON.Geometry
+    ): PolygonHierarchy | undefined => {
+        if (geometry.type === "Polygon") {
+            const positions = geometry.coordinates[0].map(([lon, lat]) =>
+                Cartesian3.fromDegrees(lon, lat, raisedHeight)
+            );
+            return new PolygonHierarchy(positions);
+        } else if (geometry.type === "MultiPolygon") {
+            const hierarchy = geometry.coordinates.map((polygon) => {
+                const positions = polygon[0].map(([lon, lat]) =>
+                    Cartesian3.fromDegrees(lon, lat, raisedHeight)
+                );
+                const holes = polygon
+                    .slice(1)
+                    .map((hole) =>
+                        hole.map(([lon, lat]) =>
+                            Cartesian3.fromDegrees(lon, lat, raisedHeight)
+                        )
+                    );
+                return new PolygonHierarchy(
+                    positions,
+                    holes.map((h) => new PolygonHierarchy(h))
+                );
+            });
+            return hierarchy.length > 0 ? hierarchy[0] : undefined;
+        }
+        return undefined;
+    };
 
     if (!showStates || loading) {
         return null;
@@ -143,50 +158,22 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
 
     return (
         <>
-            <GeoJsonDataSource
-                data={{
-                    type: "FeatureCollection",
-                    features: stateFeatures.map((feature) => ({
-                        type: "Feature",
-                        geometry: feature.geometry,
-                        properties: {
-                            name: feature.name,
-                            wellCount: feature.wellCount,
-                        },
-                    })),
-                }}
-                stroke={Color.WHITE}
-                fill={Color.TRANSPARENT}
-                strokeWidth={1}
-                clampToGround={clampToGround}
-            />
-
-            {stateFeatures.map((feature) => (
-                <React.Fragment key={feature.name}>
+            {stateFeatures.map((feature) => {
+                const hierarchy = convertGeometryToHierarchy(feature.geometry);
+                return (
                     <Entity
-                        key={`circle-${feature.name}`}
-                        position={Cartesian3.fromDegrees(
-                            feature.centroid.lon,
-                            feature.centroid.lat
-                        )}
-                        ellipse={{
-                            semiMajorAxis: 80000,
-                            semiMinorAxis: 80000,
-                            material: Color.BLUE.withAlpha(0.7),
+                        key={feature.name}
+                        polygon={{
+                            hierarchy,
+                            height: raisedHeight,
+                            material: Color.BLUE.withAlpha(0.6),
                             outline: true,
                             outlineColor: Color.WHITE,
+                            outlineWidth: 2,
                         }}
-                    />
-
-                    <Entity
-                        key={`label-${feature.name}`}
-                        position={Cartesian3.fromDegrees(
-                            feature.centroid.lon,
-                            feature.centroid.lat
-                        )}
                         label={{
                             text: feature.wellCount.toLocaleString(),
-                            font: "13pt sans-serif",
+                            font: "15pt sans-serif",
                             fillColor: Color.WHITE,
                             outlineColor: Color.BLACK,
                             outlineWidth: 2,
@@ -202,9 +189,14 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
                                 0.1
                             ),
                         }}
+                        position={Cartesian3.fromDegrees(
+                            feature.centroid.lon,
+                            feature.centroid.lat,
+                            raisedHeight
+                        )}
                     />
-                </React.Fragment>
-            ))}
+                );
+            })}
         </>
     );
 };
