@@ -287,6 +287,7 @@ const ResiumViewerComponent: React.FC = () => {
     const searchBarRef = useRef<HTMLDivElement>(null);
     const [showWells, setShowWells] = useState(true);
     const showWellsRef = useRef(true);
+    const [showAggregations, setShowAggregations] = useState(true);
     const thresholdHeight = 1609.34 * 50; // Approximately 50 miles in meters
     const { setTooltipString } = useContext(TooltipContext);
 
@@ -295,6 +296,33 @@ const ResiumViewerComponent: React.FC = () => {
     useEffect(() => {
         showWellsRef.current = showWells;
     }, [showWells]);
+
+    useEffect(() => {
+        if (viewerRef.current?.cesiumElement) {
+            const viewer = viewerRef.current.cesiumElement as CesiumViewer;
+            const scene = viewer.scene;
+            const camera = scene.camera;
+
+            const handleAggregationVisibility = () => {
+                const cameraCartographic = Cartographic.fromCartesian(
+                    camera.position
+                );
+                const cameraHeight = cameraCartographic.height;
+                const newShowAggregations = cameraHeight <= thresholdHeight;
+
+                if (showAggregations !== newShowAggregations) {
+                    setShowAggregations(newShowAggregations);
+                }
+            };
+
+            camera.changed.addEventListener(handleAggregationVisibility);
+            handleAggregationVisibility();
+
+            return () => {
+                camera.changed.removeEventListener(handleAggregationVisibility);
+            };
+        }
+    }, [thresholdHeight, showAggregations]);
 
     const calculateChunkKey = (
         lat: number,
@@ -624,16 +652,18 @@ const ResiumViewerComponent: React.FC = () => {
                         />
                     )}
 
-                    {finishedLoading && viewerRef.current?.cesiumElement && (
-                        <>
-                            <StateAggregations
-                                viewer={viewerRef.current.cesiumElement}
-                            />
-                            <CountyAggregations
-                                viewer={viewerRef.current.cesiumElement}
-                            />
-                        </>
-                    )}
+                    {finishedLoading &&
+                        viewerRef.current?.cesiumElement &&
+                        showAggregations && (
+                            <>
+                                <StateAggregations
+                                    viewer={viewerRef.current.cesiumElement}
+                                />
+                                <CountyAggregations
+                                    viewer={viewerRef.current.cesiumElement}
+                                />
+                            </>
+                        )}
                 </Viewer>
                 <Tooltip />
             </div>
