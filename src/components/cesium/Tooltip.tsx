@@ -14,7 +14,11 @@ const Tooltip: React.FC<TooltipProps> = () => {
         const checkIfMobile = () => {
             const userAgent = navigator.userAgent || navigator.vendor;
             // Regex to detect mobile devices
-            if (/android|iphone|ipad|ipod|opera mini|iemobile|wpdesktop/i.test(userAgent)) {
+            if (
+                /android|iphone|ipad|ipod|opera mini|iemobile|wpdesktop/i.test(
+                    userAgent
+                )
+            ) {
                 setIsMobile(true);
             } else {
                 setIsMobile(false);
@@ -43,63 +47,69 @@ const Tooltip: React.FC<TooltipProps> = () => {
         return null;
     }
 
-    return (
-        <>
-            {tooltipString &&
-                (isStringTooltip(tooltipString) ? (
-                    tooltipString.trim() !== "" && (
-                        <div
-                            id="tooltip"
-                            ref={tooltipRef}
-                            className="text-white bg-headerBackgroundColor"
-                            style={{
-                                position: "absolute",
-                                borderRadius: "5px",
-                                padding: "10px",
-                                boxShadow: "2px 2px 5px rgba(0, 0, 0, 0.2)",
-                                zIndex: 999,
-                                display: "block",
-                                left: `${tooltipX - tooltipWidth / 2}px`,
-                                top: `${tooltipY - 150}px`, // Adjust this value as needed to position the tooltip above the cursor
-                                whiteSpace: "nowrap", // Prevents text from wrapping, adjust or remove as needed
-                            }}
-                        >
-                            {tooltipString}
-                        </div>
-                    )
-                ) : (
-                    <div
-                        id="tooltip"
-                        ref={tooltipRef}
-                        className="text-white bg-headerBackgroundColor"
-                        style={{
-                            position: "absolute",
-                            borderRadius: "5px",
-                            padding: "10px",
-                            boxShadow: "2px 2px 5px rgba(0, 0, 0, 0.2)",
-                            zIndex: 999,
-                            display: "block",
-                            left: `${tooltipX - tooltipWidth / 2}px`,
-                            top: `${tooltipY - 200}px`, // Adjust this value as needed to position the tooltip above the cursor
-                            whiteSpace: "nowrap", // Prevents text from wrapping, adjust or remove as needed
-                        }}
-                    >
-                        <div className="text-base">
-                            {tooltipString.startDepth}-{tooltipString.endDepth}{" "}
-                            ft
-                        </div>
-                        <div className="text-sm">
-                            <strong>Category:</strong>{" "}
-                            {tooltipString.type.join(", ")}
-                        </div>
-                        <div className="text-sm">
-                            <strong>Driller Notes:</strong>{" "}
-                            {tooltipString.lithologyDescription}
-                        </div>
-                    </div>
-                ))}
-        </>
-    );
+    // Remove tooltip
+
+    if (true) {
+        return null;
+    }
+
+    // return (
+    //     <>
+    //         {tooltipString &&
+    //             (isStringTooltip(tooltipString) ? (
+    //                 tooltipString.trim() !== "" && (
+    //                     <div
+    //                         id="tooltip"
+    //                         ref={tooltipRef}
+    //                         className="text-white bg-headerBackgroundColor"
+    //                         style={{
+    //                             position: "absolute",
+    //                             borderRadius: "5px",
+    //                             padding: "10px",
+    //                             boxShadow: "2px 2px 5px rgba(0, 0, 0, 0.2)",
+    //                             zIndex: 999,
+    //                             display: "block",
+    //                             left: `${tooltipX - tooltipWidth / 2}px`,
+    //                             top: `${tooltipY - 150}px`, // Adjust this value as needed to position the tooltip above the cursor
+    //                             whiteSpace: "nowrap", // Prevents text from wrapping, adjust or remove as needed
+    //                         }}
+    //                     >
+    //                         {tooltipString}
+    //                     </div>
+    //                 )
+    //             ) : (
+    //                 <div
+    //                     id="tooltip"
+    //                     ref={tooltipRef}
+    //                     className="text-white bg-headerBackgroundColor"
+    //                     style={{
+    //                         position: "absolute",
+    //                         borderRadius: "5px",
+    //                         padding: "10px",
+    //                         boxShadow: "2px 2px 5px rgba(0, 0, 0, 0.2)",
+    //                         zIndex: 999,
+    //                         display: "block",
+    //                         left: `${tooltipX - tooltipWidth / 2}px`,
+    //                         top: `${tooltipY - 200}px`, // Adjust this value as needed to position the tooltip above the cursor
+    //                         whiteSpace: "nowrap", // Prevents text from wrapping, adjust or remove as needed
+    //                     }}
+    //                 >
+    //                     <div className="text-base">
+    //                         {tooltipString.startDepth}-{tooltipString.endDepth}{" "}
+    //                         ft
+    //                     </div>
+    //                     <div className="text-sm">
+    //                         <strong>Category:</strong>{" "}
+    //                         {tooltipString.type.join(", ")}
+    //                     </div>
+    //                     <div className="text-sm">
+    //                         <strong>Driller Notes:</strong>{" "}
+    //                         {tooltipString.lithologyDescription}
+    //                     </div>
+    //                 </div>
+    //             ))}
+    //     </>
+    // );
 };
 
 export default Tooltip;
