@@ -32,7 +32,7 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
     const [showStates, setShowStates] = useState<boolean>(false);
     const { cameraPosition, setCameraPosition } = useCameraPosition();
     const { statePolygons, loading } = useStatePolygons();
-    const thresholdHeight = 2000000; // Adjust as needed
+    const thresholdHeight = 1_000_000; // Adjust as needed
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const raisedHeight = 9000;
 
@@ -156,6 +156,8 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
         return null;
     }
 
+    // viewer.scene.postProcessStages.fxaa.enabled = true;
+
     return (
         <>
             {stateFeatures.map((feature) => {
@@ -166,15 +168,17 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
                         polygon={{
                             hierarchy,
                             height: raisedHeight,
-                            material: Color.BLUE.withAlpha(0.6),
+                            material: Color.BLUE,
                             outline: true,
                             outlineColor: Color.WHITE,
-                            outlineWidth: 2,
+                            outlineWidth: 4,
                         }}
                         label={{
                             text: feature.wellCount.toLocaleString(),
                             font: "15pt sans-serif",
                             fillColor: Color.WHITE,
+                            // showBackground: true,
+                            // backgroundColor: Color.BLACK.withAlpha(0.6),
                             outlineColor: Color.BLACK,
                             outlineWidth: 2,
                             style: LabelStyle.FILL_AND_OUTLINE,
@@ -183,11 +187,12 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
                             pixelOffset: new Cartesian3(0, 0, 0),
                             disableDepthTestDistance: Number.POSITIVE_INFINITY,
                             scaleByDistance: new NearFarScalar(
-                                1.0e6,
-                                2.0,
-                                1.0e7,
-                                0.1
+                                5.0e5,
+                                1.5,
+                                5.0e6,
+                                0.75
                             ),
+                            eyeOffset: new Cartesian3(0.0, 0.0, -4000.0), // Adjust this value as needed
                         }}
                         position={Cartesian3.fromDegrees(
                             feature.centroid.lon,

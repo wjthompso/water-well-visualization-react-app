@@ -112,7 +112,7 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
             const thresholdHeight = 1609.34 * 50;
 
             const shouldShow =
-                cameraHeight >= thresholdHeight && cameraHeight < 2_000_000;
+                cameraHeight >= thresholdHeight && cameraHeight < 1_000_000;
 
             setShowCounties(shouldShow);
             setCameraPosition(cartographicPosition);
