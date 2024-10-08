@@ -1,5 +1,5 @@
 import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
-import centroid from "@turf/centroid";
+import centerOfMass from "@turf/center";
 import { point } from "@turf/helpers";
 import {
     Cartesian3,
@@ -40,10 +40,15 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
     const calculateCentroid = (
         geometry: GeoJSON.Geometry
     ): { lat: number; lon: number } => {
-        const centroidFeature = centroid({
-            type: "Feature",
-            geometry,
-            properties: {},
+        const centroidFeature = centerOfMass({
+            type: "FeatureCollection",
+            features: [
+                {
+                    type: "Feature",
+                    geometry,
+                    properties: {},
+                },
+            ],
         });
         const [lon, lat] = centroidFeature.geometry.coordinates;
         return { lat, lon };
@@ -164,12 +169,23 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
             );
             return new PolygonHierarchy(positions);
         } else if (geometry.type === "MultiPolygon") {
-            const positions = geometry.coordinates.flatMap((polygon) =>
-                polygon[0].map(([lon, lat]) =>
+            const hierarchy = geometry.coordinates.map((polygon) => {
+                const positions = polygon[0].map(([lon, lat]) =>
                     Cartesian3.fromDegrees(lon, lat, raisedHeight)
-                )
-            );
-            return new PolygonHierarchy(positions);
+                );
+                const holes = polygon
+                    .slice(1)
+                    .map((hole) =>
+                        hole.map(([lon, lat]) =>
+                            Cartesian3.fromDegrees(lon, lat, raisedHeight)
+                        )
+                    );
+                return new PolygonHierarchy(
+                    positions,
+                    holes.map((h) => new PolygonHierarchy(h))
+                );
+            });
+            return hierarchy.length > 0 ? hierarchy[0] : undefined;
         }
         return undefined;
     };
