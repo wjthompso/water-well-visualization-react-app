@@ -259,7 +259,7 @@ const ResiumViewerComponent: React.FC = () => {
     const minLon = -124.592902859999;
     const maxLon = -67.4433;
     const chunkSplitN = 119;
-    const terrainFlatteningThreshold = 1500000; // 1,500,000 meters
+    const terrainFlatteningThreshold = 1_500_000; // 1,500,000 meters
 
     const latStep = (maxLat - minLat) / chunkSplitN;
     const lonStep = (maxLon - minLon) / chunkSplitN;
@@ -510,7 +510,24 @@ const ResiumViewerComponent: React.FC = () => {
                 const scene = viewer.scene;
                 const camera = scene.camera;
 
-                const periodicMoveHandler = () => handleCameraMove(camera);
+                const periodicMoveHandler = () => {
+                    const cameraCartographic = Cartographic.fromCartesian(
+                        camera.position
+                    );
+                    const cameraHeight = cameraCartographic.height;
+                    const newShowWells = cameraHeight <= thresholdHeight;
+
+                    if (showWellsRef.current !== newShowWells) {
+                        setShowWells(newShowWells);
+                        console.log("Set showWells to ", newShowWells);
+                        showWellsRef.current = newShowWells;
+
+                        if (!newShowWells) {
+                            setTooltipString("");
+                        }
+                    }
+                    handleCameraMove(camera);
+                };
 
                 const onMoveStart = () => {
                     if (moveIntervalRef.current === null) {
