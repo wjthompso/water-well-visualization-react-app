@@ -37,7 +37,7 @@ import CountyAggregations from "./CountyAggregations";
 import GroundPolylinePrimitiveComponent from "./GroundPolylinePrimitiveComponent";
 import StateAggregations from "./StateAggregationComponent";
 import Tooltip from "./Tooltip";
-import CylinderEntities from "./WaterWells";
+import WaterWells from "./WaterWells";
 
 interface Chunk {
     topLeft: {
@@ -536,6 +536,7 @@ const ResiumViewerComponent: React.FC = () => {
 
                     if (showWellsRef.current !== newShowWells) {
                         setShowWells(newShowWells);
+                        console.log("Set showWells to ", newShowWells);
                         showWellsRef.current = newShowWells;
 
                         if (!newShowWells) {
@@ -635,7 +636,7 @@ const ResiumViewerComponent: React.FC = () => {
                 >
                     {showWells &&
                         wellDataWithoutElevationAdjustments.length > 0 && (
-                            <CylinderEntities
+                            <WaterWells
                                 terrainProvider={terrainProvider}
                                 wellDataWithoutElevationAdjustments={
                                     wellDataWithoutElevationAdjustments

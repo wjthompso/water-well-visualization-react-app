@@ -30,13 +30,13 @@ import { TooltipContext } from "../../context/AppContext"; // Adjust the import 
 import { WellData } from "../../context/WellData";
 import { createPieChartWellIcon } from "../../utilities/createPieChartWellIcon";
 
-interface CylinderEntitiesProps {
+interface WaterWellsProps {
     terrainProvider: CesiumTerrainProvider | undefined | null;
     wellDataWithoutElevationAdjustments: WellData[];
     viewerRef: MutableRefObject<CesiumComponentRef<Viewer> | null>;
 }
 
-const PreMemoizedWaterWells: React.FC<CylinderEntitiesProps> = ({
+const PreMemoizedWaterWells: React.FC<WaterWellsProps> = ({
     terrainProvider,
     wellDataWithoutElevationAdjustments,
     viewerRef,
