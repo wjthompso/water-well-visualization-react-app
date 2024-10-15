@@ -1,6 +1,10 @@
+// CountyAggregations.tsx
+
 import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
 import centerOfMass from "@turf/center";
+import cleanCoords from "@turf/clean-coords";
 import { point } from "@turf/helpers";
+import rewind from "@turf/rewind";
 import {
     Cartesian3,
     Math as CesiumMath,
@@ -12,6 +16,7 @@ import {
     PolygonHierarchy,
     VerticalOrigin,
 } from "cesium";
+import { Geometry, Position } from "geojson";
 import React, { useEffect, useRef, useState } from "react";
 import { Entity } from "resium";
 import { useCameraPosition } from "../../context/CameraPositionContext";
@@ -23,7 +28,7 @@ interface CountyAggregationsProps {
 
 interface CountyFeature {
     name: string;
-    geometry: GeoJSON.Geometry;
+    geometry: Geometry;
     wellCount: number;
     centroid: { lat: number; lon: number };
 }
@@ -38,7 +43,7 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
     const raisedHeight = 9000;
 
     const calculateCentroid = (
-        geometry: GeoJSON.Geometry
+        geometry: Geometry
     ): { lat: number; lon: number } => {
         const centroidFeature = centerOfMass({
             type: "FeatureCollection",
@@ -161,31 +166,64 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
     if (!showCounties || !selectedState) return null;
 
     const convertGeometryToHierarchy = (
-        geometry: GeoJSON.Geometry
-    ): PolygonHierarchy | undefined => {
-        if (geometry.type === "Polygon") {
-            const positions = geometry.coordinates[0].map(([lon, lat]) =>
-                Cartesian3.fromDegrees(lon, lat, raisedHeight)
-            );
-            return new PolygonHierarchy(positions);
-        } else if (geometry.type === "MultiPolygon") {
-            const hierarchy = geometry.coordinates.map((polygon) => {
-                const positions = polygon[0].map(([lon, lat]) =>
-                    Cartesian3.fromDegrees(lon, lat, raisedHeight)
-                );
-                const holes = polygon
-                    .slice(1)
-                    .map((hole) =>
-                        hole.map(([lon, lat]) =>
-                            Cartesian3.fromDegrees(lon, lat, raisedHeight)
-                        )
-                    );
-                return new PolygonHierarchy(
-                    positions,
-                    holes.map((h) => new PolygonHierarchy(h))
-                );
+        geometry: Geometry
+    ): PolygonHierarchy[] | undefined => {
+        // Wrap the geometry into a Feature
+        let feature: GeoJSON.Feature<Geometry> = {
+            type: "Feature",
+            geometry: geometry,
+            properties: {},
+        };
+
+        // Clean up the geometry
+        feature = cleanCoords(feature) as GeoJSON.Feature<Geometry>;
+
+        // Ensure correct winding order for Cesium rendering
+        feature = rewind(feature, {
+            reverse: true,
+        }) as GeoJSON.Feature<Geometry>;
+
+        const geom = feature.geometry;
+
+        if (geom.type === "Polygon") {
+            const positions = geom.coordinates[0].map((coords: Position) => {
+                const [lon, lat] = coords;
+                return Cartesian3.fromDegrees(lon, lat, raisedHeight);
             });
-            return hierarchy.length > 0 ? hierarchy[0] : undefined;
+
+            const holes = geom.coordinates.slice(1).map((hole: Position[]) => {
+                const holePositions = hole.map((coords: Position) => {
+                    const [lon, lat] = coords;
+                    return Cartesian3.fromDegrees(lon, lat, raisedHeight);
+                });
+                return new PolygonHierarchy(holePositions);
+            });
+
+            return [new PolygonHierarchy(positions, holes)];
+        } else if (geom.type === "MultiPolygon") {
+            const hierarchies: PolygonHierarchy[] = geom.coordinates.map(
+                (polygon: Position[][]) => {
+                    const positions = polygon[0].map((coords: Position) => {
+                        const [lon, lat] = coords;
+                        return Cartesian3.fromDegrees(lon, lat, raisedHeight);
+                    });
+
+                    const holes = polygon.slice(1).map((hole: Position[]) => {
+                        const holePositions = hole.map((coords: Position) => {
+                            const [lon, lat] = coords;
+                            return Cartesian3.fromDegrees(
+                                lon,
+                                lat,
+                                raisedHeight
+                            );
+                        });
+                        return new PolygonHierarchy(holePositions);
+                    });
+
+                    return new PolygonHierarchy(positions, holes);
+                }
+            );
+            return hierarchies;
         }
         return undefined;
     };
@@ -193,12 +231,17 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
     return (
         <>
             {countyFeatures.map((feature) => {
-                const hierarchy = convertGeometryToHierarchy(feature.geometry);
-                return (
+                const hierarchies = convertGeometryToHierarchy(
+                    feature.geometry
+                );
+                if (!hierarchies) {
+                    return null;
+                }
+                return hierarchies.map((hierarchy, index) => (
                     <Entity
-                        key={feature.name}
+                        key={`${feature.name}-${index}`}
                         polygon={{
-                            hierarchy,
+                            hierarchy: hierarchy,
                             height: raisedHeight,
                             material: Color.BLUE.withAlpha(0.5),
                             outline: true,
@@ -231,7 +274,7 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
                             raisedHeight
                         )}
                     />
-                );
+                ));
             })}
         </>
     );
