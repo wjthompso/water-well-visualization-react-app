@@ -56,6 +56,10 @@ const PreMemoizedWaterWells: React.FC<WaterWellsProps> = ({
         null
     );
 
+    console.log(
+        `There are ${wellDataWithoutElevationAdjustments.length} wells.`
+    );
+
     // Ref to store throttle timeout
     const throttleTimeout = useRef<NodeJS.Timeout | null>(null);
 

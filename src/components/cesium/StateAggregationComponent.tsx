@@ -1,6 +1,8 @@
 // StateAggregationComponent.tsx
 
 import centerOfMass from "@turf/center";
+import cleanCoords from "@turf/clean-coords";
+import rewind from "@turf/rewind";
 import {
     Cartesian3,
     Viewer as CesiumViewer,
@@ -11,18 +13,19 @@ import {
     PolygonHierarchy,
     VerticalOrigin,
 } from "cesium";
+import { Geometry, Position } from "geojson";
 import React, { useEffect, useRef, useState } from "react";
 import { Entity } from "resium";
 import { useCameraPosition } from "../../context/CameraPositionContext";
 import { useStatePolygons } from "../../context/StatePolygonContext";
 
 interface StateAggregationsProps {
-    viewer: CesiumViewer; // Assuming CesiumViewer is correctly imported or defined
+    viewer: CesiumViewer;
 }
 
 interface StateFeature {
     name: string;
-    geometry: any;
+    geometry: Geometry;
     wellCount: number;
     centroid: { lat: number; lon: number };
 }
@@ -30,14 +33,14 @@ interface StateFeature {
 const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
     const [stateFeatures, setStateFeatures] = useState<StateFeature[]>([]);
     const [showStates, setShowStates] = useState<boolean>(false);
-    const { cameraPosition, setCameraPosition } = useCameraPosition();
+    const { setCameraPosition } = useCameraPosition();
     const { statePolygons, loading } = useStatePolygons();
     const thresholdHeight = 1_000_000; // Adjust as needed
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const raisedHeight = 9000;
 
     const calculateCentroid = (
-        geometry: GeoJSON.Geometry
+        geometry: Geometry
     ): { lat: number; lon: number } => {
         const centroidFeature = centerOfMass({
             type: "FeatureCollection",
@@ -123,31 +126,68 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
     }, [viewer, setCameraPosition]);
 
     const convertGeometryToHierarchy = (
-        geometry: GeoJSON.Geometry
-    ): PolygonHierarchy | undefined => {
-        if (geometry.type === "Polygon") {
-            const positions = geometry.coordinates[0].map(([lon, lat]) =>
-                Cartesian3.fromDegrees(lon, lat, raisedHeight)
-            );
-            return new PolygonHierarchy(positions);
-        } else if (geometry.type === "MultiPolygon") {
-            const hierarchy = geometry.coordinates.map((polygon) => {
-                const positions = polygon[0].map(([lon, lat]) =>
-                    Cartesian3.fromDegrees(lon, lat, raisedHeight)
-                );
-                const holes = polygon
-                    .slice(1)
-                    .map((hole) =>
-                        hole.map(([lon, lat]) =>
-                            Cartesian3.fromDegrees(lon, lat, raisedHeight)
-                        )
-                    );
-                return new PolygonHierarchy(
-                    positions,
-                    holes.map((h) => new PolygonHierarchy(h))
-                );
+        geometry: Geometry
+    ): PolygonHierarchy[] | undefined => {
+        // Wrap the geometry into a Feature
+        let feature: GeoJSON.Feature<Geometry> = {
+            type: "Feature",
+            geometry: geometry,
+            properties: {},
+        };
+
+        // Simplify and clean up geometry (optional)
+        // const simplifyTolerance = 0.001; // Adjust as needed
+        // feature = simplify(feature, { tolerance: simplifyTolerance, highQuality: true }) as GeoJSON.Feature<Geometry>;
+
+        // Clean up the geometry
+        feature = cleanCoords(feature) as GeoJSON.Feature<Geometry>;
+
+        // Ensure correct winding order for Cesium rendering
+        feature = rewind(feature, {
+            reverse: true,
+        }) as GeoJSON.Feature<Geometry>;
+
+        const geom = feature.geometry;
+
+        if (geom.type === "Polygon") {
+            const positions = geom.coordinates[0].map((coords: Position) => {
+                const [lon, lat] = coords;
+                return Cartesian3.fromDegrees(lon, lat, raisedHeight);
             });
-            return hierarchy.length > 0 ? hierarchy[0] : undefined;
+
+            const holes = geom.coordinates.slice(1).map((hole: Position[]) => {
+                const holePositions = hole.map((coords: Position) => {
+                    const [lon, lat] = coords;
+                    return Cartesian3.fromDegrees(lon, lat, raisedHeight);
+                });
+                return new PolygonHierarchy(holePositions);
+            });
+
+            return [new PolygonHierarchy(positions, holes)];
+        } else if (geom.type === "MultiPolygon") {
+            const hierarchies: PolygonHierarchy[] = geom.coordinates.map(
+                (polygon: Position[][]) => {
+                    const positions = polygon[0].map((coords: Position) => {
+                        const [lon, lat] = coords;
+                        return Cartesian3.fromDegrees(lon, lat, raisedHeight);
+                    });
+
+                    const holes = polygon.slice(1).map((hole: Position[]) => {
+                        const holePositions = hole.map((coords: Position) => {
+                            const [lon, lat] = coords;
+                            return Cartesian3.fromDegrees(
+                                lon,
+                                lat,
+                                raisedHeight
+                            );
+                        });
+                        return new PolygonHierarchy(holePositions);
+                    });
+
+                    return new PolygonHierarchy(positions, holes);
+                }
+            );
+            return hierarchies;
         }
         return undefined;
     };
@@ -156,17 +196,20 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
         return null;
     }
 
-    // viewer.scene.postProcessStages.fxaa.enabled = true;
-
     return (
         <>
             {stateFeatures.map((feature) => {
-                const hierarchy = convertGeometryToHierarchy(feature.geometry);
-                return (
+                const hierarchies = convertGeometryToHierarchy(
+                    feature.geometry
+                );
+                if (!hierarchies) {
+                    return null;
+                }
+                return hierarchies.map((hierarchy, index) => (
                     <Entity
-                        key={feature.name}
+                        key={`${feature.name}-${index}`}
                         polygon={{
-                            hierarchy,
+                            hierarchy: hierarchy,
                             height: raisedHeight,
                             material: Color.BLUE,
                             outline: true,
@@ -177,8 +220,6 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
                             text: feature.wellCount.toLocaleString(),
                             font: "15pt sans-serif",
                             fillColor: Color.WHITE,
-                            // showBackground: true,
-                            // backgroundColor: Color.BLACK.withAlpha(0.6),
                             outlineColor: Color.BLACK,
                             outlineWidth: 2,
                             style: LabelStyle.FILL_AND_OUTLINE,
@@ -200,7 +241,7 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
                             raisedHeight
                         )}
                     />
-                );
+                ));
             })}
         </>
     );
