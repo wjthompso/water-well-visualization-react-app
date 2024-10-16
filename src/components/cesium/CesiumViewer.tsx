@@ -370,15 +370,20 @@ const ResiumViewerComponent: React.FC = () => {
                 currentLon >= quadrant.topLeft.lon &&
                 currentLon <= quadrant.bottomRight.lon
             ) {
-                return;
+                return; // Early exit if the camera is still within the same quadrant
             }
 
+            // Calculate the new chunk and quadrant information based on camera position
             const { chunkKey, chunk } = calculateChunkKey(
                 currentLat,
                 currentLon
             );
             const calculatedCurrentChunk = chunk;
 
+            // Clear old wells immediately to avoid visual lag
+            setWellDataWithoutElevationAdjustments([]);
+
+            // Fetch and set new well data if it exists in the map
             if (quadrantsMapRef.current.has(chunkKey)) {
                 const chunk = quadrantsMapRef.current.get(chunkKey);
                 if (chunk) {
@@ -392,23 +397,23 @@ const ResiumViewerComponent: React.FC = () => {
                     currentQuadrantRef.current = chunk;
                 }
             } else {
+                // If the chunk does not exist in the map, update the quadrant but keep wells empty
                 setCurrentQuadrant(calculatedCurrentChunk);
-                setWellDataWithoutElevationAdjustments([]);
                 currentQuadrantRef.current = calculatedCurrentChunk;
             }
 
-            // Adjust terrainExaggeration based on camera height
+            // Adjust terrain exaggeration based on the camera height
             const cameraHeight = cartographicPosition.height;
             if (viewerRef.current?.cesiumElement) {
                 const viewer = viewerRef.current.cesiumElement as CesiumViewer;
                 if (cameraHeight > terrainFlatteningThreshold) {
                     if (viewer.scene.verticalExaggeration !== 0.0) {
-                        viewer.scene.verticalExaggeration = 0.0; // Flatten the terrain
+                        viewer.scene.verticalExaggeration = 0.0; // Flatten terrain
                         console.log("Flattened the terrain.");
                     }
                 } else {
                     if (viewer.scene.verticalExaggeration !== 1.0) {
-                        viewer.scene.verticalExaggeration = 1.0; // Restore the terrain
+                        viewer.scene.verticalExaggeration = 1.0; // Restore terrain
                         console.log("Restored terrain elevation.");
                     }
                 }
@@ -654,6 +659,11 @@ const ResiumViewerComponent: React.FC = () => {
                     {showWells &&
                         wellDataWithoutElevationAdjustments.length > 0 && (
                             <WaterWells
+                                key={
+                                    currentQuadrant
+                                        ? createLocationKey(currentQuadrant)
+                                        : "no-quadrant"
+                                }
                                 terrainProvider={terrainProvider}
                                 wellDataWithoutElevationAdjustments={
                                     wellDataWithoutElevationAdjustments

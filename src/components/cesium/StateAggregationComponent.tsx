@@ -214,7 +214,7 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
                             material: Color.BLUE,
                             outline: true,
                             outlineColor: Color.WHITE,
-                            outlineWidth: 4,
+                            outlineWidth: 8,
                         }}
                         label={{
                             text: feature.wellCount.toLocaleString(),

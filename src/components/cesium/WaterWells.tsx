@@ -1,4 +1,5 @@
-// WaterWell.tsx
+// WaterWells.tsx
+
 import {
     CallbackProperty,
     Cartesian3,
@@ -23,6 +24,7 @@ import React, {
 import {
     BillboardGraphics,
     CesiumComponentRef,
+    CustomDataSource,
     EllipseGraphics,
     Entity,
 } from "resium";
@@ -341,7 +343,7 @@ const PreMemoizedWaterWells: React.FC<WaterWellsProps> = ({
     }, []);
 
     return (
-        <>
+        <CustomDataSource name="WaterWellsDataSource">
             {wellDataWithHeights.map((well, wellIndex) => {
                 if (
                     well.layers.length === 0 ||
@@ -450,10 +452,10 @@ const PreMemoizedWaterWells: React.FC<WaterWellsProps> = ({
                     </React.Fragment>
                 );
             })}
-        </>
+        </CustomDataSource>
     );
 };
 
-const WaterWell = React.memo(PreMemoizedWaterWells);
+const WaterWells = React.memo(PreMemoizedWaterWells);
 
-export default WaterWell;
+export default WaterWells;
