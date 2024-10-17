@@ -61,12 +61,12 @@ const WaterWells: React.FC<WaterWellsProps> = ({
         null
     );
 
-    // State for sub-chunked data
+    // State for sub-chunked data using serialized keys
     const [processedWellDataMap, setProcessedWellDataMap] = useState<
-        Map<SubChunk, WellData[]>
+        Map<string, WellData[]>
     >(new Map());
 
-    const [currentSubChunk, setCurrentSubChunk] = useState<SubChunk | null>(
+    const [currentSubChunkKey, setCurrentSubChunkKey] = useState<string | null>(
         null
     );
 
@@ -84,9 +84,19 @@ const WaterWells: React.FC<WaterWellsProps> = ({
         useState<WellData | null>(null);
 
     // Helper function to check if data is sub-chunked
-    function isSubChunkedData(data: WellDataInput): data is SubChunkedWellData {
+    const isSubChunkedData = (
+        data: WellDataInput
+    ): data is SubChunkedWellData => {
         return (data as SubChunkedWellData).sub_chunks !== undefined;
-    }
+    };
+
+    // Helper function to serialize sub-chunk locations into unique keys
+    const serializeSubChunkKey = useCallback((subChunk: SubChunk): string => {
+        const { topLeft, bottomRight } = subChunk.location;
+        return `${topLeft.lat.toFixed(6)},${topLeft.lon.toFixed(
+            6
+        )}-${bottomRight.lat.toFixed(6)},${bottomRight.lon.toFixed(6)}`;
+    }, []);
 
     // Handle camera movement by fetching and processing well data
     const handleCameraMove = useCallback(async () => {
@@ -104,16 +114,12 @@ const WaterWells: React.FC<WaterWellsProps> = ({
             CesiumMath.toDegrees(cartographicPosition.longitude).toFixed(6)
         );
 
-        // Early exit if quadrantsMapRef.current is empty
-        if (
-            processedWellDataMap.size === 0 &&
-            !isSubChunkedData(wellDataWithoutElevationAdjustments)
-        ) {
-            console.log("No quadrants data available to process.");
-            return;
-        }
+        console.log(
+            "handleCameraMove invoked with coordinates:",
+            currentLat,
+            currentLon
+        );
 
-        // Determine current sub-chunk if data is sub-chunked
         if (isSubChunkedData(wellDataWithoutElevationAdjustments)) {
             const hoveredSubChunk =
                 wellDataWithoutElevationAdjustments.sub_chunks.find(
@@ -128,13 +134,34 @@ const WaterWells: React.FC<WaterWellsProps> = ({
                     }
                 );
 
-            if (hoveredSubChunk && hoveredSubChunk !== currentSubChunk) {
-                setCurrentSubChunk(hoveredSubChunk);
-            } else if (!hoveredSubChunk) {
-                setCurrentSubChunk(null);
+            if (hoveredSubChunk) {
+                const serializedKey = serializeSubChunkKey(hoveredSubChunk);
+                if (
+                    serializedKey !== currentSubChunkKey &&
+                    processedWellDataMap.has(serializedKey)
+                ) {
+                    setCurrentSubChunkKey(serializedKey);
+                    console.log(
+                        "Setting currentSubChunkKey to:",
+                        serializedKey
+                    );
+                } else if (!processedWellDataMap.has(serializedKey)) {
+                    console.log(
+                        "Data not yet available for sub-chunk key:",
+                        serializedKey
+                    );
+                }
+            } else {
+                if (currentSubChunkKey !== null) {
+                    setCurrentSubChunkKey(null);
+                    console.log("Clearing currentSubChunkKey.");
+                }
             }
         } else {
-            setCurrentSubChunk(null);
+            if (currentSubChunkKey !== null) {
+                setCurrentSubChunkKey(null);
+                console.log("Clearing currentSubChunkKey for flat data.");
+            }
         }
 
         // Update camera position state
@@ -142,7 +169,8 @@ const WaterWells: React.FC<WaterWellsProps> = ({
     }, [
         viewerRef,
         wellDataWithoutElevationAdjustments,
-        currentSubChunk,
+        currentSubChunkKey,
+        serializeSubChunkKey,
         processedWellDataMap,
     ]);
 
@@ -156,6 +184,7 @@ const WaterWells: React.FC<WaterWellsProps> = ({
                 // Start interval to call handleCameraMove every 300ms
                 intervalRef.current = setInterval(handleCameraMove, 300);
                 setIsCameraMoving(true);
+                console.log("Camera movement started. Interval set.");
             }
         };
 
@@ -165,6 +194,9 @@ const WaterWells: React.FC<WaterWellsProps> = ({
                 intervalRef.current = null;
                 await handleCameraMove(); // Final call after movement ends
                 setIsCameraMoving(false);
+                console.log(
+                    "Camera movement ended. Interval cleared and final handleCameraMove called."
+                );
             }
         };
 
@@ -233,16 +265,21 @@ const WaterWells: React.FC<WaterWellsProps> = ({
             if (isSubChunkedData(wellDataWithoutElevationAdjustments)) {
                 const subChunks =
                     wellDataWithoutElevationAdjustments.sub_chunks;
-                const newProcessedData = new Map<SubChunk, WellData[]>();
+                const newProcessedData = new Map<string, WellData[]>();
 
                 for (const subChunk of subChunks) {
+                    const serializedKey = serializeSubChunkKey(subChunk);
                     const newWellData = await sampleTerrainHeightsForSubChunk(
                         subChunk
                     );
-                    newProcessedData.set(subChunk, newWellData);
+                    newProcessedData.set(serializedKey, newWellData);
+                    console.log(
+                        `Processed sub-chunk with key: ${serializedKey}`
+                    );
                 }
 
                 setProcessedWellDataMap(newProcessedData);
+                console.log("ProcessedWellDataMap updated.");
             } else {
                 // Flat data
                 const data = wellDataWithoutElevationAdjustments as WellData[];
@@ -283,7 +320,7 @@ const WaterWells: React.FC<WaterWellsProps> = ({
                     });
 
                     setWellDataWithHeights(newWellData);
-                    console.log("Well data with heights set");
+                    console.log("Well data with heights set for flat data.");
                 } catch (error) {
                     console.error("Error sampling terrain heights:", error);
                 }
@@ -291,14 +328,29 @@ const WaterWells: React.FC<WaterWellsProps> = ({
         };
 
         sampleTerrainHeights();
-    }, [terrainProvider, wellDataWithoutElevationAdjustments]);
+    }, [
+        terrainProvider,
+        wellDataWithoutElevationAdjustments,
+        serializeSubChunkKey,
+    ]);
 
     // Data to render
     const dataToRender: WellData[] = useMemo(() => {
         if (isSubChunkedData(wellDataWithoutElevationAdjustments)) {
-            if (currentSubChunk && processedWellDataMap.has(currentSubChunk)) {
-                return processedWellDataMap.get(currentSubChunk) || [];
+            if (
+                currentSubChunkKey &&
+                processedWellDataMap.has(currentSubChunkKey)
+            ) {
+                console.log(
+                    "Rendering data for sub-chunk key:",
+                    currentSubChunkKey
+                );
+                return processedWellDataMap.get(currentSubChunkKey) || [];
             } else {
+                console.log(
+                    "No data available for current sub-chunk key:",
+                    currentSubChunkKey
+                );
                 return [];
             }
         } else {
@@ -306,7 +358,7 @@ const WaterWells: React.FC<WaterWellsProps> = ({
         }
     }, [
         wellDataWithoutElevationAdjustments,
-        currentSubChunk,
+        currentSubChunkKey,
         processedWellDataMap,
         wellDataWithHeights,
     ]);
@@ -528,7 +580,8 @@ const WaterWells: React.FC<WaterWellsProps> = ({
                         Cartesian3.fromDegrees(topLeft.lon, topLeft.lat),
                     ];
 
-                    const isCurrent = currentSubChunk === subChunk;
+                    const serializedKey = serializeSubChunkKey(subChunk);
+                    const isCurrent = serializedKey === currentSubChunkKey;
 
                     lines.push({
                         positions,
@@ -541,11 +594,23 @@ const WaterWells: React.FC<WaterWellsProps> = ({
         } else {
             return [];
         }
-    }, [wellDataWithoutElevationAdjustments, currentSubChunk]);
+    }, [
+        wellDataWithoutElevationAdjustments,
+        currentSubChunkKey,
+        serializeSubChunkKey,
+    ]);
+
+    // Loading state indicator
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+
+    // Render conditionally based on loading state
+    if (isLoading) {
+        return <div>Loading wells...</div>; // You can replace this with a spinner or other indicator
+    }
 
     if (dataToRender.length === 0) {
-        // console.log("No wells to render");
-        return null; // Or render a loading indicator
+        console.log("No wells to render.");
+        return null; // Or render a message indicating no data
     }
 
     return (
