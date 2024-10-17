@@ -1,10 +1,10 @@
-import { rawDangermondData } from "./DangermondData"; // Assume this is in rawDangermondData.ts
 import {
     GroundMaterialType,
     GroundMaterialTypeColor,
     Layer,
     WellData,
-} from "./WellData"; // Assume these are in WellDataTypes.ts
+} from "../components/cesium/types"; // Assume these are in WellDataTypes.ts
+import { rawDangermondData } from "./DangermondData"; // Assume this is in rawDangermondData.ts
 
 function toTitleCase(str: string): string {
     return str.replace(

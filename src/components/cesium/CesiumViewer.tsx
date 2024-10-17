@@ -24,12 +24,6 @@ import {
 import { CesiumComponentRef, Viewer } from "resium";
 import "../../App.css";
 import { TooltipContext } from "../../context/AppContext";
-import {
-    GroundMaterialType,
-    GroundMaterialTypeColor,
-    Layer,
-    WellData,
-} from "../../context/WellData";
 import DraggableComponent from "../DraggableFooter/DraggableFooter";
 import LoadingSpinner from "../LoadingSpinner/LoadingSpinner";
 import CustomSearchBar from "../Searchbar/CustomSearchbar";
@@ -38,57 +32,38 @@ import GroundPolylinePrimitiveComponent from "./GroundPolylinePrimitiveComponent
 import StateAggregations from "./StateAggregationComponent";
 import Tooltip from "./Tooltip";
 import WaterWells from "./WaterWells";
-
-interface Chunk {
-    topLeft: {
-        lat: number;
-        lon: number;
-    };
-    bottomRight: {
-        lat: number;
-        lon: number;
-    };
-}
-
-interface RawLayer {
-    0: number; // startDepth
-    1: number; // endDepth
-    2: string; // description
-    3: string; // type
-    4: number; // value1
-    5: number; // value2
-    6: number; // value3
-    7: number; // value4
-}
-
-interface RawWellData {
-    lat: number;
-    lon: number;
-    total_well_depth_in_ft: number;
-    well_id: string;
-    layers: RawLayer[];
-}
+import {
+    Chunk,
+    GroundMaterialType,
+    GroundMaterialTypeColor,
+    Layer,
+    RawLayer,
+    RawWellData,
+    SubChunkedWellData,
+    SubChunkLocation,
+    WellData,
+} from "./types";
 
 const fetchQuadrants = async (): Promise<Chunk[]> => {
-    const response = await fetch(
-        "https://waterwelldepthmap.bren.ucsb.edu/api/keys"
-    );
+    const response = await fetch("http://localhost:3000/keys");
     const chunks: Chunk[] = await response.json();
     return chunks;
 };
 
-const fetchWellData = async (locationKey: string): Promise<RawWellData[]> => {
-    const response = await fetch(
-        "https://waterwelldepthmap.bren.ucsb.edu/api/keys",
-        {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ key: locationKey }),
-        }
-    );
-    const wellData: RawWellData[] = await response.json();
+const fetchWellData = async (
+    locationKey: string
+): Promise<
+    | RawWellData[]
+    | { sub_chunks: { location: SubChunkLocation; wells: RawWellData[] }[] }
+> => {
+    const response = await fetch("http://localhost:3000/keys", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ key: locationKey }),
+    });
+    const wellData = await response.json();
     return wellData;
 };
 
@@ -253,6 +228,17 @@ function fillInMissingLayers(wellData: WellData[]): WellData[] {
     });
 }
 
+// Helper function to check if data is sub-chunked
+function isSubChunkedData(
+    data:
+        | RawWellData[]
+        | { sub_chunks: { location: SubChunkLocation; wells: RawWellData[] }[] }
+): data is {
+    sub_chunks: { location: SubChunkLocation; wells: RawWellData[] }[];
+} {
+    return (data as { sub_chunks: any }).sub_chunks !== undefined;
+}
+
 const ResiumViewerComponent: React.FC = () => {
     const minLat = 24.536111;
     const maxLat = 49.36843957;
@@ -279,7 +265,7 @@ const ResiumViewerComponent: React.FC = () => {
     const [
         wellDataWithoutElevationAdjustments,
         setWellDataWithoutElevationAdjustments,
-    ] = useState<WellData[]>([]);
+    ] = useState<WellData[] | SubChunkedWellData>([]);
     const [finishedLoading, setFinishedLoading] = useState<boolean>(false);
     const hasLoadedTerrainData = useRef(false);
     const hasFetchedQuadrants = useRef(false);
@@ -336,16 +322,22 @@ const ResiumViewerComponent: React.FC = () => {
         if (lonIndex >= chunkSplitN) lonIndex = chunkSplitN - 1;
         if (lonIndex < 0) lonIndex = 0;
 
-        const topLeftLat = roundToSix(minLat + latIndex * latStep);
-        const topLeftLon = roundToSix(minLon + lonIndex * lonStep);
-        const bottomRightLat = roundToSix(minLat + (latIndex + 1) * latStep);
-        const bottomRightLon = roundToSix(minLon + (lonIndex + 1) * lonStep);
+        const topLeftLat = Number((minLat + latIndex * latStep).toFixed(6));
+        const topLeftLon = Number((minLon + lonIndex * lonStep).toFixed(6));
+        const bottomRightLat = Number(
+            (minLat + (latIndex + 1) * latStep).toFixed(6)
+        );
+        const bottomRightLon = Number(
+            (minLon + (lonIndex + 1) * lonStep).toFixed(6)
+        );
 
         const chunkKey = `${topLeftLat},${topLeftLon}-${bottomRightLat},${bottomRightLon}`;
         const chunk: Chunk = {
             topLeft: { lat: topLeftLat, lon: topLeftLon },
             bottomRight: { lat: bottomRightLat, lon: bottomRightLon },
         };
+
+        console.log("Calculated chunkKey:", chunkKey);
 
         return { chunkKey, chunk };
     };
@@ -388,11 +380,33 @@ const ResiumViewerComponent: React.FC = () => {
                 const chunk = quadrantsMapRef.current.get(chunkKey);
                 if (chunk) {
                     const locationKey = createLocationKey(chunk);
+                    console.log(
+                        "Fetching well data for locationKey:",
+                        locationKey
+                    );
                     const rawWellData = await fetchWellData(locationKey);
-                    const processedWellData = processRawWellData(rawWellData);
-                    const filledWellData =
-                        fillInMissingLayers(processedWellData);
-                    setWellDataWithoutElevationAdjustments(filledWellData);
+
+                    if (isSubChunkedData(rawWellData)) {
+                        // Process each sub-chunk's wells
+                        const processedSubChunks = rawWellData.sub_chunks.map(
+                            (subChunk) => ({
+                                ...subChunk,
+                                wells: fillInMissingLayers(
+                                    processRawWellData(subChunk.wells)
+                                ),
+                            })
+                        );
+                        setWellDataWithoutElevationAdjustments({
+                            sub_chunks: processedSubChunks,
+                        });
+                    } else {
+                        // Handle flat data
+                        const processedWellData =
+                            processRawWellData(rawWellData);
+                        const filledWellData =
+                            fillInMissingLayers(processedWellData);
+                        setWellDataWithoutElevationAdjustments(filledWellData);
+                    }
                     setCurrentQuadrant(chunk);
                     currentQuadrantRef.current = chunk;
                 }
@@ -445,21 +459,27 @@ const ResiumViewerComponent: React.FC = () => {
 
                     quadrantsMapRef.current = new Map(
                         quadrantData.map((chunk) => {
-                            const topLeftLat = roundToSix(chunk.topLeft.lat);
-                            const topLeftLon = roundToSix(chunk.topLeft.lon);
-                            const bottomRightLat = roundToSix(
-                                chunk.bottomRight.lat
+                            const topLeftLat = Number(
+                                chunk.topLeft.lat.toFixed(6)
                             );
-                            const bottomRightLon = roundToSix(
-                                chunk.bottomRight.lon
+                            const topLeftLon = Number(
+                                chunk.topLeft.lon.toFixed(6)
+                            );
+                            const bottomRightLat = Number(
+                                chunk.bottomRight.lat.toFixed(6)
+                            );
+                            const bottomRightLon = Number(
+                                chunk.bottomRight.lon.toFixed(6)
                             );
                             const chunkKey = `${topLeftLat},${topLeftLon}-${bottomRightLat},${bottomRightLon}`;
+                            // console.log("Storing chunkKey in map:", chunkKey);
                             return [chunkKey, chunk];
                         })
                     );
                 } catch (error) {
                     console.error("Error fetching quadrants:", error);
                 }
+                console.log("Quadrants fetched:", quadrantsRef.current);
             }
         };
 
@@ -657,7 +677,14 @@ const ResiumViewerComponent: React.FC = () => {
                     infoBox={false}
                 >
                     {showWells &&
-                        wellDataWithoutElevationAdjustments.length > 0 && (
+                        wellDataWithoutElevationAdjustments &&
+                        ((Array.isArray(wellDataWithoutElevationAdjustments) &&
+                            wellDataWithoutElevationAdjustments.length > 0) ||
+                            (!Array.isArray(
+                                wellDataWithoutElevationAdjustments
+                            ) &&
+                                wellDataWithoutElevationAdjustments.sub_chunks
+                                    .length > 0)) && (
                             <WaterWells
                                 key={
                                     currentQuadrant

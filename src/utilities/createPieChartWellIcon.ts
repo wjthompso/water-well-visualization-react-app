@@ -1,10 +1,10 @@
-import { WellData } from "../context/WellData";
+import { WellData } from "../components/cesium/types";
 
 const pieChartCache = new Map<string, string>();
 
 export function createPieChartWellIcon(well: WellData): string {
     // Check if the result is already cached
-    const wellID = well.StateWellID ?? '';
+    const wellID = well.StateWellID ?? "";
     if (pieChartCache.has(wellID)) {
         return pieChartCache.get(wellID)!;
     }

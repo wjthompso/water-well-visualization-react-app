@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import LegendArrowsDown from "../../assets/LegendArrowsDown.svg";
 import LegendArrowsUp from "../../assets/LegendArrowsUp.svg";
-import { TailwindGroundMaterialTypeColor } from "../../context/WellData";
+import { TailwindGroundMaterialTypeColor } from "../cesium/types";
 
 const Legend: React.FC = () => {
     const [isVisible, setIsVisible] = useState(true);

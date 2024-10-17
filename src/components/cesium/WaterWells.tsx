@@ -28,17 +28,20 @@ import {
     EllipseGraphics,
     Entity,
 } from "resium";
-import { TooltipContext } from "../../context/AppContext"; // Adjust the import path as necessary
-import { WellData } from "../../context/WellData";
+import { TooltipContext } from "../../context/AppContext";
 import { createPieChartWellIcon } from "../../utilities/createPieChartWellIcon";
+import GroundPolylinePrimitiveComponent from "./GroundPolylinePrimitiveComponent";
+import { Layer, SubChunk, SubChunkedWellData, WellData } from "./types";
+
+type WellDataInput = WellData[] | SubChunkedWellData;
 
 interface WaterWellsProps {
     terrainProvider: CesiumTerrainProvider | undefined | null;
-    wellDataWithoutElevationAdjustments: WellData[];
+    wellDataWithoutElevationAdjustments: WellDataInput;
     viewerRef: MutableRefObject<CesiumComponentRef<Viewer> | null>;
 }
 
-const PreMemoizedWaterWells: React.FC<WaterWellsProps> = ({
+const WaterWells: React.FC<WaterWellsProps> = ({
     terrainProvider,
     wellDataWithoutElevationAdjustments,
     viewerRef,
@@ -58,12 +61,17 @@ const PreMemoizedWaterWells: React.FC<WaterWellsProps> = ({
         null
     );
 
-    console.log(
-        `There are ${wellDataWithoutElevationAdjustments.length} wells.`
+    // State for sub-chunked data
+    const [processedWellDataMap, setProcessedWellDataMap] = useState<
+        Map<SubChunk, WellData[]>
+    >(new Map());
+
+    const [currentSubChunk, setCurrentSubChunk] = useState<SubChunk | null>(
+        null
     );
 
-    // Ref to store throttle timeout
-    const throttleTimeout = useRef<NodeJS.Timeout | null>(null);
+    // Ref to store interval ID
+    const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
     // State to track if the camera is moving
     const [isCameraMoving, setIsCameraMoving] = useState<boolean>(false);
@@ -75,71 +83,113 @@ const PreMemoizedWaterWells: React.FC<WaterWellsProps> = ({
     const [currentlyZoomedWell, setCurrentlyZoomedWell] =
         useState<WellData | null>(null);
 
-    // Set up camera changed listener
+    // Helper function to check if data is sub-chunked
+    function isSubChunkedData(data: WellDataInput): data is SubChunkedWellData {
+        return (data as SubChunkedWellData).sub_chunks !== undefined;
+    }
+
+    // Handle camera movement by fetching and processing well data
+    const handleCameraMove = useCallback(async () => {
+        const viewer = viewerRef.current?.cesiumElement;
+        if (!viewer) return;
+
+        const camera = viewer.camera;
+        const cartographicPosition = Cartographic.fromCartesian(
+            camera.position
+        );
+        const currentLat = Number(
+            CesiumMath.toDegrees(cartographicPosition.latitude).toFixed(6)
+        );
+        const currentLon = Number(
+            CesiumMath.toDegrees(cartographicPosition.longitude).toFixed(6)
+        );
+
+        // Early exit if quadrantsMapRef.current is empty
+        if (
+            processedWellDataMap.size === 0 &&
+            !isSubChunkedData(wellDataWithoutElevationAdjustments)
+        ) {
+            console.log("No quadrants data available to process.");
+            return;
+        }
+
+        // Determine current sub-chunk if data is sub-chunked
+        if (isSubChunkedData(wellDataWithoutElevationAdjustments)) {
+            const hoveredSubChunk =
+                wellDataWithoutElevationAdjustments.sub_chunks.find(
+                    (subChunk) => {
+                        const { topLeft, bottomRight } = subChunk.location;
+                        return (
+                            currentLat >= topLeft.lat &&
+                            currentLat <= bottomRight.lat &&
+                            currentLon >= topLeft.lon &&
+                            currentLon <= bottomRight.lon
+                        );
+                    }
+                );
+
+            if (hoveredSubChunk && hoveredSubChunk !== currentSubChunk) {
+                setCurrentSubChunk(hoveredSubChunk);
+            } else if (!hoveredSubChunk) {
+                setCurrentSubChunk(null);
+            }
+        } else {
+            setCurrentSubChunk(null);
+        }
+
+        // Update camera position state
+        setCameraPosition(camera.position.clone());
+    }, [
+        viewerRef,
+        wellDataWithoutElevationAdjustments,
+        currentSubChunk,
+        processedWellDataMap,
+    ]);
+
+    // Set up camera event listeners using moveStart and moveEnd
     useEffect(() => {
         const viewer = viewerRef.current?.cesiumElement;
         if (!viewer) return;
 
-        const handleCameraChange = () => {
-            if (throttleTimeout.current === null) {
-                throttleTimeout.current = setTimeout(() => {
-                    const cameraPos = viewer.camera.position.clone();
-                    setCameraPosition(cameraPos);
-                    throttleTimeout.current = null;
-                }, 100); // Throttle updates to once every 100ms
+        const onMoveStart = () => {
+            if (intervalRef.current === null) {
+                // Start interval to call handleCameraMove every 300ms
+                intervalRef.current = setInterval(handleCameraMove, 300);
+                setIsCameraMoving(true);
             }
         };
 
-        viewer.camera.changed.addEventListener(handleCameraChange);
+        const onMoveEnd = async () => {
+            if (intervalRef.current !== null) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+                await handleCameraMove(); // Final call after movement ends
+                setIsCameraMoving(false);
+            }
+        };
 
-        // Initialize camera position
-        setCameraPosition(viewer.camera.position.clone());
+        viewer.camera.moveStart.addEventListener(onMoveStart);
+        viewer.camera.moveEnd.addEventListener(onMoveEnd);
 
         return () => {
-            viewer.camera.changed.removeEventListener(handleCameraChange);
-            if (throttleTimeout.current) {
-                clearTimeout(throttleTimeout.current);
+            viewer.camera.moveStart.removeEventListener(onMoveStart);
+            viewer.camera.moveEnd.removeEventListener(onMoveEnd);
+            if (intervalRef.current !== null) {
+                clearInterval(intervalRef.current);
             }
         };
-    }, [viewerRef]);
+    }, [handleCameraMove, viewerRef]);
 
-    // Memoize the cylinders to render based on camera position
-    const cylindersToRender = useMemo(() => {
-        if (!cameraPosition || wellDataWithHeights.length === 0) return [];
-
-        return wellDataWithHeights.filter((well) => {
-            if (
-                well.layers.length === 0 ||
-                well.layers[0].startDepth === undefined
-            ) {
-                return false;
-            }
-
-            const indicatorStartPosition = Cartesian3.fromDegrees(
-                well.longitude,
-                well.latitude,
-                well.layers[0].startDepth +
-                    heightWellShouldShowAboveSurface +
-                    heightMapIconShouldShowAboveWell
-            );
-
-            const distanceFromCamera = Cartesian3.distance(
-                cameraPosition,
-                indicatorStartPosition
-            );
-
-            return distanceFromCamera < maxRenderDistance;
-        });
-    }, [cameraPosition, wellDataWithHeights, maxRenderDistance]);
-
-    // Effect to sample terrain heights
+    // Process terrain heights
     useEffect(() => {
         if (!terrainProvider) {
             console.log("Terrain provider is not ready yet");
             return;
         }
 
-        const sampleTerrainHeights = async (data: WellData[]) => {
+        const sampleTerrainHeightsForSubChunk = async (subChunk: SubChunk) => {
+            const data = subChunk.wells;
+            if (data.length === 0) return [];
             const positions = data.map((well) =>
                 Cartographic.fromDegrees(
                     well.longitude,
@@ -172,16 +222,123 @@ const PreMemoizedWaterWells: React.FC<WaterWellsProps> = ({
                     };
                 });
 
-                setWellDataWithHeights(newWellData);
+                return newWellData;
             } catch (error) {
                 console.error("Error sampling terrain heights:", error);
+                return [];
             }
         };
 
-        if (wellDataWithoutElevationAdjustments.length > 0) {
-            sampleTerrainHeights(wellDataWithoutElevationAdjustments);
-        }
+        const sampleTerrainHeights = async () => {
+            if (isSubChunkedData(wellDataWithoutElevationAdjustments)) {
+                const subChunks =
+                    wellDataWithoutElevationAdjustments.sub_chunks;
+                const newProcessedData = new Map<SubChunk, WellData[]>();
+
+                for (const subChunk of subChunks) {
+                    const newWellData = await sampleTerrainHeightsForSubChunk(
+                        subChunk
+                    );
+                    newProcessedData.set(subChunk, newWellData);
+                }
+
+                setProcessedWellDataMap(newProcessedData);
+            } else {
+                // Flat data
+                const data = wellDataWithoutElevationAdjustments as WellData[];
+                if (data.length === 0) {
+                    console.log("No wells to process");
+                    return;
+                }
+                const positions = data.map((well) =>
+                    Cartographic.fromDegrees(
+                        well.longitude,
+                        well.latitude,
+                        well.startDepth
+                    )
+                );
+
+                try {
+                    const sampledPositions = await sampleTerrainMostDetailed(
+                        terrainProvider,
+                        positions
+                    );
+
+                    const newWellData = data.map((well, wellIndex) => {
+                        const height = sampledPositions[wellIndex].height;
+                        const layers = well.layers.map((layer: Layer) => ({
+                            ...layer,
+                            startDepth: height - layer.startDepth,
+                            endDepth: height - layer.endDepth,
+                            unAdjustedStartDepth: layer.startDepth,
+                            unAdjustedEndDepth: layer.endDepth,
+                        }));
+
+                        return {
+                            ...well,
+                            layers,
+                            startDepth: height - well.startDepth,
+                            endDepth: height - well.endDepth,
+                        };
+                    });
+
+                    setWellDataWithHeights(newWellData);
+                    console.log("Well data with heights set");
+                } catch (error) {
+                    console.error("Error sampling terrain heights:", error);
+                }
+            }
+        };
+
+        sampleTerrainHeights();
     }, [terrainProvider, wellDataWithoutElevationAdjustments]);
+
+    // Data to render
+    const dataToRender: WellData[] = useMemo(() => {
+        if (isSubChunkedData(wellDataWithoutElevationAdjustments)) {
+            if (currentSubChunk && processedWellDataMap.has(currentSubChunk)) {
+                return processedWellDataMap.get(currentSubChunk) || [];
+            } else {
+                return [];
+            }
+        } else {
+            return wellDataWithHeights;
+        }
+    }, [
+        wellDataWithoutElevationAdjustments,
+        currentSubChunk,
+        processedWellDataMap,
+        wellDataWithHeights,
+    ]);
+
+    // Memoize the cylinders to render based on camera position
+    const cylindersToRender = useMemo(() => {
+        if (!cameraPosition || dataToRender.length === 0) return [];
+
+        return dataToRender.filter((well) => {
+            if (
+                well.layers.length === 0 ||
+                well.layers[0].startDepth === undefined
+            ) {
+                return false;
+            }
+
+            const indicatorStartPosition = Cartesian3.fromDegrees(
+                well.longitude,
+                well.latitude,
+                well.layers[0].startDepth +
+                    heightWellShouldShowAboveSurface +
+                    heightMapIconShouldShowAboveWell
+            );
+
+            const distanceFromCamera = Cartesian3.distance(
+                cameraPosition,
+                indicatorStartPosition
+            );
+
+            return distanceFromCamera < maxRenderDistance;
+        });
+    }, [cameraPosition, dataToRender, maxRenderDistance]);
 
     // Handle mouse movement for tooltips
     const handleMouseMove = useCallback(
@@ -342,9 +499,58 @@ const PreMemoizedWaterWells: React.FC<WaterWellsProps> = ({
         };
     }, []);
 
+    // Generate sub-chunk grid lines
+    const subChunkGridLines = useMemo(() => {
+        if (isSubChunkedData(wellDataWithoutElevationAdjustments)) {
+            const lines: { positions: Cartesian3[]; color: Color }[] = [];
+
+            wellDataWithoutElevationAdjustments.sub_chunks.forEach(
+                (subChunk) => {
+                    const { topLeft, bottomRight } = subChunk.location;
+
+                    const topRight = {
+                        lat: topLeft.lat,
+                        lon: bottomRight.lon,
+                    };
+                    const bottomLeft = {
+                        lat: bottomRight.lat,
+                        lon: topLeft.lon,
+                    };
+
+                    const positions = [
+                        Cartesian3.fromDegrees(topLeft.lon, topLeft.lat),
+                        Cartesian3.fromDegrees(topRight.lon, topRight.lat),
+                        Cartesian3.fromDegrees(
+                            bottomRight.lon,
+                            bottomRight.lat
+                        ),
+                        Cartesian3.fromDegrees(bottomLeft.lon, bottomLeft.lat),
+                        Cartesian3.fromDegrees(topLeft.lon, topLeft.lat),
+                    ];
+
+                    const isCurrent = currentSubChunk === subChunk;
+
+                    lines.push({
+                        positions,
+                        color: isCurrent ? Color.YELLOW : Color.WHITE,
+                    });
+                }
+            );
+
+            return lines;
+        } else {
+            return [];
+        }
+    }, [wellDataWithoutElevationAdjustments, currentSubChunk]);
+
+    if (dataToRender.length === 0) {
+        // console.log("No wells to render");
+        return null; // Or render a loading indicator
+    }
+
     return (
         <CustomDataSource name="WaterWellsDataSource">
-            {wellDataWithHeights.map((well, wellIndex) => {
+            {dataToRender.map((well, wellIndex) => {
                 if (
                     well.layers.length === 0 ||
                     well.layers[0].startDepth === undefined
@@ -375,13 +581,6 @@ const PreMemoizedWaterWells: React.FC<WaterWellsProps> = ({
                 // Check if cylinders for this well should be rendered
                 const shouldRenderThisCylinder: boolean =
                     cylindersToRender.includes(well);
-                const viewer = viewerRef.current?.cesiumElement;
-                const cameraPosition =
-                    viewer?.camera.position ?? new Cartesian3();
-                const distanceFromCamera = Cartesian3.distance(
-                    cameraPosition,
-                    indicatorStartPosition
-                );
 
                 return (
                     <React.Fragment key={wellIndex}>
@@ -452,10 +651,19 @@ const PreMemoizedWaterWells: React.FC<WaterWellsProps> = ({
                     </React.Fragment>
                 );
             })}
+
+            {/* Render sub-chunk grid */}
+            {isSubChunkedData(wellDataWithoutElevationAdjustments) &&
+                subChunkGridLines.map((line, index) => (
+                    <GroundPolylinePrimitiveComponent
+                        key={`subChunkLine_${index}`}
+                        positions={line.positions}
+                        width={2.0}
+                        color={line.color}
+                    />
+                ))}
         </CustomDataSource>
     );
 };
-
-const WaterWells = React.memo(PreMemoizedWaterWells);
 
 export default WaterWells;
