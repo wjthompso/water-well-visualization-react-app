@@ -8,7 +8,6 @@ import {
     CesiumTerrainProvider,
     Color,
     NearFarScalar,
-    // Removed sampleTerrainMostDetailed
     VerticalOrigin,
     Viewer,
 } from "cesium";
@@ -98,7 +97,7 @@ const WaterWells: React.FC<WaterWellsProps> = ({
         )}-${bottomRight.lat.toFixed(6)},${bottomRight.lon.toFixed(6)}`;
     }, []);
 
-    // Handle camera movement by fetching and processing well data
+    // Handle camera movement by updating camera position and currentSubChunkKey
     const handleCameraMove = useCallback(() => {
         const viewer = viewerRef.current?.cesiumElement;
         if (!viewer) return;
@@ -228,7 +227,7 @@ const WaterWells: React.FC<WaterWellsProps> = ({
             return;
         }
 
-        const sampleTerrainHeightsForSubChunk = (
+        const processTerrainHeightsForSubChunk = (
             subChunk: SubChunk
         ): WellData[] => {
             const data = subChunk.wells;
@@ -272,7 +271,7 @@ const WaterWells: React.FC<WaterWellsProps> = ({
             return newWellData;
         };
 
-        const sampleTerrainHeights = () => {
+        const processTerrainHeights = () => {
             if (isSubChunkedData(wellDataWithoutElevationAdjustments)) {
                 const subChunks =
                     wellDataWithoutElevationAdjustments.sub_chunks;
@@ -281,7 +280,7 @@ const WaterWells: React.FC<WaterWellsProps> = ({
                 subChunks.forEach((subChunk) => {
                     const serializedKey = serializeSubChunkKey(subChunk);
                     const newWellData =
-                        sampleTerrainHeightsForSubChunk(subChunk);
+                        processTerrainHeightsForSubChunk(subChunk);
                     newProcessedData.set(serializedKey, newWellData);
                     console.log(
                         `Processed sub-chunk with key: ${serializedKey}`
@@ -338,8 +337,20 @@ const WaterWells: React.FC<WaterWellsProps> = ({
             }
         };
 
-        sampleTerrainHeights();
-    }, [viewerRef, wellDataWithoutElevationAdjustments, serializeSubChunkKey]);
+        processTerrainHeights();
+    }, [
+        viewerRef,
+        wellDataWithoutElevationAdjustments,
+        serializeSubChunkKey,
+        // Removed handleCameraMove from dependencies
+    ]);
+
+    // Trigger handleCameraMove when processedWellDataMap changes
+    useEffect(() => {
+        if (!isCameraMoving) {
+            handleCameraMove();
+        }
+    }, [processedWellDataMap, handleCameraMove, isCameraMoving]);
 
     // Data to render
     const dataToRender: WellData[] = useMemo(() => {
