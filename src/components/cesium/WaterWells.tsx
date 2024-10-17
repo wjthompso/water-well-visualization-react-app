@@ -8,7 +8,7 @@ import {
     CesiumTerrainProvider,
     Color,
     NearFarScalar,
-    sampleTerrainMostDetailed,
+    // Removed sampleTerrainMostDetailed
     VerticalOrigin,
     Viewer,
 } from "cesium";
@@ -99,10 +99,11 @@ const WaterWells: React.FC<WaterWellsProps> = ({
     }, []);
 
     // Handle camera movement by fetching and processing well data
-    const handleCameraMove = useCallback(async () => {
+    const handleCameraMove = useCallback(() => {
         const viewer = viewerRef.current?.cesiumElement;
         if (!viewer) return;
 
+        const globe = viewer.scene.globe;
         const camera = viewer.camera;
         const cartographicPosition = Cartographic.fromCartesian(
             camera.position
@@ -188,11 +189,11 @@ const WaterWells: React.FC<WaterWellsProps> = ({
             }
         };
 
-        const onMoveEnd = async () => {
+        const onMoveEnd = () => {
             if (intervalRef.current !== null) {
                 clearInterval(intervalRef.current);
                 intervalRef.current = null;
-                await handleCameraMove(); // Final call after movement ends
+                handleCameraMove(); // Final call after movement ends
                 setIsCameraMoving(false);
                 console.log(
                     "Camera movement ended. Interval cleared and final handleCameraMove called."
@@ -212,71 +213,80 @@ const WaterWells: React.FC<WaterWellsProps> = ({
         };
     }, [handleCameraMove, viewerRef]);
 
-    // Process terrain heights
+    // Process terrain heights using globe.getHeight
     useEffect(() => {
-        if (!terrainProvider) {
-            console.log("Terrain provider is not ready yet");
+        const viewer = viewerRef.current?.cesiumElement;
+        if (!viewer) {
+            console.log("Viewer is not available");
             return;
         }
 
-        const sampleTerrainHeightsForSubChunk = async (subChunk: SubChunk) => {
+        const globe = viewer.scene.globe;
+
+        if (!globe) {
+            console.log("Globe is not available");
+            return;
+        }
+
+        const sampleTerrainHeightsForSubChunk = (
+            subChunk: SubChunk
+        ): WellData[] => {
             const data = subChunk.wells;
             if (data.length === 0) return [];
-            const positions = data.map((well) =>
-                Cartographic.fromDegrees(
-                    well.longitude,
-                    well.latitude,
-                    well.startDepth
-                )
-            );
 
-            try {
-                const sampledPositions = await sampleTerrainMostDetailed(
-                    terrainProvider,
-                    positions
+            const newWellData: WellData[] = data.map((well) => {
+                const cartographic = Cartographic.fromDegrees(
+                    well.longitude,
+                    well.latitude
                 );
 
-                const newWellData = data.map((well, wellIndex) => {
-                    const height = sampledPositions[wellIndex].height;
-                    const layers = well.layers.map((layer) => ({
-                        ...layer,
-                        startDepth: height - layer.startDepth,
-                        endDepth: height - layer.endDepth,
-                        unAdjustedStartDepth: layer.startDepth,
-                        unAdjustedEndDepth: layer.endDepth,
-                    }));
+                const terrainHeight = globe.getHeight(cartographic);
 
-                    return {
-                        ...well,
-                        layers,
-                        startDepth: height - well.startDepth,
-                        endDepth: height - well.endDepth,
-                    };
-                });
+                if (terrainHeight === undefined) {
+                    console.warn(
+                        `Terrain height not available for well ID: ${well.StateWellID}`
+                    );
+                    // You can choose to set a default height or skip this well
+                    return { ...well };
+                }
 
-                return newWellData;
-            } catch (error) {
-                console.error("Error sampling terrain heights:", error);
-                return [];
-            }
+                const adjustedStartDepth = terrainHeight - well.startDepth;
+                const adjustedEndDepth = terrainHeight - well.endDepth;
+
+                const adjustedLayers = well.layers.map((layer) => ({
+                    ...layer,
+                    startDepth: terrainHeight - layer.startDepth,
+                    endDepth: terrainHeight - layer.endDepth,
+                    unAdjustedStartDepth: layer.startDepth,
+                    unAdjustedEndDepth: layer.endDepth,
+                }));
+
+                return {
+                    ...well,
+                    layers: adjustedLayers,
+                    startDepth: adjustedStartDepth,
+                    endDepth: adjustedEndDepth,
+                };
+            });
+
+            return newWellData;
         };
 
-        const sampleTerrainHeights = async () => {
+        const sampleTerrainHeights = () => {
             if (isSubChunkedData(wellDataWithoutElevationAdjustments)) {
                 const subChunks =
                     wellDataWithoutElevationAdjustments.sub_chunks;
                 const newProcessedData = new Map<string, WellData[]>();
 
-                for (const subChunk of subChunks) {
+                subChunks.forEach((subChunk) => {
                     const serializedKey = serializeSubChunkKey(subChunk);
-                    const newWellData = await sampleTerrainHeightsForSubChunk(
-                        subChunk
-                    );
+                    const newWellData =
+                        sampleTerrainHeightsForSubChunk(subChunk);
                     newProcessedData.set(serializedKey, newWellData);
                     console.log(
                         `Processed sub-chunk with key: ${serializedKey}`
                     );
-                }
+                });
 
                 setProcessedWellDataMap(newProcessedData);
                 console.log("ProcessedWellDataMap updated.");
@@ -287,52 +297,49 @@ const WaterWells: React.FC<WaterWellsProps> = ({
                     console.log("No wells to process");
                     return;
                 }
-                const positions = data.map((well) =>
-                    Cartographic.fromDegrees(
-                        well.longitude,
-                        well.latitude,
-                        well.startDepth
-                    )
-                );
 
-                try {
-                    const sampledPositions = await sampleTerrainMostDetailed(
-                        terrainProvider,
-                        positions
+                const newWellData = data.map((well) => {
+                    const cartographic = Cartographic.fromDegrees(
+                        well.longitude,
+                        well.latitude
                     );
 
-                    const newWellData = data.map((well, wellIndex) => {
-                        const height = sampledPositions[wellIndex].height;
-                        const layers = well.layers.map((layer: Layer) => ({
-                            ...layer,
-                            startDepth: height - layer.startDepth,
-                            endDepth: height - layer.endDepth,
-                            unAdjustedStartDepth: layer.startDepth,
-                            unAdjustedEndDepth: layer.endDepth,
-                        }));
+                    const terrainHeight = globe.getHeight(cartographic);
 
-                        return {
-                            ...well,
-                            layers,
-                            startDepth: height - well.startDepth,
-                            endDepth: height - well.endDepth,
-                        };
-                    });
+                    if (terrainHeight === undefined) {
+                        console.warn(
+                            `Terrain height not available for well ID: ${well.StateWellID}`
+                        );
+                        // You can choose to set a default height or skip this well
+                        return { ...well };
+                    }
 
-                    setWellDataWithHeights(newWellData);
-                    console.log("Well data with heights set for flat data.");
-                } catch (error) {
-                    console.error("Error sampling terrain heights:", error);
-                }
+                    const adjustedStartDepth = terrainHeight - well.startDepth;
+                    const adjustedEndDepth = terrainHeight - well.endDepth;
+
+                    const adjustedLayers = well.layers.map((layer: Layer) => ({
+                        ...layer,
+                        startDepth: terrainHeight - layer.startDepth,
+                        endDepth: terrainHeight - layer.endDepth,
+                        unAdjustedStartDepth: layer.startDepth,
+                        unAdjustedEndDepth: layer.endDepth,
+                    }));
+
+                    return {
+                        ...well,
+                        layers: adjustedLayers,
+                        startDepth: adjustedStartDepth,
+                        endDepth: adjustedEndDepth,
+                    };
+                });
+
+                setWellDataWithHeights(newWellData);
+                console.log("Well data with heights set for flat data.");
             }
         };
 
         sampleTerrainHeights();
-    }, [
-        terrainProvider,
-        wellDataWithoutElevationAdjustments,
-        serializeSubChunkKey,
-    ]);
+    }, [viewerRef, wellDataWithoutElevationAdjustments, serializeSubChunkKey]);
 
     // Data to render
     const dataToRender: WellData[] = useMemo(() => {
