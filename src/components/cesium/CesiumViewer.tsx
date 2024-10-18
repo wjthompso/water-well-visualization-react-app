@@ -250,8 +250,6 @@ const ResiumViewerComponent: React.FC = () => {
     const latStep = (maxLat - minLat) / chunkSplitN;
     const lonStep = (maxLon - minLon) / chunkSplitN;
 
-    const roundToSix = (num: number) => Math.round(num * 1e6) / 1e6;
-
     const viewerRef = useRef<CesiumComponentRef<CesiumViewer> | null>(null);
     const [terrainProvider, setTerrainProvider] = useState<
         CesiumTerrainProvider | undefined
@@ -276,6 +274,11 @@ const ResiumViewerComponent: React.FC = () => {
     const [showAggregations, setShowAggregations] = useState(true);
     const thresholdHeight = 1609.34 * 50; // Approximately 50 miles in meters
     const { setTooltipString } = useContext(TooltipContext);
+
+    // New State Variables
+    const [initialLoading, setInitialLoading] = useState<boolean>(true);
+    const [terrainHeightsLoaded, setTerrainHeightsLoaded] =
+        useState<boolean>(false);
 
     const moveIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -535,6 +538,29 @@ const ResiumViewerComponent: React.FC = () => {
                 const scene = viewer.scene;
                 const camera = scene.camera;
 
+                // Tile Load Progress Handler
+                const handleTileLoadProgress = (queuedTileCount: number) => {
+                    if (initialLoading) {
+                        if (queuedTileCount === 0) {
+                            setTerrainHeightsLoaded(true);
+                            setInitialLoading(false);
+                            console.log(
+                                "Initial tiles and terrain heights have been loaded."
+                            );
+                            // Remove the event listener after initial loading
+                            viewer.scene.globe.tileLoadProgressEvent.removeEventListener(
+                                handleTileLoadProgress
+                            );
+                        }
+                    }
+                    // No need to handle ongoing tile loading for terrain heights
+                };
+
+                // Add Event Listener
+                viewer.scene.globe.tileLoadProgressEvent.addEventListener(
+                    handleTileLoadProgress
+                );
+
                 const periodicMoveHandler = () => {
                     const cameraCartographic = Cartographic.fromCartesian(
                         camera.position
@@ -597,13 +623,18 @@ const ResiumViewerComponent: React.FC = () => {
                 return () => {
                     scene.camera.moveStart.removeEventListener(onMoveStart);
                     scene.camera.moveEnd.removeEventListener(onMoveEnd);
+                    if (initialLoading && viewerRef.current?.cesiumElement) {
+                        viewer.scene.globe.tileLoadProgressEvent.removeEventListener(
+                            handleTileLoadProgress
+                        );
+                    }
                     if (moveIntervalRef.current !== null) {
                         clearInterval(moveIntervalRef.current);
                         moveIntervalRef.current = null;
                     }
                 };
             }
-        }, 100);
+        }, 100); // Correct delay in milliseconds
 
         window.addEventListener("resize", repositionToolbar);
 
@@ -611,7 +642,7 @@ const ResiumViewerComponent: React.FC = () => {
             clearInterval(checkViewerReady);
             window.removeEventListener("resize", repositionToolbar);
         };
-    }, [handleCameraMove, thresholdHeight]);
+    }, [handleCameraMove, thresholdHeight]); // Removed initialLoading from dependencies
 
     const chunkOutlinePositions = useMemo(() => {
         if (!currentQuadrant) return null;
@@ -644,11 +675,11 @@ const ResiumViewerComponent: React.FC = () => {
             className="relative box-border w-[100vw] h-full p-0 m-0 overflow-hidden"
             ref={parentRefForDraggableComponent}
         >
-            {!terrainProvider || !finishedLoading ? (
+            {initialLoading && (
                 <div className="flex items-center justify-center w-full h-full md:pr-[272px] bg-headerBackgroundColor z-[100]">
                     <LoadingSpinner />
                 </div>
-            ) : null}
+            )}
             <CustomSearchBar
                 viewerRef={viewerRef}
                 searchBarRef={searchBarRef}
@@ -677,6 +708,7 @@ const ResiumViewerComponent: React.FC = () => {
                     infoBox={false}
                 >
                     {showWells &&
+                        terrainHeightsLoaded &&
                         wellDataWithoutElevationAdjustments &&
                         ((Array.isArray(wellDataWithoutElevationAdjustments) &&
                             wellDataWithoutElevationAdjustments.length > 0) ||
