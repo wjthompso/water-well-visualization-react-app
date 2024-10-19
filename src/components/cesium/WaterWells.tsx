@@ -1,4 +1,4 @@
-// WaterWells.tsx
+// src/components/cesium/WaterWells.tsx
 
 import {
     CallbackProperty,
@@ -9,7 +9,6 @@ import {
     Color,
     NearFarScalar,
     VerticalOrigin,
-    Viewer,
 } from "cesium";
 import React, {
     MutableRefObject,
@@ -22,7 +21,6 @@ import React, {
 } from "react";
 import {
     BillboardGraphics,
-    CesiumComponentRef,
     CustomDataSource,
     EllipseGraphics,
     Entity,
@@ -37,7 +35,7 @@ type WellDataInput = WellData[] | SubChunkedWellData;
 interface WaterWellsProps {
     terrainProvider: CesiumTerrainProvider | undefined | null;
     wellDataWithoutElevationAdjustments: WellDataInput;
-    viewerRef: MutableRefObject<CesiumComponentRef<Viewer> | null>;
+    viewerRef: MutableRefObject<CesiumViewerInstance | null>;
 }
 
 const WaterWells: React.FC<WaterWellsProps> = ({
@@ -99,11 +97,12 @@ const WaterWells: React.FC<WaterWellsProps> = ({
 
     // Handle camera movement by updating camera position and currentSubChunkKey
     const handleCameraMove = useCallback(() => {
-        const viewer = viewerRef.current?.cesiumElement;
+        const viewer = viewerRef.current;
         if (!viewer) return;
 
         const globe = viewer.scene.globe;
         const camera = viewer.camera;
+
         const cartographicPosition = Cartographic.fromCartesian(
             camera.position
         );
@@ -176,7 +175,7 @@ const WaterWells: React.FC<WaterWellsProps> = ({
 
     // Set up camera event listeners using moveStart and moveEnd
     useEffect(() => {
-        const viewer = viewerRef.current?.cesiumElement;
+        const viewer = viewerRef.current;
         if (!viewer) return;
 
         const onMoveStart = () => {
@@ -214,7 +213,7 @@ const WaterWells: React.FC<WaterWellsProps> = ({
 
     // Process terrain heights using globe.getHeight
     useEffect(() => {
-        const viewer = viewerRef.current?.cesiumElement;
+        const viewer = viewerRef.current;
         if (!viewer) {
             console.log("Viewer is not available");
             return;
@@ -289,6 +288,9 @@ const WaterWells: React.FC<WaterWellsProps> = ({
 
                 setProcessedWellDataMap(newProcessedData);
                 console.log("ProcessedWellDataMap updated.");
+
+                // After processing, update currentSubChunkKey if necessary
+                handleCameraMove();
             } else {
                 // Flat data
                 const data = wellDataWithoutElevationAdjustments as WellData[];
@@ -342,7 +344,7 @@ const WaterWells: React.FC<WaterWellsProps> = ({
         viewerRef,
         wellDataWithoutElevationAdjustments,
         serializeSubChunkKey,
-        // Removed handleCameraMove from dependencies
+        handleCameraMove, // Added dependency
     ]);
 
     // Trigger handleCameraMove when processedWellDataMap changes
@@ -463,7 +465,7 @@ const WaterWells: React.FC<WaterWellsProps> = ({
     // Function to fly to or fly out from a well
     const flyToWell = useCallback(
         (well: WellData) => {
-            const viewer = viewerRef.current?.cesiumElement;
+            const viewer = viewerRef.current;
             if (!viewer) return;
 
             // Determine if we're already zoomed into this well
@@ -650,7 +652,7 @@ const WaterWells: React.FC<WaterWellsProps> = ({
                 );
 
                 const eyeOffsetCallback = new CallbackProperty(() => {
-                    const viewer = viewerRef.current?.cesiumElement;
+                    const viewer = viewerRef.current;
                     if (!viewer) return new Cartesian3(0, 0, -5000);
                     const cameraPos = viewer.camera.position;
                     const distance = Cartesian3.distance(
