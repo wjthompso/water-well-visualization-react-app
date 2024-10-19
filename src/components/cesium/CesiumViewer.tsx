@@ -32,212 +32,25 @@ import GroundPolylinePrimitiveComponent from "./GroundPolylinePrimitiveComponent
 import StateAggregations from "./StateAggregationComponent";
 import Tooltip from "./Tooltip";
 import WaterWells from "./WaterWells";
+import { Chunk, SubChunkedWellData, WellData } from "./types";
+
+// Import utility functions from the "utilities" directory
+import { fetchQuadrants, fetchWellData } from "../../utilities/api";
 import {
-    Chunk,
-    GroundMaterialType,
-    GroundMaterialTypeColor,
-    Layer,
-    RawLayer,
-    RawWellData,
-    SubChunkedWellData,
-    SubChunkLocation,
-    WellData,
-} from "./types";
-
-const fetchQuadrants = async (): Promise<Chunk[]> => {
-    const response = await fetch("http://localhost:3000/keys");
-    const chunks: Chunk[] = await response.json();
-    return chunks;
-};
-
-const fetchWellData = async (
-    locationKey: string
-): Promise<
-    | RawWellData[]
-    | { sub_chunks: { location: SubChunkLocation; wells: RawWellData[] }[] }
-> => {
-    const response = await fetch("http://localhost:3000/keys", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ key: locationKey }),
-    });
-    const wellData = await response.json();
-    return wellData;
-};
-
-function createLocationKey(chunk: Chunk) {
-    const { topLeft, bottomRight } = chunk;
-    return `location:(${topLeft.lat}, ${topLeft.lon})-(${bottomRight.lat}, ${bottomRight.lon})`;
-}
-
-function moveCameraToDangermond(viewer: CesiumViewer) {
-    const cameraLongitude = -120.432283;
-    const cameraLatitude = 34.454167;
-    viewer.camera.setView({
-        destination: Cartesian3.fromDegrees(
-            cameraLongitude,
-            cameraLatitude,
-            5000
-        ),
-        orientation: {
-            heading: CesiumMath.toRadians(0),
-            pitch: CesiumMath.toRadians(-60),
-            roll: 0.0,
-        },
-    });
-}
-
-function enableUndergroundView(viewer: CesiumViewer) {
-    viewer.scene.screenSpaceCameraController.enableCollisionDetection = true;
-}
-
-function makeGroundTranslucentAsYouGetCloser(viewer: CesiumViewer) {
-    const globe = viewer.scene.globe;
-    globe.depthTestAgainstTerrain = true;
-    globe.translucency.enabled = true;
-    const scene = viewer.scene;
-
-    const handleCameraChange = () => {
-        const cameraCartographic = Cartographic.fromCartesian(
-            scene.camera.position
-        );
-
-        const terrainHeight = globe.getHeight(cameraCartographic);
-        const terrainElevation =
-            terrainHeight !== undefined ? terrainHeight : 0;
-        const cameraHeightAboveTerrain =
-            cameraCartographic.height - terrainElevation;
-
-        if (cameraHeightAboveTerrain < 500) {
-            viewer.scene.globe.maximumScreenSpaceError = 8;
-            globe.translucency.frontFaceAlpha = 0.2;
-        } else if (cameraHeightAboveTerrain < 2000) {
-            viewer.scene.globe.maximumScreenSpaceError = 4;
-            globe.translucency.frontFaceAlpha = 0.5;
-        } else {
-            viewer.scene.globe.maximumScreenSpaceError = 2;
-            globe.translucency.frontFaceAlpha = 1;
-        }
-    };
-
-    scene.camera.changed.addEventListener(handleCameraChange);
-    handleCameraChange();
-
-    return () => {
-        scene.camera.changed.removeEventListener(handleCameraChange);
-    };
-}
-
-function decreaseLevelOfDetail(viewer: CesiumViewer) {
-    viewer.scene.globe.maximumScreenSpaceError = 6;
-    console.log(
-        "Decreasing level of detail",
-        viewer.scene.globe.maximumScreenSpaceError
-    );
-}
-
-function mapMaterialType(material: string): keyof typeof GroundMaterialType {
-    const cleanedMaterial = material.trim().toUpperCase();
-    for (const key in GroundMaterialType) {
-        if (key === cleanedMaterial) {
-            return key as keyof typeof GroundMaterialType;
-        }
-    }
-    return "NA";
-}
-
-function mapMaterialColor(
-    materialKey: keyof typeof GroundMaterialType
-): GroundMaterialTypeColor {
-    if (materialKey in GroundMaterialTypeColor) {
-        return GroundMaterialTypeColor[materialKey];
-    } else {
-        return GroundMaterialTypeColor.NA;
-    }
-}
-
-function processRawWellData(rawData: RawWellData[]): WellData[] {
-    return rawData.map((data) => {
-        const layers: Layer[] = data.layers.map((layer: RawLayer) => {
-            const materialType: keyof typeof GroundMaterialType =
-                mapMaterialType(layer[3]);
-            const color: GroundMaterialTypeColor =
-                mapMaterialColor(materialType);
-
-            return {
-                type: [GroundMaterialType[materialType]],
-                color: color,
-                startDepth: layer[0],
-                endDepth: layer[1],
-                unAdjustedEndDepth: layer[1],
-                unAdjustedStartDepth: layer[0],
-                description: layer[2],
-            };
-        });
-
-        return {
-            longitude: data.lon,
-            latitude: data.lat,
-            startDepth: 0,
-            endDepth: data.total_well_depth_in_ft,
-            StateWellID: data.well_id,
-            layers: layers,
-        };
-    });
-}
-
-function fillInMissingLayers(wellData: WellData[]): WellData[] {
-    return wellData.map((well) => {
-        const filledLayers: Layer[] = [];
-        let currentDepth = well.startDepth;
-
-        well.layers.forEach((layer) => {
-            if (layer.startDepth > currentDepth) {
-                filledLayers.push({
-                    type: [GroundMaterialType.NA],
-                    color: GroundMaterialTypeColor.NA,
-                    startDepth: currentDepth,
-                    endDepth: layer.startDepth,
-                    unAdjustedEndDepth: layer.startDepth,
-                    unAdjustedStartDepth: currentDepth,
-                    description: "NA",
-                });
-            }
-            filledLayers.push(layer);
-            currentDepth = layer.endDepth;
-        });
-
-        if (currentDepth < well.endDepth) {
-            filledLayers.push({
-                type: [GroundMaterialType.NA],
-                color: GroundMaterialTypeColor.NA,
-                startDepth: currentDepth,
-                endDepth: well.endDepth,
-                unAdjustedEndDepth: well.endDepth,
-                unAdjustedStartDepth: currentDepth,
-                description: "NA",
-            });
-        }
-
-        return {
-            ...well,
-            layers: filledLayers,
-        };
-    });
-}
-
-// Helper function to check if data is sub-chunked
-function isSubChunkedData(
-    data:
-        | RawWellData[]
-        | { sub_chunks: { location: SubChunkLocation; wells: RawWellData[] }[] }
-): data is {
-    sub_chunks: { location: SubChunkLocation; wells: RawWellData[] }[];
-} {
-    return (data as { sub_chunks: any }).sub_chunks !== undefined;
-}
+    decreaseLevelOfDetail,
+    enableUndergroundView,
+    makeGroundTranslucentAsYouGetCloser,
+    moveCameraToDangermond,
+} from "../../utilities/cameraUtils";
+import {
+    calculateChunkKey,
+    createLocationKey,
+} from "../../utilities/chunkUtils";
+import {
+    fillInMissingLayers,
+    isSubChunkedData,
+    processRawWellData,
+} from "../../utilities/wellDataUtils";
 
 const ResiumViewerComponent: React.FC = () => {
     const minLat = 24.536111;
@@ -313,38 +126,6 @@ const ResiumViewerComponent: React.FC = () => {
         }
     }, [thresholdHeight, showAggregations]);
 
-    const calculateChunkKey = (
-        lat: number,
-        lon: number
-    ): { chunkKey: string; chunk: Chunk } => {
-        let latIndex = Math.floor((lat - minLat) / latStep);
-        let lonIndex = Math.floor((lon - minLon) / lonStep);
-
-        if (latIndex >= chunkSplitN) latIndex = chunkSplitN - 1;
-        if (latIndex < 0) latIndex = 0;
-        if (lonIndex >= chunkSplitN) lonIndex = chunkSplitN - 1;
-        if (lonIndex < 0) lonIndex = 0;
-
-        const topLeftLat = Number((minLat + latIndex * latStep).toFixed(6));
-        const topLeftLon = Number((minLon + lonIndex * lonStep).toFixed(6));
-        const bottomRightLat = Number(
-            (minLat + (latIndex + 1) * latStep).toFixed(6)
-        );
-        const bottomRightLon = Number(
-            (minLon + (lonIndex + 1) * lonStep).toFixed(6)
-        );
-
-        const chunkKey = `${topLeftLat},${topLeftLon}-${bottomRightLat},${bottomRightLon}`;
-        const chunk: Chunk = {
-            topLeft: { lat: topLeftLat, lon: topLeftLon },
-            bottomRight: { lat: bottomRightLat, lon: bottomRightLon },
-        };
-
-        console.log("Calculated chunkKey:", chunkKey);
-
-        return { chunkKey, chunk };
-    };
-
     const handleCameraMove = useCallback(
         async (camera: Camera) => {
             const cartographicPosition = Cartographic.fromCartesian(
@@ -371,7 +152,12 @@ const ResiumViewerComponent: React.FC = () => {
             // Calculate the new chunk and quadrant information based on camera position
             const { chunkKey, chunk } = calculateChunkKey(
                 currentLat,
-                currentLon
+                currentLon,
+                minLat,
+                minLon,
+                latStep,
+                lonStep,
+                chunkSplitN
             );
             const calculatedCurrentChunk = chunk;
 
@@ -436,7 +222,14 @@ const ResiumViewerComponent: React.FC = () => {
                 }
             }
         },
-        [terrainFlatteningThreshold]
+        [
+            terrainFlatteningThreshold,
+            minLat,
+            minLon,
+            latStep,
+            lonStep,
+            chunkSplitN,
+        ]
     );
 
     useEffect(() => {
@@ -475,7 +268,6 @@ const ResiumViewerComponent: React.FC = () => {
                                 chunk.bottomRight.lon.toFixed(6)
                             );
                             const chunkKey = `${topLeftLat},${topLeftLon}-${bottomRightLat},${bottomRightLon}`;
-                            // console.log("Storing chunkKey in map:", chunkKey);
                             return [chunkKey, chunk];
                         })
                     );
@@ -553,7 +345,6 @@ const ResiumViewerComponent: React.FC = () => {
                             );
                         }
                     }
-                    // No need to handle ongoing tile loading for terrain heights
                 };
 
                 // Add Event Listener
@@ -634,7 +425,7 @@ const ResiumViewerComponent: React.FC = () => {
                     }
                 };
             }
-        }, 100); // Correct delay in milliseconds
+        }, 100);
 
         window.addEventListener("resize", repositionToolbar);
 
@@ -642,7 +433,16 @@ const ResiumViewerComponent: React.FC = () => {
             clearInterval(checkViewerReady);
             window.removeEventListener("resize", repositionToolbar);
         };
-    }, [handleCameraMove, thresholdHeight]); // Removed initialLoading from dependencies
+    }, [
+        handleCameraMove,
+        thresholdHeight,
+        initialLoading,
+        minLat,
+        minLon,
+        latStep,
+        lonStep,
+        chunkSplitN,
+    ]);
 
     const chunkOutlinePositions = useMemo(() => {
         if (!currentQuadrant) return null;
