@@ -79,6 +79,7 @@ const CesiumViewerComponent: React.FC = () => {
         chunkSplitN,
         terrainFlatteningThreshold,
         thresholdHeight,
+        showAggregations,
         setCurrentQuadrant,
         setWellData: setWellDataWithoutElevationAdjustments,
         setShowWells,
@@ -142,13 +143,7 @@ const CesiumViewerComponent: React.FC = () => {
     }, []);
 
     // Add a useEffect to log when showAggregations changes
-    useEffect(() => {
-        console.log(
-            `[CesiumViewer] showAggregations changed to: ${showAggregations} at ${new Date().toISOString()}`
-        );
-        console.log("finishedLoading is: ", finishedLoading);
-        console.log("viewerRef.current is", viewerRef.current);
-    }, [showAggregations, viewerRef.current, finishedLoading]);
+    useEffect(() => {}, [showAggregations, viewerRef.current, finishedLoading]);
 
     if (isTerrainLoading || !terrainProvider) {
         return (
@@ -233,16 +228,12 @@ const CesiumViewerComponent: React.FC = () => {
                         />
                     )}
 
-                    {finishedLoading &&
-                        viewerRef.current &&
-                        showAggregations && (
-                            <>
-                                <StateAggregations viewer={viewerRef.current} />
-                                <CountyAggregations
-                                    viewer={viewerRef.current}
-                                />
-                            </>
-                        )}
+                    {finishedLoading && viewerRef.current && (
+                        <>
+                            <StateAggregations viewer={viewerRef.current} />
+                            <CountyAggregations viewer={viewerRef.current} />
+                        </>
+                    )}
                 </Viewer>
                 <Tooltip />
             </div>

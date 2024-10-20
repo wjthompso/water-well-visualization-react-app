@@ -175,7 +175,7 @@ const WaterWells: React.FC<WaterWellsProps> = ({
         const onMoveStart = () => {
             if (intervalRef.current === null) {
                 // Start interval to call handleCameraMove every 300ms
-                intervalRef.current = setInterval(handleCameraMove, 300);
+                intervalRef.current = setInterval(handleCameraMove, 100);
                 setIsCameraMoving(true);
             }
         };

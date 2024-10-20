@@ -44,6 +44,7 @@ interface UseCameraControlsParams {
     chunkSplitN: number;
     terrainFlatteningThreshold: number;
     thresholdHeight: number;
+    showAggregations: boolean;
     setCurrentQuadrant: React.Dispatch<
         React.SetStateAction<Chunk | null | undefined>
     >;
@@ -69,6 +70,7 @@ const useCameraControls = ({
     chunkSplitN,
     terrainFlatteningThreshold,
     thresholdHeight,
+    showAggregations,
     setCurrentQuadrant,
     setWellData,
     setShowWells,
@@ -217,6 +219,9 @@ const useCameraControls = ({
                 );
                 const cameraHeight = cameraCartographic.height;
                 const newShowAggregations = cameraHeight >= thresholdHeight;
+                if (showAggregations !== newShowAggregations) {
+                    setShowAggregations(newShowAggregations);
+                }
                 setShowAggregations(newShowAggregations);
             };
 
