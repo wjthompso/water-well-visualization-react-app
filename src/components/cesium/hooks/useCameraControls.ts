@@ -295,7 +295,6 @@ const useCameraControls = ({
                         periodicMoveHandler,
                         200
                     );
-                    // console.log("Periodic camera move handler started.");
                 }
             };
 
@@ -304,7 +303,6 @@ const useCameraControls = ({
                     clearInterval(moveIntervalRef.current);
                     moveIntervalRef.current = null;
                     await handleCameraMove(camera);
-                    // console.log("Periodic camera move handler stopped.");
                 }
 
                 const cameraCartographic = Cartographic.fromCartesian(
@@ -315,7 +313,6 @@ const useCameraControls = ({
 
                 if (showWellsRef.current !== newShowWells) {
                     setShowWells(newShowWells);
-                    console.log("Set showWells to ", newShowWells);
                     showWellsRef.current = newShowWells;
 
                     if (!newShowWells && setTooltipString) {
@@ -341,7 +338,6 @@ const useCameraControls = ({
                 if (moveIntervalRef.current !== null) {
                     clearInterval(moveIntervalRef.current);
                     moveIntervalRef.current = null;
-                    console.log("Periodic camera move handler cleaned up.");
                 }
                 camera.changed.removeEventListener(handleAggregationVisibility);
             };

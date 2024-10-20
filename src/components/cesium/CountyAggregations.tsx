@@ -34,8 +34,6 @@ interface CountyFeature {
 }
 
 const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
-    console.log("Just entered CountyAggregations");
-
     const { cameraPosition, setCameraPosition } = useCameraPosition();
     const { statePolygons, loading } = useStatePolygons();
     const [selectedState, setSelectedState] = useState<string | null>(null);
@@ -66,9 +64,6 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
     // position changes
     useEffect(() => {
         if (!cameraPosition || loading || statePolygons.length === 0) {
-            console.log(
-                "Instead of setting the selected state, returning null"
-            );
             return;
         }
 
@@ -132,7 +127,6 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
             }
         };
 
-        console.log("Fetching data to set the selected state");
         fetchData();
     }, [selectedState]);
 
@@ -140,7 +134,6 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
     useEffect(() => {
         const handleCameraChange = () => {
             if (!viewer?.scene) {
-                console.log("Perhaps we don't think the scene is ready?");
                 return;
             }
 
@@ -150,8 +143,6 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
 
             const shouldShow =
                 cameraHeight >= thresholdHeight && cameraHeight < 1_000_000;
-
-            console.log("Should show counties:", shouldShow);
 
             setShowCounties(shouldShow);
             setCameraPosition(cartographicPosition);
@@ -170,12 +161,10 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
             handleCameraChange();
         };
 
-        console.log("Adding event listeners");
         viewer?.camera.moveStart.addEventListener(startInterval);
         viewer?.camera.moveEnd.addEventListener(stopInterval);
 
         return () => {
-            console.log("Removing event listeners");
             viewer?.camera.moveStart.removeEventListener(startInterval);
             viewer?.camera.moveEnd.removeEventListener(stopInterval);
             if (intervalRef.current) {
@@ -249,13 +238,8 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
     };
 
     if (!showCounties || !selectedState) {
-        console.log("Returning null: showCounties", showCounties);
-        console.log("Returning null: selectedState", selectedState);
-
         return null;
     }
-
-    console.log("County features about to hit render function");
 
     return (
         <>
