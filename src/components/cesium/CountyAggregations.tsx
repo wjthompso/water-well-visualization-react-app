@@ -34,6 +34,8 @@ interface CountyFeature {
 }
 
 const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
+    console.log("Just entered CountyAggregations");
+
     const { cameraPosition, setCameraPosition } = useCameraPosition();
     const { statePolygons, loading } = useStatePolygons();
     const [countyFeatures, setCountyFeatures] = useState<CountyFeature[]>([]);
@@ -228,6 +230,8 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
         return undefined;
     };
 
+    console.log("County features about to hit render function");
+
     return (
         <>
             {countyFeatures.map((feature) => {
@@ -280,4 +284,4 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
     );
 };
 
-export default CountyAggregations;
+export default React.memo(CountyAggregations);

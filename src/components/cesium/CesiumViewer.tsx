@@ -141,6 +141,15 @@ const CesiumViewerComponent: React.FC = () => {
         };
     }, []);
 
+    // Add a useEffect to log when showAggregations changes
+    useEffect(() => {
+        console.log(
+            `[CesiumViewer] showAggregations changed to: ${showAggregations} at ${new Date().toISOString()}`
+        );
+        console.log("finishedLoading is: ", finishedLoading);
+        console.log("viewerRef.current is", viewerRef.current);
+    }, [showAggregations, viewerRef.current, finishedLoading]);
+
     if (isTerrainLoading || !terrainProvider) {
         return (
             <div className="flex items-center justify-center w-full h-full md:pr-[272px] bg-headerBackgroundColor z-50">
