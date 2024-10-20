@@ -90,8 +90,4 @@ export const makeGroundTranslucentAsYouGetCloser = (
  */
 export const decreaseLevelOfDetail = (viewer: CesiumViewer): void => {
     viewer.scene.globe.maximumScreenSpaceError = 6;
-    console.log(
-        "Decreasing level of detail",
-        viewer.scene.globe.maximumScreenSpaceError
-    );
 };

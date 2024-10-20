@@ -113,12 +113,6 @@ const WaterWells: React.FC<WaterWellsProps> = ({
             CesiumMath.toDegrees(cartographicPosition.longitude).toFixed(6)
         );
 
-        console.log(
-            "handleCameraMove invoked with coordinates:",
-            currentLat,
-            currentLon
-        );
-
         if (isSubChunkedData(wellDataWithoutElevationAdjustments)) {
             const hoveredSubChunk =
                 wellDataWithoutElevationAdjustments.sub_chunks.find(
@@ -183,7 +177,6 @@ const WaterWells: React.FC<WaterWellsProps> = ({
                 // Start interval to call handleCameraMove every 300ms
                 intervalRef.current = setInterval(handleCameraMove, 300);
                 setIsCameraMoving(true);
-                console.log("Camera movement started. Interval set.");
             }
         };
 
@@ -193,9 +186,6 @@ const WaterWells: React.FC<WaterWellsProps> = ({
                 intervalRef.current = null;
                 handleCameraMove(); // Final call after movement ends
                 setIsCameraMoving(false);
-                console.log(
-                    "Camera movement ended. Interval cleared and final handleCameraMove called."
-                );
             }
         };
 
@@ -335,7 +325,6 @@ const WaterWells: React.FC<WaterWellsProps> = ({
                 });
 
                 setWellDataWithHeights(newWellData);
-                console.log("Well data with heights set for flat data.");
             }
         };
 
@@ -629,7 +618,6 @@ const WaterWells: React.FC<WaterWellsProps> = ({
     }
 
     if (dataToRender.length === 0) {
-        console.log("No wells to render.");
         return null; // Or render a message indicating no data
     }
 

@@ -192,16 +192,13 @@ const useCameraControls = ({
 
     useEffect(() => {
         if (!viewerReady) {
-            console.log("useCameraControls: Viewer is not ready yet.");
             return;
         }
 
         const viewerCesium = viewerRef.current;
         if (!viewerCesium) {
-            console.log("useCameraControls: viewerCesium is null, waiting...");
             return;
         }
-        console.log("useCameraControls: viewerCesium is available");
 
         const setupCameraControls = () => {
             const scene = viewerCesium.scene;
@@ -256,9 +253,6 @@ const useCameraControls = ({
                         initialLoadingRef.current = false;
                         setInitialLoading(false);
                         setTerrainHeightsLoaded(true);
-                        console.log(
-                            "Initial tiles and terrain heights have been loaded."
-                        );
                         viewerCesium.scene.globe.tileLoadProgressEvent.removeEventListener(
                             handleTileLoadProgress
                         );
@@ -281,7 +275,6 @@ const useCameraControls = ({
 
                 if (showWellsRef.current !== newShowWells) {
                     setShowWells(newShowWells);
-                    console.log("Set showWells to ", newShowWells);
                     showWellsRef.current = newShowWells;
 
                     if (!newShowWells && setTooltipString) {

@@ -53,7 +53,6 @@ const useQuadrants = () => {
             } catch (error) {
                 console.error("Error fetching quadrants:", error);
             }
-            console.log("Quadrants fetched:", quadrantsRef.current);
         };
 
         getQuadrants();

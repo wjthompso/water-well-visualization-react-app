@@ -54,7 +54,5 @@ export const calculateChunkKey = (
         bottomRight: { lat: bottomRightLat, lon: bottomRightLon },
     };
 
-    console.log("Calculated chunkKey:", chunkKey);
-
     return { chunkKey, chunk };
 };

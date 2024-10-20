@@ -142,7 +142,6 @@ const CesiumViewerComponent: React.FC = () => {
     }, []);
 
     if (isTerrainLoading || !terrainProvider) {
-        console.log("Terrain is loading or terrainProvider is undefined");
         return (
             <div className="flex items-center justify-center w-full h-full md:pr-[272px] bg-headerBackgroundColor z-50">
                 <LoadingSpinner />
