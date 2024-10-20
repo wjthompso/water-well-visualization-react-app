@@ -38,9 +38,9 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
 
     const { cameraPosition, setCameraPosition } = useCameraPosition();
     const { statePolygons, loading } = useStatePolygons();
+    const [selectedState, setSelectedState] = useState<string | null>(null);
     const [countyFeatures, setCountyFeatures] = useState<CountyFeature[]>([]);
     const [showCounties, setShowCounties] = useState<boolean>(false);
-    const [selectedState, setSelectedState] = useState<string | null>(null);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const raisedHeight = 9000;
 
@@ -61,6 +61,31 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
         return { lat, lon };
     };
 
+    // Sets the selected state based off the camera position. Runs when we
+    // finish loading, when the state polygons change (load), or when the camera
+    // position changes
+    useEffect(() => {
+        if (!cameraPosition || loading || statePolygons.length === 0) {
+            console.log(
+                "Instead of setting the selected state, returning null"
+            );
+            return;
+        }
+
+        const currentLat = CesiumMath.toDegrees(cameraPosition.latitude);
+        const currentLon = CesiumMath.toDegrees(cameraPosition.longitude);
+        const pointFeature = point([currentLon, currentLat]);
+
+        const state = statePolygons.find((state) =>
+            booleanPointInPolygon(pointFeature, state.geometry)
+        );
+
+        if (selectedState !== state?.name) {
+            setSelectedState(state ? state.name : null);
+        }
+    }, [cameraPosition, statePolygons, loading]);
+
+    // Fetches county aggregation data when selected state changes
     useEffect(() => {
         const fetchData = async () => {
             if (!selectedState) return;
@@ -107,9 +132,11 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
             }
         };
 
+        console.log("Fetching data to set the selected state");
         fetchData();
     }, [selectedState]);
 
+    // Adds event listeners for camera movement to show/hide county aggregations
     useEffect(() => {
         const handleCameraChange = () => {
             if (!viewer?.scene) {
@@ -157,27 +184,6 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
             }
         };
     }, [viewer, setCameraPosition]);
-
-    useEffect(() => {
-        if (!cameraPosition || loading || statePolygons.length === 0) {
-            console.log(
-                "Instead of setting the selected state, returning null"
-            );
-            return;
-        }
-
-        const currentLat = CesiumMath.toDegrees(cameraPosition.latitude);
-        const currentLon = CesiumMath.toDegrees(cameraPosition.longitude);
-        const pointFeature = point([currentLon, currentLat]);
-
-        const state = statePolygons.find((state) =>
-            booleanPointInPolygon(pointFeature, state.geometry)
-        );
-
-        if (selectedState !== state?.name) {
-            setSelectedState(state ? state.name : null);
-        }
-    }, [cameraPosition, statePolygons, loading]);
 
     const convertGeometryToHierarchy = (
         geometry: Geometry
@@ -242,14 +248,14 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
         return undefined;
     };
 
-    console.log("County features about to hit render function");
-
     if (!showCounties || !selectedState) {
         console.log("Returning null: showCounties", showCounties);
         console.log("Returning null: selectedState", selectedState);
 
         return null;
     }
+
+    console.log("County features about to hit render function");
 
     return (
         <>

@@ -6,11 +6,10 @@ import {
     Viewer as CesiumViewerInstance,
 } from "cesium";
 import "cesium/Build/Cesium/Widgets/widgets.css";
-import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Viewer } from "resium";
 import "../../App.css";
 
-import { TooltipContext } from "../../context/AppContext";
 import DraggableComponent from "../DraggableFooter/DraggableFooter";
 import LoadingSpinner from "../LoadingSpinner/LoadingSpinner";
 import CustomSearchBar from "../Searchbar/CustomSearchbar";
@@ -62,8 +61,6 @@ const CesiumViewerComponent: React.FC = () => {
         useState<boolean>(false);
     const [viewerReady, setViewerReady] = useState<boolean>(false); // New state variable
 
-    const { setTooltipString } = useContext(TooltipContext);
-
     // Custom Hooks
     const { terrainProvider, isLoading: isTerrainLoading } = useTerrainData();
     const { quadrantsMapRef } = useQuadrants();
@@ -87,7 +84,6 @@ const CesiumViewerComponent: React.FC = () => {
         setFinishedLoading,
         setInitialLoading,
         setTerrainHeightsLoaded,
-        setTooltipString,
         viewerReady, // Pass viewerReady to the hook
     });
 
@@ -165,7 +161,7 @@ const CesiumViewerComponent: React.FC = () => {
                 </div>
             )}
             <CustomSearchBar
-                viewerRef={viewerRef}
+                viewerRef={viewerRef.current}
                 searchBarRef={searchBarRef}
             />
             <DraggableComponent
