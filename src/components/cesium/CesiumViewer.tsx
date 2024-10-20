@@ -141,30 +141,6 @@ const CesiumViewerComponent: React.FC = () => {
         };
     }, []);
 
-    // Added console logs for debugging
-    useEffect(() => {
-        console.log("Terrain loading state variables:");
-        console.log("isTerrainLoading:", isTerrainLoading);
-        console.log("terrainHeightsLoaded:", terrainHeightsLoaded);
-        console.log("terrainProvider:", terrainProvider);
-        console.log(
-            "wellDataWithoutElevationAdjustments:",
-            wellDataWithoutElevationAdjustments
-        );
-        console.log("viewerRef.current:", viewerRef.current);
-        console.log(
-            "parentRefForDraggableComponent.current:",
-            parentRefForDraggableComponent.current
-        );
-    }, [
-        isTerrainLoading,
-        terrainHeightsLoaded,
-        terrainProvider,
-        wellDataWithoutElevationAdjustments,
-        viewerRef.current,
-        parentRefForDraggableComponent.current,
-    ]);
-
     if (isTerrainLoading || !terrainProvider) {
         console.log("Terrain is loading or terrainProvider is undefined");
         return (
@@ -202,7 +178,6 @@ const CesiumViewerComponent: React.FC = () => {
                     ref={(viewer) => {
                         if (viewer && viewer.cesiumElement) {
                             viewerRef.current = viewer.cesiumElement;
-                            console.log("Viewer created:", viewerRef.current);
                             setViewerReady(true);
                         }
                     }}

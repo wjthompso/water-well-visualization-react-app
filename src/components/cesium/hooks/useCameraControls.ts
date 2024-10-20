@@ -127,10 +127,6 @@ const useCameraControls = ({
                 const fetchedChunk = quadrantsMapRef.current.get(chunkKey);
                 if (fetchedChunk) {
                     const locationKey = createLocationKey(fetchedChunk);
-                    console.log(
-                        "Fetching well data for locationKey:",
-                        locationKey
-                    );
                     try {
                         const rawWellData = await fetchWellData(locationKey);
 
@@ -166,18 +162,17 @@ const useCameraControls = ({
             }
 
             // Adjust terrain exaggeration based on the camera height
+            // NOTE: I think this is dead code
             const cameraHeight = cartographicPosition.height;
             const viewerCesium = viewerRef.current;
             if (viewerCesium) {
                 if (cameraHeight > terrainFlatteningThreshold) {
                     if (viewerCesium.scene.verticalExaggeration !== 0.0) {
                         viewerCesium.scene.verticalExaggeration = 0.0; // Flatten terrain
-                        console.log("Flattened the terrain.");
                     }
                 } else {
                     if (viewerCesium.scene.verticalExaggeration !== 1.0) {
                         viewerCesium.scene.verticalExaggeration = 1.0; // Restore terrain
-                        console.log("Restored terrain elevation.");
                     }
                 }
             }
@@ -224,13 +219,30 @@ const useCameraControls = ({
                     camera.position
                 );
                 const cameraHeight = cameraCartographic.height;
-                const newShowAggregations = cameraHeight <= thresholdHeight;
-
+                const newShowAggregations = cameraHeight >= thresholdHeight;
                 setShowAggregations(newShowAggregations);
             };
 
-            camera.changed.addEventListener(handleAggregationVisibility);
-            handleAggregationVisibility();
+            let moveIntervalId: number | null = null;
+            const onMoveStartAggregation = () => {
+                if (moveIntervalId === null) {
+                    moveIntervalId = window.setInterval(
+                        handleAggregationVisibility,
+                        300
+                    );
+                }
+            };
+
+            const onMoveEndAggregation = () => {
+                if (moveIntervalId !== null) {
+                    window.clearInterval(moveIntervalId);
+                    moveIntervalId = null;
+                    handleAggregationVisibility();
+                }
+            };
+
+            camera.moveStart.addEventListener(onMoveStartAggregation);
+            camera.moveEnd.addEventListener(onMoveEndAggregation);
 
             // Remove double-click action
             viewerCesium.screenSpaceEventHandler.removeInputAction(
@@ -239,10 +251,6 @@ const useCameraControls = ({
 
             // Tile Load Progress Handler
             const handleTileLoadProgress = (queuedTileCount: number) => {
-                console.log(
-                    "handleTileLoadProgress called, queuedTileCount:",
-                    queuedTileCount
-                );
                 if (initialLoadingRef.current) {
                     if (queuedTileCount === 0) {
                         initialLoadingRef.current = false;
@@ -287,9 +295,9 @@ const useCameraControls = ({
                 if (moveIntervalRef.current === null) {
                     moveIntervalRef.current = setInterval(
                         periodicMoveHandler,
-                        300
+                        200
                     );
-                    console.log("Periodic camera move handler started.");
+                    // console.log("Periodic camera move handler started.");
                 }
             };
 
@@ -298,7 +306,7 @@ const useCameraControls = ({
                     clearInterval(moveIntervalRef.current);
                     moveIntervalRef.current = null;
                     await handleCameraMove(camera);
-                    console.log("Periodic camera move handler stopped.");
+                    // console.log("Periodic camera move handler stopped.");
                 }
 
                 const cameraCartographic = Cartographic.fromCartesian(
@@ -323,7 +331,7 @@ const useCameraControls = ({
             scene.camera.moveEnd.addEventListener(onMoveEnd);
 
             // Initial camera move handling
-            handleCameraMove();
+            handleCameraMove(camera);
 
             // Cleanup function
             return () => {
