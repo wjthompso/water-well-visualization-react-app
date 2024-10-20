@@ -1,4 +1,4 @@
-// src/components/cesium/WaterWells.tsx
+// WaterWells.tsx
 
 import {
     CallbackProperty,
@@ -9,6 +9,7 @@ import {
     Color,
     NearFarScalar,
     VerticalOrigin,
+    Viewer,
 } from "cesium";
 import React, {
     MutableRefObject,
@@ -21,6 +22,7 @@ import React, {
 } from "react";
 import {
     BillboardGraphics,
+    CesiumComponentRef,
     CustomDataSource,
     EllipseGraphics,
     Entity,
@@ -35,7 +37,7 @@ type WellDataInput = WellData[] | SubChunkedWellData;
 interface WaterWellsProps {
     terrainProvider: CesiumTerrainProvider | undefined | null;
     wellDataWithoutElevationAdjustments: WellDataInput;
-    viewerRef: MutableRefObject<CesiumViewerInstance | null>;
+    viewerRef: MutableRefObject<CesiumComponentRef<Viewer> | null>;
 }
 
 const WaterWells: React.FC<WaterWellsProps> = ({
@@ -102,7 +104,6 @@ const WaterWells: React.FC<WaterWellsProps> = ({
 
         const globe = viewer.scene.globe;
         const camera = viewer.camera;
-
         const cartographicPosition = Cartographic.fromCartesian(
             camera.position
         );
@@ -111,6 +112,12 @@ const WaterWells: React.FC<WaterWellsProps> = ({
         );
         const currentLon = Number(
             CesiumMath.toDegrees(cartographicPosition.longitude).toFixed(6)
+        );
+
+        console.log(
+            "handleCameraMove invoked with coordinates:",
+            currentLat,
+            currentLon
         );
 
         if (isSubChunkedData(wellDataWithoutElevationAdjustments)) {
@@ -175,8 +182,9 @@ const WaterWells: React.FC<WaterWellsProps> = ({
         const onMoveStart = () => {
             if (intervalRef.current === null) {
                 // Start interval to call handleCameraMove every 300ms
-                intervalRef.current = setInterval(handleCameraMove, 100);
+                intervalRef.current = setInterval(handleCameraMove, 300);
                 setIsCameraMoving(true);
+                console.log("Camera movement started. Interval set.");
             }
         };
 
@@ -186,6 +194,9 @@ const WaterWells: React.FC<WaterWellsProps> = ({
                 intervalRef.current = null;
                 handleCameraMove(); // Final call after movement ends
                 setIsCameraMoving(false);
+                console.log(
+                    "Camera movement ended. Interval cleared and final handleCameraMove called."
+                );
             }
         };
 
@@ -278,9 +289,6 @@ const WaterWells: React.FC<WaterWellsProps> = ({
 
                 setProcessedWellDataMap(newProcessedData);
                 console.log("ProcessedWellDataMap updated.");
-
-                // After processing, update currentSubChunkKey if necessary
-                handleCameraMove();
             } else {
                 // Flat data
                 const data = wellDataWithoutElevationAdjustments as WellData[];
@@ -325,6 +333,7 @@ const WaterWells: React.FC<WaterWellsProps> = ({
                 });
 
                 setWellDataWithHeights(newWellData);
+                console.log("Well data with heights set for flat data.");
             }
         };
 
@@ -333,7 +342,7 @@ const WaterWells: React.FC<WaterWellsProps> = ({
         viewerRef,
         wellDataWithoutElevationAdjustments,
         serializeSubChunkKey,
-        handleCameraMove, // Added dependency
+        // Removed handleCameraMove from dependencies
     ]);
 
     // Trigger handleCameraMove when processedWellDataMap changes
@@ -618,6 +627,7 @@ const WaterWells: React.FC<WaterWellsProps> = ({
     }
 
     if (dataToRender.length === 0) {
+        console.log("No wells to render.");
         return null; // Or render a message indicating no data
     }
 
