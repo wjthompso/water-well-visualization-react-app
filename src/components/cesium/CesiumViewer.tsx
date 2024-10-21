@@ -161,7 +161,7 @@ const CesiumViewerComponent: React.FC = () => {
                 </div>
             )}
             <CustomSearchBar
-                viewerRef={viewerRef.current}
+                viewer={viewerRef.current ?? undefined}
                 searchBarRef={searchBarRef}
             />
             <DraggableComponent

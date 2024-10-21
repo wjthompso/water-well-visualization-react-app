@@ -2,12 +2,12 @@
 import { Cartesian3, Math as CesiumMath, Viewer as CesiumViewer } from "cesium";
 import { debounce } from "lodash";
 import React, { useEffect, useState } from "react";
-import { CesiumComponentRef } from "resium";
+// import { CesiumComponentRef } from "resium";
 import SearchIcon from "../../assets/SearchIcon.svg";
 import "./CustomSearchbar.css";
 
 interface CustomSearchBarProps {
-    viewerRef: React.RefObject<CesiumComponentRef<CesiumViewer>>;
+    viewer: CesiumViewer | null | undefined;
     searchBarRef: React.RefObject<HTMLDivElement>;
 }
 
@@ -17,7 +17,7 @@ interface GeocodeResult {
 }
 
 const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
-    viewerRef,
+    viewer,
     searchBarRef,
 }) => {
     const [query, setQuery] = useState<string>("");
@@ -86,10 +86,9 @@ const CustomSearchBar: React.FC<CustomSearchBarProps> = ({
             if (data && data.geometry && data.geometry.location) {
                 const { lat, lng } = data.geometry.location;
 
-                if (viewerRef.current && viewerRef.current.cesiumElement) {
-                    const viewer = viewerRef.current
-                        .cesiumElement as CesiumViewer;
-                    viewer.camera.flyTo({
+                if (viewer) {
+                    const cesiumViewer = viewer as CesiumViewer;
+                    cesiumViewer.camera.flyTo({
                         destination: Cartesian3.fromDegrees(lng, lat, 5000),
                         orientation: {
                             heading: CesiumMath.toRadians(0),
