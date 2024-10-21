@@ -1,4 +1,4 @@
-// WaterWells.tsx
+// src/components/cesium/WaterWells.tsx
 
 import {
     CallbackProperty,
@@ -26,8 +26,13 @@ import {
 } from "resium";
 import { TooltipContext } from "../../context/AppContext";
 import { createPieChartWellIcon } from "../../utilities/createPieChartWellIcon";
+import {
+    isSubChunkedData,
+    processTerrainHeightsForSubChunk,
+    serializeSubChunkKey,
+} from "../../utilities/waterWellUtils"; // Adjust the path if necessary
 import GroundPolylinePrimitiveComponent from "./GroundPolylinePrimitiveComponent";
-import { Layer, SubChunk, SubChunkedWellData, WellData } from "./types";
+import { Layer, SubChunkedWellData, WellData } from "./types";
 
 type WellDataInput = WellData[] | SubChunkedWellData;
 
@@ -77,21 +82,6 @@ const WaterWells: React.FC<WaterWellsProps> = ({
     const [currentlyZoomedWell, setCurrentlyZoomedWell] =
         useState<WellData | null>(null);
 
-    // Helper function to check if data is sub-chunked
-    const isSubChunkedData = (
-        data: WellDataInput
-    ): data is SubChunkedWellData => {
-        return (data as SubChunkedWellData).sub_chunks !== undefined;
-    };
-
-    // Helper function to serialize sub-chunk locations into unique keys
-    const serializeSubChunkKey = useCallback((subChunk: SubChunk): string => {
-        const { topLeft, bottomRight } = subChunk.location;
-        return `${topLeft.lat.toFixed(6)},${topLeft.lon.toFixed(
-            6
-        )}-${bottomRight.lat.toFixed(6)},${bottomRight.lon.toFixed(6)}`;
-    }, []);
-
     // Handle camera movement by updating camera position and currentSubChunkKey
     const handleCameraMove = useCallback(() => {
         if (!viewer) return;
@@ -129,6 +119,7 @@ const WaterWells: React.FC<WaterWellsProps> = ({
                 ) {
                     setCurrentSubChunkKey(serializedKey);
                 } else if (!processedWellDataMap.has(serializedKey)) {
+                    // Handle cases where the sub-chunk data is not yet processed
                 }
             } else {
                 if (currentSubChunkKey !== null) {
@@ -196,50 +187,6 @@ const WaterWells: React.FC<WaterWellsProps> = ({
             return;
         }
 
-        const processTerrainHeightsForSubChunk = (
-            subChunk: SubChunk
-        ): WellData[] => {
-            const data = subChunk.wells;
-            if (data.length === 0) return [];
-
-            const newWellData: WellData[] = data.map((well) => {
-                const cartographic = Cartographic.fromDegrees(
-                    well.longitude,
-                    well.latitude
-                );
-
-                const terrainHeight = globe.getHeight(cartographic);
-
-                if (terrainHeight === undefined) {
-                    console.warn(
-                        `Terrain height not available for well ID: ${well.StateWellID}`
-                    );
-                    // You can choose to set a default height or skip this well
-                    return { ...well };
-                }
-
-                const adjustedStartDepth = terrainHeight - well.startDepth;
-                const adjustedEndDepth = terrainHeight - well.endDepth;
-
-                const adjustedLayers = well.layers.map((layer) => ({
-                    ...layer,
-                    startDepth: terrainHeight - layer.startDepth,
-                    endDepth: terrainHeight - layer.endDepth,
-                    unAdjustedStartDepth: layer.startDepth,
-                    unAdjustedEndDepth: layer.endDepth,
-                }));
-
-                return {
-                    ...well,
-                    layers: adjustedLayers,
-                    startDepth: adjustedStartDepth,
-                    endDepth: adjustedEndDepth,
-                };
-            });
-
-            return newWellData;
-        };
-
         const processTerrainHeights = () => {
             if (isSubChunkedData(wellDataWithoutElevationAdjustments)) {
                 const subChunks =
@@ -248,8 +195,10 @@ const WaterWells: React.FC<WaterWellsProps> = ({
 
                 subChunks.forEach((subChunk) => {
                     const serializedKey = serializeSubChunkKey(subChunk);
-                    const newWellData =
-                        processTerrainHeightsForSubChunk(subChunk);
+                    const newWellData = processTerrainHeightsForSubChunk(
+                        subChunk,
+                        globe
+                    );
                     newProcessedData.set(serializedKey, newWellData);
                 });
 
@@ -273,7 +222,7 @@ const WaterWells: React.FC<WaterWellsProps> = ({
                         console.warn(
                             `Terrain height not available for well ID: ${well.StateWellID}`
                         );
-                        // You can choose to set a default height or skip this well
+                        // Optionally, set a default height or skip this well
                         return { ...well };
                     }
 
@@ -305,7 +254,7 @@ const WaterWells: React.FC<WaterWellsProps> = ({
         viewer,
         wellDataWithoutElevationAdjustments,
         serializeSubChunkKey,
-        // Removed handleCameraMove from dependencies
+        processTerrainHeightsForSubChunk,
     ]);
 
     // Trigger handleCameraMove when processedWellDataMap changes
