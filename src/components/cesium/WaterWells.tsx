@@ -5,14 +5,12 @@ import {
     Cartesian3,
     Cartographic,
     Math as CesiumMath,
-    CesiumTerrainProvider,
     Color,
     NearFarScalar,
     VerticalOrigin,
     Viewer,
 } from "cesium";
 import React, {
-    MutableRefObject,
     useCallback,
     useContext,
     useEffect,
@@ -22,7 +20,6 @@ import React, {
 } from "react";
 import {
     BillboardGraphics,
-    CesiumComponentRef,
     CustomDataSource,
     EllipseGraphics,
     Entity,
@@ -35,15 +32,13 @@ import { Layer, SubChunk, SubChunkedWellData, WellData } from "./types";
 type WellDataInput = WellData[] | SubChunkedWellData;
 
 interface WaterWellsProps {
-    terrainProvider: CesiumTerrainProvider | undefined | null;
     wellDataWithoutElevationAdjustments: WellDataInput;
-    viewerRef: MutableRefObject<CesiumComponentRef<Viewer> | null>;
+    viewer: Viewer | null;
 }
 
 const WaterWells: React.FC<WaterWellsProps> = ({
-    terrainProvider,
     wellDataWithoutElevationAdjustments,
-    viewerRef,
+    viewer,
 }) => {
     const heightWellShouldShowAboveSurface = 1;
     const heightMapIconShouldShowAboveWell = 20;
@@ -99,10 +94,8 @@ const WaterWells: React.FC<WaterWellsProps> = ({
 
     // Handle camera movement by updating camera position and currentSubChunkKey
     const handleCameraMove = useCallback(() => {
-        const viewer = viewerRef.current;
         if (!viewer) return;
 
-        const globe = viewer.scene.globe;
         const camera = viewer.camera;
         const cartographicPosition = Cartographic.fromCartesian(
             camera.position
@@ -151,7 +144,7 @@ const WaterWells: React.FC<WaterWellsProps> = ({
         // Update camera position state
         setCameraPosition(camera.position.clone());
     }, [
-        viewerRef,
+        viewer,
         wellDataWithoutElevationAdjustments,
         currentSubChunkKey,
         serializeSubChunkKey,
@@ -160,7 +153,6 @@ const WaterWells: React.FC<WaterWellsProps> = ({
 
     // Set up camera event listeners using moveStart and moveEnd
     useEffect(() => {
-        const viewer = viewerRef.current;
         if (!viewer) return;
 
         const onMoveStart = () => {
@@ -190,11 +182,10 @@ const WaterWells: React.FC<WaterWellsProps> = ({
                 clearInterval(intervalRef.current);
             }
         };
-    }, [handleCameraMove, viewerRef]);
+    }, [handleCameraMove, viewer]);
 
     // Process terrain heights using globe.getHeight
     useEffect(() => {
-        const viewer = viewerRef.current;
         if (!viewer) {
             return;
         }
@@ -311,7 +302,7 @@ const WaterWells: React.FC<WaterWellsProps> = ({
 
         processTerrainHeights();
     }, [
-        viewerRef,
+        viewer,
         wellDataWithoutElevationAdjustments,
         serializeSubChunkKey,
         // Removed handleCameraMove from dependencies
@@ -427,7 +418,6 @@ const WaterWells: React.FC<WaterWellsProps> = ({
     // Function to fly to or fly out from a well
     const flyToWell = useCallback(
         (well: WellData) => {
-            const viewer = viewerRef.current;
             if (!viewer) return;
 
             // Determine if we're already zoomed into this well
@@ -494,7 +484,7 @@ const WaterWells: React.FC<WaterWellsProps> = ({
                 },
             });
         },
-        [viewerRef, currentlyZoomedWell]
+        [viewer, currentlyZoomedWell]
     );
 
     // Handle click (single and double click)
@@ -582,14 +572,6 @@ const WaterWells: React.FC<WaterWellsProps> = ({
         serializeSubChunkKey,
     ]);
 
-    // Loading state indicator
-    const [isLoading, setIsLoading] = useState<boolean>(false);
-
-    // Render conditionally based on loading state
-    if (isLoading) {
-        return <div>Loading wells...</div>; // You can replace this with a spinner or other indicator
-    }
-
     if (dataToRender.length === 0) {
         return null; // Or render a message indicating no data
     }
@@ -613,7 +595,6 @@ const WaterWells: React.FC<WaterWellsProps> = ({
                 );
 
                 const eyeOffsetCallback = new CallbackProperty(() => {
-                    const viewer = viewerRef.current;
                     if (!viewer) return new Cartesian3(0, 0, -5000);
                     const cameraPos = viewer.camera.position;
                     const distance = Cartesian3.distance(

@@ -1,10 +1,6 @@
 // src/components/cesium/CesiumViewer.tsx
 
-import {
-    Cartesian3,
-    Color as CesiumColor,
-    Viewer as CesiumViewerInstance,
-} from "cesium";
+import { Color as CesiumColor, Viewer as CesiumViewerInstance } from "cesium";
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Viewer } from "resium";
@@ -20,12 +16,15 @@ import Tooltip from "./Tooltip";
 import WaterWells from "./WaterWells";
 import { Chunk, SubChunkedWellData, WellData } from "./types";
 
-import { createLocationKey } from "../../utilities/chunkUtils";
+import {
+    computeChunkOutlinePositions,
+    createLocationKey,
+} from "../../utilities/chunkUtils";
 
 // Custom hooks
-import useCameraControls from "./hooks/useCameraControls";
-import useQuadrants from "./hooks/useQuadrants";
-import useTerrainData from "./hooks/useTerrainData";
+import useCameraControls from "./CesiumViewerHooks/useCameraControls";
+import useQuadrants from "./CesiumViewerHooks/useQuadrants";
+import useTerrainData from "./CesiumViewerHooks/useTerrainData";
 
 const CesiumViewerComponent: React.FC = () => {
     // Constants
@@ -87,22 +86,9 @@ const CesiumViewerComponent: React.FC = () => {
         viewerReady, // Pass viewerReady to the hook
     });
 
-    // Calculate chunk outline positions based on current quadrant
+    // Calculate chunk outline positions based on current quadrant using the utility function
     const chunkOutlinePositions = useMemo(() => {
-        if (!currentQuadrant) return null;
-        const { topLeft, bottomRight } = currentQuadrant;
-
-        const topRight = { lat: topLeft.lat, lon: bottomRight.lon };
-        const bottomLeft = { lat: bottomRight.lat, lon: topLeft.lon };
-
-        const positions = [
-            Cartesian3.fromDegrees(topLeft.lon, topLeft.lat),
-            Cartesian3.fromDegrees(topRight.lon, topRight.lat),
-            Cartesian3.fromDegrees(bottomRight.lon, bottomRight.lat),
-            Cartesian3.fromDegrees(bottomLeft.lon, bottomLeft.lat),
-            Cartesian3.fromDegrees(topLeft.lon, topLeft.lat),
-        ];
-        return positions;
+        return computeChunkOutlinePositions(currentQuadrant);
     }, [currentQuadrant]);
 
     // Reposition toolbar on window resize
@@ -138,9 +124,12 @@ const CesiumViewerComponent: React.FC = () => {
         };
     }, []);
 
-    // Add a useEffect to log when showAggregations changes
-    useEffect(() => {}, [showAggregations, viewerRef.current, finishedLoading]);
+    // Add a useEffect to log when showAggregations changes (currently empty, consider adding logic)
+    useEffect(() => {
+        // You can add logging or other side effects here if needed
+    }, [showAggregations, viewerRef.current, finishedLoading]);
 
+    // Show loading spinner if terrain is loading
     if (isTerrainLoading || !terrainProvider) {
         return (
             <div className="flex items-center justify-center w-full h-full md:pr-[272px] bg-headerBackgroundColor z-50">
@@ -208,11 +197,10 @@ const CesiumViewerComponent: React.FC = () => {
                                         ? createLocationKey(currentQuadrant)
                                         : "no-quadrant"
                                 }
-                                terrainProvider={terrainProvider}
                                 wellDataWithoutElevationAdjustments={
                                     wellDataWithoutElevationAdjustments
                                 }
-                                viewerRef={viewerRef}
+                                viewer={viewerRef.current ?? null}
                             />
                         )}
 

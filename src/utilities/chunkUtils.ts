@@ -1,5 +1,6 @@
 // src/utils/chunkUtils.ts
 
+import { Cartesian3 } from "cesium";
 import { Chunk } from "../components/cesium/types";
 
 /**
@@ -55,4 +56,31 @@ export const calculateChunkKey = (
     };
 
     return { chunkKey, chunk };
+};
+
+/**
+ * Computes the chunk outline positions based on the current quadrant.
+ *
+ * @param currentQuadrant - The current chunk quadrant.
+ * @returns An array of Cartesian3 positions or null if currentQuadrant is not provided.
+ */
+export const computeChunkOutlinePositions = (
+    currentQuadrant: Chunk | null | undefined
+): Cartesian3[] | null => {
+    if (!currentQuadrant) return null;
+
+    const { topLeft, bottomRight } = currentQuadrant;
+
+    const topRight = { lat: topLeft.lat, lon: bottomRight.lon };
+    const bottomLeft = { lat: bottomRight.lat, lon: topLeft.lon };
+
+    const positions = [
+        Cartesian3.fromDegrees(topLeft.lon, topLeft.lat),
+        Cartesian3.fromDegrees(topRight.lon, topRight.lat),
+        Cartesian3.fromDegrees(bottomRight.lon, bottomRight.lat),
+        Cartesian3.fromDegrees(bottomLeft.lon, bottomLeft.lat),
+        Cartesian3.fromDegrees(topLeft.lon, topLeft.lat),
+    ];
+
+    return positions;
 };
