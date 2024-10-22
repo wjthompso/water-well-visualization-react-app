@@ -389,8 +389,6 @@ const WaterWells: React.FC<WaterWellsProps> = ({
     // Handle click (single and double click)
     const handleClick = useCallback(
         (well: WellData) => {
-            console.log("Received click for well:", well);
-
             // Double-click detection
             if (clickTimeoutRef.current !== null) {
                 clearTimeout(clickTimeoutRef.current);

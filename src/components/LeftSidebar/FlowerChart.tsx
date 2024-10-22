@@ -1,9 +1,9 @@
+// src/components/cesium/FlowerChart.tsx
+
 import React, { useEffect, useRef, useState } from "react";
 import { TooltipContext } from "../../context/AppContext"; // Adjust the import path as needed
+import { GroundMaterialType } from "../cesium/types";
 import { useContextSelector } from "./customHooks/useContextSelector";
-
-// Assuming GroundMaterialType and GroundMaterialTypeColor are enums or objects
-import { GroundMaterialType, GroundMaterialTypeColor } from "../cesium/types";
 
 interface PetalData {
     id: string;
@@ -31,33 +31,48 @@ const FlowerChart: React.FC = () => {
             return;
         }
 
-        const { startDepth, endDepth, layers } = selectedWellData;
-        const totalDepth = endDepth - startDepth;
+        const { layers } = selectedWellData;
+        const totalDepth =
+            selectedWellData.layers[selectedWellData.layers.length - 1]
+                .unAdjustedEndDepth -
+            selectedWellData.layers[0].unAdjustedStartDepth;
 
         // Ensure total depth is greater than 0
         if (totalDepth <= 0) return;
 
-        // Group layers by GroundMaterialType
-        const depthByType: { [key in GroundMaterialType]?: number } = {};
+        // Group layers by GroundMaterialType and accumulate depth and color
+        const depthByType: {
+            [key in GroundMaterialType]?: { depth: number; color: string };
+        } = {};
 
         layers.forEach((layer) => {
+            const layerDepth = Math.abs(
+                layer.unAdjustedEndDepth - layer.unAdjustedStartDepth
+            );
+
             layer.type.forEach((type) => {
-                const depth = layer.endDepth - layer.startDepth;
-                depthByType[type] = (depthByType[type] || 0) + Math.abs(depth);
+                if (depthByType[type]) {
+                    // If the type already exists, add the depth
+                    depthByType[type]!.depth += layerDepth;
+                } else {
+                    // Otherwise, initialize with the layer's depth and color
+                    depthByType[type] = {
+                        depth: layerDepth,
+                        color: layer.color, // Use the layer's color directly
+                    };
+                }
             });
         });
 
         // Calculate percentage and prepare petal data
         const newPetalData: PetalData[] = Object.entries(depthByType).map(
-            ([type, depth]) => ({
+            ([type, data]) => ({
                 id: type,
                 name: GroundMaterialType[
                     type as keyof typeof GroundMaterialType
                 ],
-                value: depth! / totalDepth,
-                color: GroundMaterialTypeColor[
-                    type as keyof typeof GroundMaterialTypeColor
-                ],
+                value: data!.depth / totalDepth,
+                color: data!.color, // Use the consistent color for this type
             })
         );
 
@@ -119,7 +134,7 @@ const FlowerChart: React.FC = () => {
             path.addEventListener("mouseover", () => {
                 chart.querySelectorAll("path.aster__solid-arc").forEach((p) => {
                     if (p !== path) {
-                        p.setAttribute("fill", "#d3d3d3");
+                        p.setAttribute("fill", "#333333"); // Dark gray
                     }
                 });
                 setCenterText(`${(d.value * 100).toFixed(0)}%`);
@@ -215,7 +230,7 @@ const FlowerChart: React.FC = () => {
                                 key={index}
                                 className={`flex items-center ${
                                     hoveredSlice && hoveredSlice !== domain.name
-                                        ? "text-gray-400 opacity-50"
+                                        ? "text-gray-700 opacity-50" // Dark gray text
                                         : "text-white opacity-100"
                                 }`}
                             >
@@ -225,7 +240,7 @@ const FlowerChart: React.FC = () => {
                                         backgroundColor:
                                             hoveredSlice &&
                                             hoveredSlice !== domain.name
-                                                ? "#d3d3d3"
+                                                ? "#333333" // Dark gray background
                                                 : domain.color,
                                     }}
                                 ></div>
