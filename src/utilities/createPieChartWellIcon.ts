@@ -1,85 +1,166 @@
-import { WellData } from "../components/cesium/types";
+// createPieChartWellIcon.ts
 
-const pieChartCache = new Map<string, string>();
+import { Layer, WellData } from "../components/cesium/types";
 
+// Initialize a cache to store generated pie chart data URLs
+const pieChartCache: Map<string, string> = new Map();
+
+/**
+ * Creates a pie chart icon representing the composition of well layers.
+ * @param well - The well data containing layers with depth and color information.
+ * @returns A data URL representing the pie chart image.
+ */
 export function createPieChartWellIcon(well: WellData): string {
-    // Check if the result is already cached
-    const wellID = well.StateWellID ?? "";
+    // Ensure that StateWellID is non-null
+    const wellID: string = well.StateWellID ?? "";
+
+    if (!wellID) {
+        console.warn("Well ID is missing. Using default icon.");
+        return createDefaultIcon(50);
+    }
+
+    // Return cached data URL if available
     if (pieChartCache.has(wellID)) {
         return pieChartCache.get(wellID)!;
     }
-    const baseSize = 50;
-    const scaleFactor = 1; // Try a lower value
-    const radius = baseSize * scaleFactor;
-    const centerX = radius;
-    const centerY = radius;
 
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
+    const baseSize: number = 50;
+    const scaleFactor: number = 1;
+    const radius: number = baseSize * scaleFactor;
+    const centerX: number = radius;
+    const centerY: number = radius;
+
+    const canvas: HTMLCanvasElement = document.createElement("canvas");
+    const ctx: CanvasRenderingContext2D | null = canvas.getContext("2d");
 
     canvas.width = radius * 2;
     canvas.height = radius * 2;
 
     if (!ctx) {
-        throw new Error("Canvas not supported");
+        console.warn("Canvas not supported. Using default icon.");
+        const dataUrl = createDefaultIcon(radius);
+        pieChartCache.set(wellID, dataUrl);
+        return dataUrl;
     }
 
-    // Group slices by color and sum up their fractions
-    const groupedSlices: { color: string; fraction: number }[] = [];
+    const firstLayer = well.layers[0];
+    const lastLayer = well.layers[well.layers.length - 1];
+    const totalDepth: number = Math.abs(
+        lastLayer.unAdjustedEndDepth - firstLayer.unAdjustedStartDepth
+    );
 
-    well.layers.forEach((layer) => {
-        const fraction =
-            (layer.endDepth - layer.startDepth) /
-            (well.endDepth - well.startDepth);
-        const existingSlice = groupedSlices.find(
-            (slice) => slice.color === layer.color
+    if (totalDepth <= 0) {
+        console.warn(
+            `Invalid total depth for well ID ${wellID}. Using default icon.`
         );
+        const dataUrl = createDefaultIcon(radius);
+        pieChartCache.set(wellID, dataUrl);
+        return dataUrl;
+    }
 
-        if (existingSlice) {
-            existingSlice.fraction += fraction; // Combine fractions
-        } else {
-            groupedSlices.push({ color: layer.color, fraction });
+    // Group layers by color and sum their depths
+    const colorSumMap: Map<string, number> = new Map();
+
+    well.layers.forEach((layer: Layer) => {
+        const layerDepth: number =
+            layer.unAdjustedEndDepth - layer.unAdjustedStartDepth;
+        if (layerDepth > 0) {
+            colorSumMap.set(
+                layer.color,
+                (colorSumMap.get(layer.color) ?? 0) + layerDepth
+            );
         }
     });
 
-    // Check if there's only one grouped slice (all layers have the same color)
-    if (groupedSlices.length === 1) {
-        // Fill the entire circle with that one color
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-        ctx.closePath();
-        ctx.fillStyle = groupedSlices[0].color;
-        ctx.fill();
-    } else {
-        let currentAngle = 0;
+    if (colorSumMap.size === 0) {
+        console.warn(
+            `No valid layers for well ID ${wellID}. Using default icon.`
+        );
+        const dataUrl = createDefaultIcon(radius);
+        pieChartCache.set(wellID, dataUrl);
+        return dataUrl;
+    }
 
-        // Draw the grouped slices
-        groupedSlices.forEach((slice) => {
-            const sliceAngle = slice.fraction * 2 * Math.PI;
+    // Calculate fractions and prepare slices
+    const slices: { color: string; fraction: number }[] = [];
+    colorSumMap.forEach((sumDepth, color) => {
+        slices.push({
+            color,
+            fraction: sumDepth / totalDepth,
+        });
+    });
 
-            ctx.beginPath();
-            ctx.moveTo(centerX, centerY);
-            ctx.arc(
-                centerX,
-                centerY,
-                radius,
-                currentAngle,
-                currentAngle + sliceAngle
-            );
-            ctx.closePath();
+    // Normalize fractions to ensure they sum to 1
+    const totalFraction: number = slices.reduce(
+        (sum, slice) => sum + slice.fraction,
+        0
+    );
+    const precision: number = 1e-6;
 
-            ctx.fillStyle = slice.color;
-            ctx.fill();
-
-            currentAngle += sliceAngle;
+    if (Math.abs(totalFraction - 1) > precision) {
+        slices.forEach((slice) => {
+            slice.fraction /= totalFraction;
         });
     }
 
-    // Convert high-res canvas to PNG URL
-    const dataUrl = canvas.toDataURL("image/png");
+    // Draw the pie chart
+    let currentAngle: number = 0;
 
-    // Store the result in the cache
+    slices.forEach((slice, index) => {
+        const sliceAngle: number = slice.fraction * 2 * Math.PI;
+        const isLastSlice: boolean = index === slices.length - 1;
+        const finalAngle: number = isLastSlice
+            ? 2 * Math.PI
+            : currentAngle + sliceAngle;
+
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radius, currentAngle, finalAngle);
+        ctx.closePath();
+
+        ctx.fillStyle = slice.color;
+        ctx.fill();
+
+        currentAngle += sliceAngle;
+    });
+
+    // Handle any minor discrepancies
+    if (currentAngle < 2 * Math.PI - precision) {
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radius, currentAngle, 2 * Math.PI);
+        ctx.closePath();
+
+        ctx.fillStyle = "#CCCCCC"; // Default gray color
+        ctx.fill();
+    }
+
+    const dataUrl: string = canvas.toDataURL("image/png");
     pieChartCache.set(wellID, dataUrl);
 
     return dataUrl;
+}
+
+/**
+ * Creates a default gray icon.
+ * @param radius - The radius of the circle.
+ * @returns A data URL representing the default icon.
+ */
+function createDefaultIcon(radius: number): string {
+    const canvas: HTMLCanvasElement = document.createElement("canvas");
+    const ctx: CanvasRenderingContext2D | null = canvas.getContext("2d");
+    canvas.width = radius * 2;
+    canvas.height = radius * 2;
+
+    if (ctx) {
+        const centerX: number = radius;
+        const centerY: number = radius;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+        ctx.fillStyle = "#CCCCCC"; // Default gray color
+        ctx.fill();
+        return canvas.toDataURL("image/png");
+    } else {
+        return ""; // Fallback if canvas is not supported
+    }
 }
