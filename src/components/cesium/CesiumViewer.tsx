@@ -20,6 +20,7 @@ import {
     computeChunkOutlinePositions,
     createLocationKey,
 } from "../../utilities/chunkUtils";
+import LeftSidebar from "../LeftSidebar/LeftSidebar";
 
 // Custom hooks
 import useCameraControls from "./CesiumViewerHooks/useCameraControls";
@@ -149,6 +150,7 @@ const CesiumViewerComponent: React.FC = () => {
                     <LoadingSpinner />
                 </div>
             )}
+            <LeftSidebar />
             <CustomSearchBar
                 viewer={viewerRef.current ?? undefined}
                 searchBarRef={searchBarRef}
