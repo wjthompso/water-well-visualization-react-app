@@ -389,10 +389,7 @@ const WaterWells: React.FC<WaterWellsProps> = ({
     // Handle click (single and double click)
     const handleClick = useCallback(
         (well: WellData) => {
-            // Prevent handling clicks while the camera is moving
-            if (isCameraMoving) {
-                return;
-            }
+            console.log("Received click for well:", well);
 
             // Double-click detection
             if (clickTimeoutRef.current !== null) {
@@ -402,7 +399,11 @@ const WaterWells: React.FC<WaterWellsProps> = ({
                 // Handle double-click: Fly to or fly out from the well
                 flyToWell(well);
             } else {
-                if (selectedWellData?.StateWellID !== well.StateWellID) {
+                if (
+                    selectedWellData?.StateWellID !== well.StateWellID &&
+                    selectedWellData?.latitude !== well.latitude &&
+                    selectedWellData?.longitude !== well.longitude
+                ) {
                     setSelectedWellData(well);
                 }
                 // Handle single-click: Select the well data
@@ -412,7 +413,7 @@ const WaterWells: React.FC<WaterWellsProps> = ({
                 }, 250); // Timeout duration in milliseconds
             }
         },
-        [isCameraMoving, flyToWell, setSelectedWellData]
+        [isCameraMoving, selectedWellData, flyToWell, setSelectedWellData]
     );
 
     // Clean up the click timeout on unmount
