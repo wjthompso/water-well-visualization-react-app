@@ -50,7 +50,7 @@ const WaterWells: React.FC<WaterWellsProps> = ({
     const [wellDataWithHeights, setWellDataWithHeights] = useState<WellData[]>(
         []
     );
-    const { setTooltipString, setTooltipX, setTooltipY, setSelectedWellData } =
+    const { selectedWellData, setSelectedWellData } =
         useContext(TooltipContext);
 
     const maxRenderDistance = 1609.34 * 2; // 2 miles in meters
@@ -314,56 +314,6 @@ const WaterWells: React.FC<WaterWellsProps> = ({
         });
     }, [cameraPosition, dataToRender, maxRenderDistance]);
 
-    // Handle mouse movement for tooltips
-    const handleMouseMove = useCallback(
-        (event: MouseEvent) => {
-            setTooltipX(event.clientX);
-            setTooltipY(event.clientY);
-        },
-        [setTooltipX, setTooltipY]
-    );
-
-    useEffect(() => {
-        document.addEventListener("mousemove", handleMouseMove);
-
-        return () => {
-            document.removeEventListener("mousemove", handleMouseMove);
-        };
-    }, [handleMouseMove]);
-
-    // Handle mouse over on well layers
-    const handleMouseOver = useCallback(
-        (well: WellData, layerIndex: number) => {
-            const layer = well.layers[layerIndex];
-            const types = layer.type;
-            const stringDescription = layer.description;
-            const startDepth =
-                Math.round(layer.unAdjustedStartDepth * 100) / 100;
-            const endDepth = Math.round(layer.unAdjustedEndDepth * 100) / 100;
-            setTooltipString({
-                startDepth,
-                endDepth,
-                lithologyDescription: stringDescription,
-                type: types,
-            });
-        },
-        [setTooltipString]
-    );
-
-    // Handle mouse out from well layers
-    const handleMouseOut = useCallback(() => {
-        setTooltipString("");
-    }, [setTooltipString]);
-
-    // Handle mouse over on well icon
-    const handleIconMouseOver = useCallback(
-        (well: WellData) => {
-            const StateWellID = well.StateWellID;
-            setTooltipString(`${StateWellID}`);
-        },
-        [setTooltipString]
-    );
-
     // Function to fly to or fly out from a well
     const flyToWell = useCallback(
         (well: WellData) => {
@@ -452,7 +402,9 @@ const WaterWells: React.FC<WaterWellsProps> = ({
                 // Handle double-click: Fly to or fly out from the well
                 flyToWell(well);
             } else {
-                setSelectedWellData(well);
+                if (selectedWellData?.StateWellID !== well.StateWellID) {
+                    setSelectedWellData(well);
+                }
                 // Handle single-click: Select the well data
                 clickTimeoutRef.current = setTimeout(() => {
                     // Clear the timeout
@@ -565,8 +517,6 @@ const WaterWells: React.FC<WaterWellsProps> = ({
                             key={`billboard_${wellIndex}`}
                             position={indicatorStartPosition}
                             onClick={() => handleClick(well)}
-                            onMouseMove={() => handleIconMouseOver(well)}
-                            onMouseLeave={handleMouseOut}
                         >
                             <BillboardGraphics
                                 image={createPieChartWellIcon(well)}
@@ -598,10 +548,6 @@ const WaterWells: React.FC<WaterWellsProps> = ({
                                         key={`cylinder_${wellIndex}_${layerIndex}`}
                                         position={layerStartPositionCartesian}
                                         onClick={() => handleClick(well)}
-                                        onMouseMove={() =>
-                                            handleMouseOver(well, layerIndex)
-                                        }
-                                        onMouseLeave={handleMouseOut}
                                     >
                                         <EllipseGraphics
                                             semiMinorAxis={5.0}
