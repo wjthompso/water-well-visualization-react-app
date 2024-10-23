@@ -20,7 +20,7 @@ const Sidebar: React.FC = () => {
                     isOpen ? "translate-x-0" : "-translate-x-full"
                 } w-64 border-r-[1px] border-borderColor`}
             >
-                <div className="relative p-4">
+                <div className="relative hidden p-4 md:block">
                     {/* X button to close the sidebar */}
                     <button
                         onClick={toggleSidebar}
@@ -58,7 +58,7 @@ const Sidebar: React.FC = () => {
             {!isOpen && (
                 <button
                     onClick={toggleSidebar}
-                    className="absolute z-20 p-2 text-white border-borderColor rounded-md border-[1px] bg-headerBackgroundColor top-4 left-4 focus:outline-none"
+                    className="absolute z-20 p-[calc(0.4rem-(1.8px/2))] text-white border-borderColor rounded-md border-[1px] bg-headerBackgroundColor top-[6.4px] left-2 focus:outline-none"
                 >
                     <svg
                         className="w-6 h-6"
