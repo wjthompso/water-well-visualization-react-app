@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { TooltipContext } from "../../context/AppContext"; // Adjust the import path as needed
+import { formatGroundMaterialType } from "../../utilities/formatGroundMaterialType";
 import { GroundMaterialType } from "../cesium/types";
 import { useContextSelector } from "./customHooks/useContextSelector";
 
@@ -11,18 +12,6 @@ interface PetalData {
     color: string;
     name: string;
 }
-
-const formatDomainName = (name: string) => {
-    const [firstPart, secondPart] = name.split(":");
-    if (!secondPart) {
-        return <b>{firstPart}</b>;
-    }
-    return (
-        <>
-            <b>{firstPart}</b>, {secondPart}
-        </>
-    );
-};
 
 const FlowerChart: React.FC = () => {
     const chartRef = useRef<SVGGElement | null>(null);
@@ -57,6 +46,7 @@ const FlowerChart: React.FC = () => {
             [key in GroundMaterialType]?: { depth: number; color: string };
         } = {};
 
+        // Group the layers by GroundMaterialType and accumulate depth
         layers.forEach((layer) => {
             const layerDepth = Math.abs(
                 layer.unAdjustedEndDepth - layer.unAdjustedStartDepth
@@ -76,6 +66,7 @@ const FlowerChart: React.FC = () => {
             });
         });
 
+        // Convert the depthByType object into an array of PetalData
         const reverseGroundMaterialTypeMap = Object.entries(
             GroundMaterialType
         ).reduce((acc, [key, value]) => {
@@ -238,7 +229,7 @@ const FlowerChart: React.FC = () => {
                 </svg>
             </div>
             {petalData.length > 0 && (
-                <div className="mt-4 mb-2 ml-1">
+                <div className="mt-10 mb-4 ml-1">
                     <h1 className="pb-2 text-sm font-bold font-BeVietnamPro text-leftSidebarOverallResilience">
                         Legend
                     </h1>
@@ -267,7 +258,7 @@ const FlowerChart: React.FC = () => {
                                 ></div>
                                 <p className="text-xs font-BeVietnamPro">
                                     {/* ({(domain.value * 100).toFixed(1)}%){" "} */}
-                                    {formatDomainName(domain.name)}
+                                    {formatGroundMaterialType(domain.name)}
                                 </p>
                             </div>
                         ))}

@@ -7,20 +7,6 @@ const Sidebar: React.FC = () => {
     const [isOpen, setIsOpen] = useState<boolean>(true);
     const percentage = 50;
 
-    // Example data for the flower chart (adjust this structure as needed)
-    const lithologyScores = {
-        overall_resilience: 0.9, // Example score for overall resilience
-        air: 0.72,
-        water: 0.91,
-        ecosystems: 0.8,
-        biodiversity: 0.72,
-        infrastructure: 1.0,
-        social: 0.64,
-        economy: 0.9,
-        culture: 0.05,
-        carbon: 0.84,
-    };
-
     // Toggle sidebar visibility
     const toggleSidebar = () => {
         setIsOpen(!isOpen);
@@ -56,15 +42,15 @@ const Sidebar: React.FC = () => {
                         </svg>
                     </button>
                     {/* Sidebar Content */}
-                    <h1 className="text-xl font-bold">Sidebar Content</h1>
-                    <p className="mt-4">Your sidebar content goes here.</p>
+                    <h1 className="text-xl font-bold">Dominant Lithology</h1>
                     <CircularProgressBar percentage={percentage} />
-
                     {/* Lithology Breakdown Flower Chart */}
-                    <h1 className="mt-6 mb-4 text-xl font-bold">
+                    <hr className="relative left-0 right-0 px-4 -mx-4 my-4 border-t-[0.5px] border-[#808080]" />
+
+                    <h1 className="mt-4 text-xl font-bold">
                         Lithology Breakdown
                     </h1>
-                    <FlowerChart domainScores={lithologyScores} />
+                    <FlowerChart />
                 </div>
             </div>
 
