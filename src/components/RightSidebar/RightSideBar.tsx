@@ -1,5 +1,6 @@
 import React, { useContext, useState } from "react";
 import { TooltipContext } from "../../context/AppContext"; // adjust the import path as needed
+import DownloadCSVButton from "../Buttons/DownloadCSVButton";
 import MetersOrFeetToggleButton from "../ToggleButtons/MetersOrFeetToggleButton";
 import WellLithologyTable from "../WellLithologyTable/WellLithologyTable";
 
@@ -60,7 +61,20 @@ const RightSideBar: React.FC = () => {
                                 id="lithology-breakdown"
                                 className="text-white"
                             >
-                                <h1 className="text-xl font-[600] mb-2 font-roboto text-white">
+                                <div
+                                    id="divider-line"
+                                    className="relative left-[-1.4rem] w-[calc(100%+2.8rem)] h-[0.5px] bg-borderColor mb-2"
+                                ></div>
+
+                                <DownloadCSVButton
+                                    selectedWellData={selectedWellData}
+                                />
+                                <div
+                                    id="divider-line"
+                                    className="relative left-[-1.4rem] w-[calc(100%+2.8rem)] h-[0.5px] mt-2 bg-borderColor"
+                                ></div>
+
+                                <h1 className="text-xl font-[600] mt-2 mb-2 font-roboto text-white">
                                     Lithology breakdown
                                 </h1>
 
