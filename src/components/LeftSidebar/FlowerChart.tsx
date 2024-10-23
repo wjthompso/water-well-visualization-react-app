@@ -12,6 +12,18 @@ interface PetalData {
     name: string;
 }
 
+const formatDomainName = (name: string) => {
+    const [firstPart, secondPart] = name.split(":");
+    if (!secondPart) {
+        return <b>{firstPart}</b>;
+    }
+    return (
+        <>
+            <b>{firstPart}</b>, {secondPart}
+        </>
+    );
+};
+
 const FlowerChart: React.FC = () => {
     const chartRef = useRef<SVGGElement | null>(null);
     const legendRef = useRef<HTMLDivElement | null>(null);
@@ -64,133 +76,39 @@ const FlowerChart: React.FC = () => {
             });
         });
 
-        // Calculate percentage and prepare petal data
-        const newPetalData: PetalData[] = Object.entries(depthByType).map(
-            ([type, data]) => ({
-                id: type,
-                name: GroundMaterialType[
-                    type as keyof typeof GroundMaterialType
-                ],
-                value: data!.depth / totalDepth,
-                color: data!.color, // Use the consistent color for this type
+        const reverseGroundMaterialTypeMap = Object.entries(
+            GroundMaterialType
+        ).reduce((acc, [key, value]) => {
+            acc[value] = key; // Map the string value to the enum key
+            return acc;
+        }, {} as { [key: string]: string });
+
+        // Now, inside your map function:
+        const newPetalData: PetalData[] = Object.entries(depthByType)
+            .map(([type, data]) => {
+                const enumKey = reverseGroundMaterialTypeMap[type];
+                if (!enumKey) {
+                    console.warn(
+                        `No matching enum key found for type: ${type}`
+                    );
+                    return null;
+                }
+                return {
+                    id: enumKey,
+                    name: GroundMaterialType[
+                        enumKey as keyof typeof GroundMaterialType
+                    ],
+                    value: data!.depth / totalDepth,
+                    color: data!.color,
+                };
             })
-        );
+            .filter((petal) => petal !== null)
+            .sort((a, b) => b!.value - a!.value) as PetalData[];
+
+        console.log("newPetalData", newPetalData);
 
         setPetalData(newPetalData);
     }, [selectedWellData]);
-
-    useEffect(() => {
-        const chart = chartRef.current;
-        if (!chart) return;
-
-        // Clear previous petals
-        while (chart.firstChild) {
-            chart.removeChild(chart.firstChild);
-        }
-
-        if (petalData.length === 0) return;
-
-        const totalArcs = petalData.length;
-        const arcAngle = (2 * Math.PI) / totalArcs;
-        const offsetAngle = Math.PI / 2; // Starting angle
-
-        petalData.forEach((d, i) => {
-            const startAngle = i * arcAngle - offsetAngle;
-            const endAngle = startAngle + arcAngle;
-            const innerRadius = 40;
-            const outerRadius = innerRadius + d.value * 125;
-
-            const x0 = Math.cos(startAngle) * innerRadius;
-            const y0 = Math.sin(startAngle) * innerRadius;
-            const x1 = Math.cos(endAngle) * innerRadius;
-            const y1 = Math.sin(endAngle) * innerRadius;
-            const x2 = Math.cos(endAngle) * outerRadius;
-            const y2 = Math.sin(endAngle) * outerRadius;
-            const x3 = Math.cos(startAngle) * outerRadius;
-            const y3 = Math.sin(startAngle) * outerRadius;
-
-            const largeArcFlag = endAngle - startAngle <= Math.PI ? "0" : "1";
-
-            const pathData = [
-                `M ${x0} ${y0}`,
-                `A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 1 ${x1} ${y1}`,
-                `L ${x2} ${y2}`,
-                `A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 0 ${x3} ${y3}`,
-                `Z`,
-            ].join(" ");
-
-            const path = document.createElementNS(
-                "http://www.w3.org/2000/svg",
-                "path"
-            );
-            path.setAttribute("d", pathData);
-            path.setAttribute("fill", d.color);
-            path.setAttribute(
-                "class",
-                "aster__solid-arc transition-colors duration-100 ease-out"
-            );
-
-            // Add event listeners for hover effect
-            path.addEventListener("mouseover", () => {
-                chart.querySelectorAll("path.aster__solid-arc").forEach((p) => {
-                    if (p !== path) {
-                        p.setAttribute("fill", "#333333"); // Dark gray
-                    }
-                });
-                setCenterText(`${(d.value * 100).toFixed(0)}%`);
-                setTextColor(d.color);
-                setHoveredSlice(d.name);
-            });
-
-            path.addEventListener("mouseout", () => {
-                chart
-                    .querySelectorAll("path.aster__solid-arc")
-                    .forEach((p, index) => {
-                        p.setAttribute("fill", petalData[index].color);
-                    });
-                setCenterText("--");
-                setTextColor("currentColor");
-                setHoveredSlice(null);
-            });
-
-            chart.appendChild(path);
-
-            // Add outline arc
-            const outlineRadius = innerRadius + 125;
-            const outlinePathData = [
-                `M ${Math.cos(startAngle) * innerRadius} ${
-                    Math.sin(startAngle) * innerRadius
-                }`,
-                `A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 1 ${
-                    Math.cos(endAngle) * innerRadius
-                } ${Math.sin(endAngle) * innerRadius}`,
-                `L ${Math.cos(endAngle) * outlineRadius} ${
-                    Math.sin(endAngle) * outlineRadius
-                }`,
-                `A ${outlineRadius} ${outlineRadius} 0 ${largeArcFlag} 0 ${
-                    Math.cos(startAngle) * outlineRadius
-                } ${Math.sin(startAngle) * outlineRadius}`,
-                `Z`,
-            ].join(" ");
-
-            const outlinePath = document.createElementNS(
-                "http://www.w3.org/2000/svg",
-                "path"
-            );
-            outlinePath.setAttribute("d", outlinePathData);
-            outlinePath.setAttribute("fill", "none");
-            outlinePath.setAttribute("stroke", "#ededf1");
-            outlinePath.setAttribute("stroke-width", "1");
-            chart.appendChild(outlinePath);
-        });
-
-        return () => {
-            // Cleanup on unmount or data change
-            while (chart.firstChild) {
-                chart.removeChild(chart.firstChild);
-            }
-        };
-    }, [petalData]);
 
     return (
         <div>
@@ -206,13 +124,116 @@ const FlowerChart: React.FC = () => {
                         ref={chartRef}
                     >
                         <text
-                            className="text-3xl font-bold text-center"
+                            className="text-2xl font-bold text-center"
                             dy=".35em"
                             textAnchor="middle"
-                            fill={textColor}
+                            fill={"white"}
                         >
                             {centerText}
                         </text>
+                        {petalData.map((d: PetalData, i) => {
+                            const totalArcs = petalData.length;
+                            const arcAngle = (2 * Math.PI) / totalArcs;
+                            const offsetAngle = Math.PI / 2; // Starting angle
+
+                            const startAngle = i * arcAngle - offsetAngle;
+                            const endAngle = startAngle + arcAngle;
+                            const innerRadius = 40;
+                            const outerRadius = innerRadius + d.value * 125;
+
+                            const x0 = Math.cos(startAngle) * innerRadius;
+                            const y0 = Math.sin(startAngle) * innerRadius;
+                            const x1 = Math.cos(endAngle) * innerRadius;
+                            const y1 = Math.sin(endAngle) * innerRadius;
+                            const x2 = Math.cos(endAngle) * outerRadius;
+                            const y2 = Math.sin(endAngle) * outerRadius;
+                            const x3 = Math.cos(startAngle) * outerRadius;
+                            const y3 = Math.sin(startAngle) * outerRadius;
+
+                            const largeArcFlag =
+                                endAngle - startAngle <= Math.PI ? "0" : "1";
+
+                            const pathData = [
+                                `M ${x0} ${y0}`,
+                                `A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 1 ${x1} ${y1}`,
+                                `L ${x2} ${y2}`,
+                                `A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 0 ${x3} ${y3}`,
+                                `Z`,
+                            ].join(" ");
+
+                            // Outline path data
+                            const outlineRadius = innerRadius + 125;
+                            const outlinePathData = [
+                                `M ${Math.cos(startAngle) * innerRadius} ${
+                                    Math.sin(startAngle) * innerRadius
+                                }`,
+                                `A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 1 ${
+                                    Math.cos(endAngle) * innerRadius
+                                } ${Math.sin(endAngle) * innerRadius}`,
+                                `L ${Math.cos(endAngle) * outlineRadius} ${
+                                    Math.sin(endAngle) * outlineRadius
+                                }`,
+                                `A ${outlineRadius} ${outlineRadius} 0 ${largeArcFlag} 0 ${
+                                    Math.cos(startAngle) * outlineRadius
+                                } ${Math.sin(startAngle) * outlineRadius}`,
+                                `Z`,
+                            ].join(" ");
+
+                            // Invisible overlay path data
+                            const overlayRadius = innerRadius + 125; // Match the outer radius of the main circle
+                            const overlayPathData = [
+                                `M ${x0} ${y0}`,
+                                `A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 1 ${x1} ${y1}`,
+                                `L ${Math.cos(endAngle) * overlayRadius} ${
+                                    Math.sin(endAngle) * overlayRadius
+                                }`,
+                                `A ${overlayRadius} ${overlayRadius} 0 ${largeArcFlag} 0 ${
+                                    Math.cos(startAngle) * overlayRadius
+                                } ${Math.sin(startAngle) * overlayRadius}`,
+                                `Z`,
+                            ].join(" ");
+
+                            return (
+                                <React.Fragment key={`petal-${d.id}`}>
+                                    <path
+                                        d={pathData}
+                                        fill={
+                                            hoveredSlice &&
+                                            hoveredSlice !== d.name
+                                                ? "#333333" // Dark gray for non-hovered slices
+                                                : d.color
+                                        }
+                                        className="transition-colors duration-100 ease-out aster__solid-arc"
+                                    />
+                                    <path
+                                        d={outlinePathData}
+                                        fill="none"
+                                        stroke="#ededf1"
+                                        strokeWidth="1"
+                                    />
+                                    <path
+                                        d={overlayPathData}
+                                        fill="transparent"
+                                        onMouseOver={() => {
+                                            setHoveredSlice(d.name);
+                                            console.log(
+                                                "hovered d.name",
+                                                d.name
+                                            );
+                                            setCenterText(
+                                                `${(d.value * 100).toFixed(0)}%`
+                                            );
+                                            setTextColor(d.color);
+                                        }}
+                                        onMouseOut={() => {
+                                            setHoveredSlice(null);
+                                            setCenterText("--");
+                                            setTextColor("currentColor");
+                                        }}
+                                    />
+                                </React.Fragment>
+                            );
+                        })}
                     </g>
                 </svg>
             </div>
@@ -228,14 +249,14 @@ const FlowerChart: React.FC = () => {
                         {petalData.map((domain, index) => (
                             <div
                                 key={index}
-                                className={`flex items-center ${
+                                className={`flex items-start ${
                                     hoveredSlice && hoveredSlice !== domain.name
                                         ? "text-gray-700 opacity-50" // Dark gray text
                                         : "text-white opacity-100"
                                 }`}
                             >
                                 <div
-                                    className={`mr-2 h-[14px] w-[14px] rounded-sm transition-colors duration-100 ease-out`}
+                                    className={`mr-2 mt-[2px] min-h-[14px] min-w-[14px] rounded-sm transition-colors duration-100 ease-out`}
                                     style={{
                                         backgroundColor:
                                             hoveredSlice &&
@@ -245,8 +266,8 @@ const FlowerChart: React.FC = () => {
                                     }}
                                 ></div>
                                 <p className="text-xs font-BeVietnamPro">
-                                    {domain.name} (
-                                    {(domain.value * 100).toFixed(1)}%)
+                                    {/* ({(domain.value * 100).toFixed(1)}%){" "} */}
+                                    {formatDomainName(domain.name)}
                                 </p>
                             </div>
                         ))}
