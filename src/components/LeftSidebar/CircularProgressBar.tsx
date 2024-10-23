@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { TooltipContext } from "../../context/AppContext";
 import { formatGroundMaterialType } from "../../utilities/formatGroundMaterialType";
 import { GroundMaterialType, GroundMaterialTypeColor } from "../cesium/types";
@@ -9,6 +9,8 @@ const CircularProgressBar: React.FC<CircularProgressBarProps> = () => {
     const radius = 60;
     const circumference = 2 * Math.PI * radius;
     const { selectedWellData } = useContext(TooltipContext);
+    const [lithologyPercentage, setLithologyPercentage] = useState(0);
+    const [color, setColor] = useState("#D3D3D3");
     let mostFrequentLithologyString = "";
 
     // Function to calculate the most frequent lithology
@@ -58,8 +60,12 @@ const CircularProgressBar: React.FC<CircularProgressBarProps> = () => {
         return { percentage: lithologyPercentage, color };
     };
 
-    const { percentage: lithologyPercentage, color } =
-        calculateLithologyPercentage();
+    useEffect(() => {
+        const { percentage, color } = calculateLithologyPercentage();
+        setLithologyPercentage(percentage);
+        setColor(color);
+    }, [selectedWellData]);
+
     const dashOffset =
         circumference - (circumference * lithologyPercentage) / 100;
 
@@ -77,7 +83,10 @@ const CircularProgressBar: React.FC<CircularProgressBarProps> = () => {
                         cy="50%"
                     />
                     <circle
-                        style={{ stroke: color }}
+                        style={{
+                            stroke: color,
+                            transition: "stroke-dashoffset 0.5s ease-out",
+                        }}
                         strokeWidth="25"
                         strokeDasharray={circumference}
                         strokeDashoffset={dashOffset}
