@@ -4,6 +4,9 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import DownArrow from "../../assets/DownArrow.svg"; // Assume you have a DownArrow SVG
 import UpArrow from "../../assets/UpArrow.svg";
 import { TooltipContext } from "../../context/AppContext"; // adjust the import path as needed
+import CircularProgressBar from "../LeftSidebar/CircularProgressBar";
+import FlowerChart from "../LeftSidebar/FlowerChart";
+import MetersOrFeetToggleButton from "../ToggleButtons/MetersOrFeetToggleButton";
 import WellLithologyTable from "../WellLithologyTable/WellLithologyTable";
 
 interface DraggableComponentProps {
@@ -20,6 +23,7 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
     const heightOfSearchBarRef = useRef(45);
     const componentLeftMarginRef = useRef(8);
     const { selectedWellData } = useContext(TooltipContext);
+    const [metersOrFeet, setMetersOrFeet] = useState<"meters" | "feet">("feet");
 
     const [isExpanded, setIsExpanded] = useState(false); // Track if the bottom sheet is expanded
     const [showComponent, setShowComponent] = useState(false); // Replace ref with state
@@ -229,12 +233,43 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
                 className="w-[calc(100%)] h-[1px] bg-borderColor"
             ></div>
             <div className="flex-grow px-4 py-4 overflow-y-auto">
-                <h3 className="flex justify-center mb-4 text-2xl font-bold">
+                <h3 className="flex justify-center mb-2 text-2xl font-bold">
                     Well lithology
                 </h3>
+                <div className="flex items-center justify-center w-full mb-2">
+                    <MetersOrFeetToggleButton
+                        metersOrFeet={metersOrFeet}
+                        setMetersOrFeet={setMetersOrFeet}
+                    ></MetersOrFeetToggleButton>
+                </div>
                 <WellLithologyTable
+                    metersOrFeet={metersOrFeet}
                     selectedWellData={selectedWellData}
                 ></WellLithologyTable>
+                <div
+                    id="divider-bar"
+                    className="w-[calc(100%+2rem)] mt-4 h-[1px] bg-borderColor -mx-4"
+                ></div>
+                <div
+                    id="circular-progress-bar-container"
+                    className="flex flex-col items-center py-2"
+                >
+                    <h1 className="text-xl font-bold">Dominant Lithology</h1>
+                    <CircularProgressBar />
+                </div>
+                <div
+                    id="divider-bar"
+                    className="w-[calc(100%+2rem)] mt-4 h-[1px] bg-borderColor -mx-4"
+                ></div>
+                <div
+                    id="lithology-breakdown-container"
+                    className="flex flex-col items-center py-2"
+                >
+                    <h1 className="mt-4 text-xl font-bold">
+                        Lithology Breakdown
+                    </h1>
+                    <FlowerChart />
+                </div>
             </div>
         </animated.div>
     );

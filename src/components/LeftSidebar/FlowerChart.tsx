@@ -96,8 +96,6 @@ const FlowerChart: React.FC = () => {
             .filter((petal) => petal !== null)
             .sort((a, b) => b!.value - a!.value) as PetalData[];
 
-        console.log("newPetalData", newPetalData);
-
         setPetalData(newPetalData);
     }, [selectedWellData]);
 

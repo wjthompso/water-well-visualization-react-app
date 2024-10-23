@@ -3,9 +3,7 @@ import { TooltipContext } from "../../context/AppContext";
 import { formatGroundMaterialType } from "../../utilities/formatGroundMaterialType";
 import { GroundMaterialType, GroundMaterialTypeColor } from "../cesium/types";
 
-interface CircularProgressBarProps {
-    percentage?: number; // Make percentage optional
-}
+interface CircularProgressBarProps {}
 
 const CircularProgressBar: React.FC<CircularProgressBarProps> = () => {
     const radius = 60;

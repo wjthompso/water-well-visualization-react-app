@@ -43,7 +43,7 @@ const Sidebar: React.FC = () => {
                     </button>
                     {/* Sidebar Content */}
                     <h1 className="text-xl font-bold">Dominant Lithology</h1>
-                    <CircularProgressBar percentage={percentage} />
+                    <CircularProgressBar />
                     {/* Lithology Breakdown Flower Chart */}
                     <hr className="relative left-0 right-0 px-4 -mx-4 my-4 border-t-[0.5px] border-[#808080]" />
 

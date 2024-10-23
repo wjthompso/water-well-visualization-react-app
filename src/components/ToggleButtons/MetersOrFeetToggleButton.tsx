@@ -11,7 +11,7 @@ const MetersOrFeetToggleButton: React.FC<MetersOrFeetToggleButtonProps> = ({
 }) => {
     return (
         <div
-            className="flex w-[128px] ml-[20px] h-[20px] text-black border border-[#A9A9A9] bg-[#A9A9A9] rounded-[3px] shadow-[inset_0_4px_4px_0_rgba(0,0,0,0.25)]"
+            className="flex w-[128px] h-[20px] text-black border border-[#A9A9A9] bg-[#A9A9A9] rounded-[3px] shadow-[inset_0_4px_4px_0_rgba(0,0,0,0.25)]"
             id="meters-or-feet-toggle-button"
         >
             <button
