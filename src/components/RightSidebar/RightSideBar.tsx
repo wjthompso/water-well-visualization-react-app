@@ -64,10 +64,15 @@ const RightSideBar: React.FC = () => {
                                     Lithology breakdown
                                 </h1>
 
-                                <MetersOrFeetToggleButton
-                                    metersOrFeet={metersOrFeet}
-                                    setMetersOrFeet={setMetersOrFeet}
-                                />
+                                <div
+                                    id="meters-or-feet-toggle-button-container"
+                                    className="mb-3 ml-4"
+                                >
+                                    <MetersOrFeetToggleButton
+                                        metersOrFeet={metersOrFeet}
+                                        setMetersOrFeet={setMetersOrFeet}
+                                    />
+                                </div>
 
                                 <WellLithologyTable
                                     metersOrFeet={metersOrFeet}

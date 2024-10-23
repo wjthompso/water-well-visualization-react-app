@@ -1,6 +1,7 @@
 import { animated, useSpring } from "@react-spring/web";
 import { useDrag } from "@use-gesture/react";
 import React, { useContext, useEffect, useRef, useState } from "react";
+import CopyIcon from "../../assets/CopyIcon.svg"; // Assume you have a CopyIcon SVG
 import DownArrow from "../../assets/DownArrow.svg"; // Assume you have a DownArrow SVG
 import UpArrow from "../../assets/UpArrow.svg";
 import { TooltipContext } from "../../context/AppContext"; // adjust the import path as needed
@@ -180,45 +181,55 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
                     id="bar-to-indicate-draggability"
                     className="w-20 px-4 py-1 mx-auto mt-4 bg-gray-300 rounded"
                 ></div>
-                <h2 className="mt-2 mb-4 text-2xl font-bold text-center select-none">
-                    Selected Well Info
+                {/* Well ID */}
+                <h2 className="mt-2 mb-4 text-2xl font-bold text-center break-all whitespace-normal select-none">
+                    {selectedWellData?.StateWellID || "N/A"}
                 </h2>
                 <div
                     id="selected-well-info"
                     className="flex flex-col mb-4"
                 >
-                    {/* Well ID */}
-                    <div className="flex w-full mb-2">
-                        <div className="flex flex-col w-1/4">
-                            <p className="text-sm font-semibold">Well ID:</p>
-                        </div>
-                        <div className="flex flex-col w-3/4 pl-2">
-                            <p className="text-sm break-all whitespace-normal">
-                                {selectedWellData?.StateWellID || "N/A"}
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Latitude */}
-                    <div className="flex w-full mb-2">
-                        <div className="flex flex-col w-1/4">
+                    <div className="grid self-center items-center w-[15rem] grid-cols-[2fr_2fr_1fr] gap-1 mb-2">
+                        {/* Latitude Label */}
+                        <div className="flex flex-col col-span-1">
                             <p className="text-sm font-semibold">Latitude:</p>
                         </div>
-                        <div className="flex flex-col w-3/4 pl-2">
+
+                        {/* Latitude Value */}
+                        <div className="flex flex-col col-span-1">
                             <p className="text-sm whitespace-normal">
                                 {selectedWellData
                                     ? `${selectedWellData.latitude}°`
                                     : "N/A"}
                             </p>
                         </div>
-                    </div>
 
-                    {/* Longitude */}
-                    <div className="flex w-full">
-                        <div className="flex flex-col w-1/4">
+                        {/* Copy Icon for Latitude */}
+                        <div className="flex items-center justify-center row-span-2">
+                            <button
+                                className="flex items-center justify-center w-7 h-7 rounded-full bg-[#6A6A6A] active:bg-[#8C8C8C] transition-colors"
+                                onClick={() => {
+                                    if (selectedWellData) {
+                                        navigator.clipboard.writeText(
+                                            `${selectedWellData.latitude},${selectedWellData.longitude}`
+                                        );
+                                    }
+                                }}
+                            >
+                                <img
+                                    src={CopyIcon}
+                                    alt="Copy Latitude"
+                                />
+                            </button>
+                        </div>
+
+                        {/* Longitude Label */}
+                        <div className="flex flex-col col-span-1">
                             <p className="text-sm font-semibold">Longitude:</p>
                         </div>
-                        <div className="flex flex-col w-3/4 pl-2">
+
+                        {/* Longitude Value */}
+                        <div className="flex flex-col col-span-1">
                             <p className="text-sm whitespace-normal">
                                 {selectedWellData
                                     ? `${selectedWellData.longitude}°`
