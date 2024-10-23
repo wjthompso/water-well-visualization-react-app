@@ -1,5 +1,6 @@
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
 import { TooltipContext } from "../../context/AppContext"; // adjust the import path as needed
+import MetersOrFeetToggleButton from "../ToggleButtons/MetersOrFeetToggleButton";
 import WellLithologyTable from "../WellLithologyTable/WellLithologyTable";
 
 const formatCoordinate = (value: number, isLatitude: boolean) => {
@@ -16,6 +17,7 @@ const formatCoordinate = (value: number, isLatitude: boolean) => {
 
 const RightSideBar: React.FC = () => {
     const { selectedWellData } = useContext(TooltipContext);
+    const [metersOrFeet, setMetersOrFeet] = useState<"meters" | "feet">("feet");
 
     return (
         <div
@@ -62,7 +64,13 @@ const RightSideBar: React.FC = () => {
                                     Lithology breakdown
                                 </h1>
 
+                                <MetersOrFeetToggleButton
+                                    metersOrFeet={metersOrFeet}
+                                    setMetersOrFeet={setMetersOrFeet}
+                                />
+
                                 <WellLithologyTable
+                                    metersOrFeet={metersOrFeet}
                                     selectedWellData={selectedWellData}
                                 />
                             </div>
