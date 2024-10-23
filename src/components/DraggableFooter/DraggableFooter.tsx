@@ -193,7 +193,7 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
                             <p className="text-sm font-semibold">Well ID:</p>
                         </div>
                         <div className="flex flex-col w-3/4 pl-2">
-                            <p className="text-sm whitespace-normal">
+                            <p className="text-sm break-all whitespace-normal">
                                 {selectedWellData?.StateWellID || "N/A"}
                             </p>
                         </div>
