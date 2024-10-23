@@ -16,9 +16,9 @@ const Sidebar: React.FC = () => {
         <>
             {/* Sidebar */}
             <div
-                className={`absolute z-30 top-0 left-0 h-full bg-headerBackgroundColor text-white overflow-hidden transform transition-transform duration-300 ease-in-out ${
+                className={`absolute z-30 top-0 hidden md:block left-0 h-full bg-headerBackgroundColor text-white overflow-hidden transform transition-transform duration-300 ease-in-out ${
                     isOpen ? "translate-x-0" : "-translate-x-full"
-                } w-64`}
+                } w-64 border-r-[1px] border-borderColor`}
             >
                 <div className="relative p-4">
                     {/* X button to close the sidebar */}

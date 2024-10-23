@@ -12,11 +12,29 @@ const Legend: React.FC = () => {
 
     return (
         <div
-            className={`hidden md:block md:absolute bottom-0 left-0 transition-transform duration-200 ${
+            id="legend-container"
+            className={`hidden md:block md:absolute bottom-0 right-[303px] transition-transform duration-200 ${
                 isVisible ? "translate-y-0" : "translate-y-full"
             }`}
         >
-            <div className="w-[34.44rem] h-[8.19rem] px-3 py-[0.4rem] bg-legendBackgroundColor text-white rounded-tr-lg border-[0.5px] border-[#808080] relative">
+            <div className="w-[34.66rem] h-[8.19rem] px-3 py-[0.4rem] bg-legendBackgroundColor text-white rounded-t-lg border-[0.5px] border-[#808080] relative">
+                <button
+                    id="legend-toggle-button"
+                    onClick={toggleVisibility}
+                    className={
+                        `absolute w-24 h-6 flex flex-row justify-center items-center text-white border-[0.5px] bg-legendBackgroundColor border-legendBorderColor right-4 ` +
+                        (isVisible
+                            ? "-top-[calc(1.5rem-0.5px)] border-b-[0px] rounded-t-lg"
+                            : "-top-[calc(2rem)] rounded-lg")
+                    }
+                >
+                    <p className="ml-2 text-sm font-bold">Legend</p>
+                    <img
+                        src={isVisible ? LegendArrowsDown : LegendArrowsUp}
+                        alt="Legend Arrows Down"
+                        className="w-6 h-6 ml-[0.1rem]"
+                    />
+                </button>
                 <div className="flex justify-between h-full">
                     <div
                         id="legend-column-title-and-rows-0"
@@ -137,23 +155,6 @@ const Legend: React.FC = () => {
                         </div>
                     </div>
                 </div>
-                <button
-                    id="legend-toggle-button"
-                    onClick={toggleVisibility}
-                    className={
-                        `absolute w-24 h-6 flex flex-row justify-center items-center text-white border-[0.5px] bg-legendBackgroundColor border-legendBorderColor left-4 ` +
-                        (isVisible
-                            ? "-top-[calc(1.5rem-0.5px)] border-b-[0px] rounded-t-lg"
-                            : "-top-[calc(2rem)] rounded-lg")
-                    }
-                >
-                    <p className="ml-2 text-sm font-bold">Legend</p>
-                    <img
-                        src={isVisible ? LegendArrowsDown : LegendArrowsUp}
-                        alt="Legend Arrows Down"
-                        className="w-6 h-6 ml-[0.1rem]"
-                    />
-                </button>
             </div>
         </div>
     );
