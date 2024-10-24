@@ -25,6 +25,7 @@ import {
     Entity,
 } from "resium";
 import { TooltipContext } from "../../context/AppContext";
+import { createOutlineIcon } from "../../utilities/createOutlineIcon"; // Import the outline icon creator
 import { createPieChartWellIcon } from "../../utilities/createPieChartWellIcon";
 import {
     isSubChunkedData,
@@ -46,14 +47,14 @@ const WaterWells: React.FC<WaterWellsProps> = ({
     viewer,
 }) => {
     const heightWellShouldShowAboveSurface = 1;
-    const heightMapIconShouldShowAboveWell = 20;
+    const heightMapIconShouldShowAboveWell = 20 + 30;
     const [wellDataWithHeights, setWellDataWithHeights] = useState<WellData[]>(
         []
     );
     const { selectedWellData, setSelectedWellData } =
         useContext(TooltipContext);
 
-    const maxRenderDistance = 1609.34 * 2; // 2 miles in meters
+    const maxRenderDistance = 1609.34 * 0.5; // 2 miles in meters
 
     // State to store camera position
     const [cameraPosition, setCameraPosition] = useState<Cartesian3 | null>(
@@ -118,6 +119,7 @@ const WaterWells: React.FC<WaterWellsProps> = ({
                     processedWellDataMap.has(serializedKey)
                 ) {
                     setCurrentSubChunkKey(serializedKey);
+                    setSelectedWellData(null);
                 } else if (!processedWellDataMap.has(serializedKey)) {
                     // Handle cases where the sub-chunk data is not yet processed
                 }
@@ -398,9 +400,8 @@ const WaterWells: React.FC<WaterWellsProps> = ({
                 flyToWell(well);
             } else {
                 if (
-                    selectedWellData?.StateWellID !== well.StateWellID &&
-                    selectedWellData?.latitude !== well.latitude &&
-                    selectedWellData?.longitude !== well.longitude
+                    !selectedWellData ||
+                    selectedWellData.StateWellID !== well.StateWellID
                 ) {
                     setSelectedWellData(well);
                 }
@@ -411,7 +412,7 @@ const WaterWells: React.FC<WaterWellsProps> = ({
                 }, 250); // Timeout duration in milliseconds
             }
         },
-        [isCameraMoving, selectedWellData, flyToWell, setSelectedWellData]
+        [flyToWell, selectedWellData, setSelectedWellData]
     );
 
     // Clean up the click timeout on unmount
@@ -472,6 +473,13 @@ const WaterWells: React.FC<WaterWellsProps> = ({
         serializeSubChunkKey,
     ]);
 
+    // Ensure that selectedWellData is cleared when the component unmounts
+    useEffect(() => {
+        return () => {
+            setSelectedWellData(null); // Clear the selected well data on unmount
+        };
+    }, [setSelectedWellData]);
+
     if (dataToRender.length === 0) {
         return null; // Or render a message indicating no data
     }
@@ -511,7 +519,7 @@ const WaterWells: React.FC<WaterWellsProps> = ({
 
                 return (
                     <React.Fragment key={wellIndex}>
-                        {/* Always render the billboard */}
+                        {/* Billboard for the well */}
                         <Entity
                             key={`billboard_${wellIndex}`}
                             position={indicatorStartPosition}
@@ -519,7 +527,7 @@ const WaterWells: React.FC<WaterWellsProps> = ({
                         >
                             <BillboardGraphics
                                 image={createPieChartWellIcon(well)}
-                                verticalOrigin={VerticalOrigin.BOTTOM}
+                                verticalOrigin={VerticalOrigin.CENTER}
                                 scaleByDistance={
                                     new NearFarScalar(
                                         1.5e2,
@@ -583,6 +591,55 @@ const WaterWells: React.FC<WaterWellsProps> = ({
                         color={line.color}
                     />
                 ))}
+
+            {/* **Highlight Billboard for Selected Well** */}
+            {selectedWellData && selectedWellData.layers.length > 0 && (
+                <Entity
+                    key="highlightEntity"
+                    position={Cartesian3.fromDegrees(
+                        selectedWellData.longitude,
+                        selectedWellData.latitude,
+                        selectedWellData.layers[0].startDepth +
+                            heightWellShouldShowAboveSurface +
+                            heightMapIconShouldShowAboveWell
+                    )}
+                >
+                    <BillboardGraphics
+                        image={createOutlineIcon()} // Use the outline icon
+                        verticalOrigin={VerticalOrigin.CENTER}
+                        scaleByDistance={
+                            new NearFarScalar(
+                                1.5e2,
+                                1.0, // Scale when close
+                                1.5e5,
+                                0.4 // Scale when far
+                            )
+                        }
+                        eyeOffset={
+                            new CallbackProperty(() => {
+                                if (!viewer) return new Cartesian3(0, 0, -5000);
+                                const cameraPos = viewer.camera.position;
+                                const distance = Cartesian3.distance(
+                                    cameraPos,
+                                    Cartesian3.fromDegrees(
+                                        selectedWellData.longitude,
+                                        selectedWellData.latitude,
+                                        selectedWellData.layers[0].startDepth +
+                                            heightWellShouldShowAboveSurface +
+                                            heightMapIconShouldShowAboveWell
+                                    )
+                                );
+
+                                return new Cartesian3(
+                                    0,
+                                    0,
+                                    -Math.min(distance - 20, 5000)
+                                );
+                            }, false)
+                        }
+                    />
+                </Entity>
+            )}
         </CustomDataSource>
     );
 };
