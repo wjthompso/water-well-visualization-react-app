@@ -101,7 +101,7 @@ const FlowerChart: React.FC = () => {
 
     return (
         <div>
-            <div className="h-[11rem] w-full">
+            <div className="h-[14rem] w-full">
                 <svg
                     className="flex flex-row justify-start flex-shrink aster__plot"
                     preserveAspectRatio="xMidYMid"
@@ -227,10 +227,10 @@ const FlowerChart: React.FC = () => {
                 </svg>
             </div>
             {petalData.length > 0 && (
-                <div className="mt-10 mb-4 ml-1">
-                    <h1 className="pb-2 text-sm font-bold font-BeVietnamPro text-leftSidebarOverallResilience">
+                <div className="mb-4">
+                    {/* <h1 className="pb-2 text-sm font-bold font-BeVietnamPro text-leftSidebarOverallResilience">
                         Legend
-                    </h1>
+                    </h1> */}
                     <div
                         className="flex flex-col max-w-[194px] items-start space-y-1"
                         ref={legendRef}

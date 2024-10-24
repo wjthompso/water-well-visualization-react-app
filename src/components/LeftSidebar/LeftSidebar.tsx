@@ -20,7 +20,7 @@ const Sidebar: React.FC = () => {
                     isOpen ? "translate-x-0" : "-translate-x-full"
                 } w-64 border-r-[1px] border-borderColor`}
             >
-                <div className="relative hidden p-4 md:block">
+                <div className="relative hidden px-4 py-3 md:block">
                     {/* X button to close the sidebar */}
                     <button
                         onClick={toggleSidebar}
@@ -42,7 +42,9 @@ const Sidebar: React.FC = () => {
                         </svg>
                     </button>
                     {/* Sidebar Content */}
-                    <h1 className="text-xl font-bold">Dominant Lithology</h1>
+                    <h1 className="mb-[10px] text-xl font-bold">
+                        Dominant Lithology
+                    </h1>
                     <CircularProgressBar />
                     {/* Lithology Breakdown Flower Chart */}
                     <hr className="relative left-0 right-0 px-4 -mx-4 my-4 border-t-[0.5px] border-[#808080]" />
@@ -50,6 +52,9 @@ const Sidebar: React.FC = () => {
                     <h1 className="mt-4 text-xl font-bold">
                         Lithology Breakdown
                     </h1>
+                    <h3 className="text-[12px]">
+                        <i>Hover over slice to see percentage</i>
+                    </h3>
                     <FlowerChart />
                 </div>
             </div>

@@ -81,7 +81,7 @@ const CircularProgressBar: React.FC<CircularProgressBarProps> = () => {
 
     return (
         <>
-            <div className="relative w-[212px] h-40 mb-4">
+            <div className="relative w-[212px] h-40">
                 <svg className="absolute inset-0 w-full h-full transform -rotate-90">
                     <circle
                         className="text-gray-300"
@@ -116,7 +116,7 @@ const CircularProgressBar: React.FC<CircularProgressBarProps> = () => {
             </div>
             {lithologyString && (
                 <h3
-                    className=""
+                    className="mt-[10px]"
                     id="dominant-lithology-type"
                 >
                     {formatGroundMaterialType(lithologyString)}
