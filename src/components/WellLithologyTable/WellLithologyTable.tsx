@@ -22,7 +22,7 @@ export default function WellLithologyTable(props: WellLithologyTableProps) {
     return (
         <div
             id="well-lithology-table"
-            className="flex flex-col"
+            className="flex flex-col max-w-[25rem]"
         >
             {selectedWellData?.layers.map((layer, index) => {
                 const startDepth =

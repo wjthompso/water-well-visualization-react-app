@@ -101,7 +101,7 @@ const FlowerChart: React.FC = () => {
 
     return (
         <div>
-            <div className="h-[14rem] w-full">
+            <div className="w-full">
                 <svg
                     className="flex flex-row justify-start flex-shrink aster__plot"
                     preserveAspectRatio="xMidYMid"

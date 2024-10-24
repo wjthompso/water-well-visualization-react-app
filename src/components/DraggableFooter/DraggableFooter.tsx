@@ -182,9 +182,11 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
                     className="w-20 px-4 py-1 mx-auto mt-4 bg-gray-300 rounded"
                 ></div>
                 {/* Well ID */}
-                <h2 className="mt-2 mb-4 text-2xl font-bold text-center break-all whitespace-normal select-none">
-                    {selectedWellData?.StateWellID || "N/A"}
-                </h2>
+                <div className="flex justify-center flex-1">
+                    <h2 className="max-w-[20rem] mt-2 mb-4 text-2xl font-bold text-center break-all whitespace-normal select-none">
+                        {selectedWellData?.StateWellID || "N/A"}
+                    </h2>
+                </div>
                 <div
                     id="selected-well-info"
                     className="flex flex-col mb-4"
@@ -232,23 +234,28 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
                 id="divider-bar"
                 className="w-[calc(100%)] h-[1px] bg-borderColor"
             ></div>
-            <div className="flex-grow px-4 py-4 overflow-y-auto">
+            <div className="flex-grow px-4 py-3 overflow-y-auto">
                 <h3 className="flex justify-center mb-2 text-2xl font-bold">
                     Well lithology
                 </h3>
-                <div className="flex items-center justify-center w-full mb-2">
+                <div className="flex items-center justify-center w-full mb-[0.75rem]">
                     <MetersOrFeetToggleButton
                         metersOrFeet={metersOrFeet}
                         setMetersOrFeet={setMetersOrFeet}
                     ></MetersOrFeetToggleButton>
                 </div>
-                <WellLithologyTable
-                    metersOrFeet={metersOrFeet}
-                    selectedWellData={selectedWellData}
-                ></WellLithologyTable>
+                <div
+                    id="well-lithology-flex-container"
+                    className="flex justify-center flex-1"
+                >
+                    <WellLithologyTable
+                        metersOrFeet={metersOrFeet}
+                        selectedWellData={selectedWellData}
+                    ></WellLithologyTable>
+                </div>
                 <div
                     id="divider-bar"
-                    className="w-[calc(100%+2rem)] mt-4 h-[1px] bg-borderColor -mx-4"
+                    className="w-[calc(100%+2rem)] mt-3 h-[1px] bg-borderColor -mx-4"
                 ></div>
                 <div
                     id="circular-progress-bar-container"
@@ -259,11 +266,11 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
                 </div>
                 <div
                     id="divider-bar"
-                    className="w-[calc(100%+2rem)] mt-4 h-[1px] bg-borderColor -mx-4"
+                    className="w-[calc(100%+2rem)] mt-3 h-[1px] bg-borderColor -mx-4"
                 ></div>
                 <div
                     id="lithology-breakdown-container"
-                    className="flex flex-col items-center py-2"
+                    className="flex flex-col items-center"
                 >
                     <h1 className="mt-4 text-xl font-bold">
                         Lithology Breakdown
