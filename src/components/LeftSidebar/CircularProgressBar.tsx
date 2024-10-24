@@ -11,7 +11,7 @@ const CircularProgressBar: React.FC<CircularProgressBarProps> = () => {
     const { selectedWellData } = useContext(TooltipContext);
     const [lithologyPercentage, setLithologyPercentage] = useState(0);
     const [color, setColor] = useState("#D3D3D3");
-    let mostFrequentLithologyString = "";
+    const [lithologyString, setLithologyString] = useState("");
 
     // Function to calculate the most frequent lithology
     const calculateLithologyPercentage = () => {
@@ -34,11 +34,20 @@ const CircularProgressBar: React.FC<CircularProgressBarProps> = () => {
             (acc, depth) => acc + depth,
             0
         );
+
+        if (totalDepth === 0) {
+            // Avoid division by zero
+            setLithologyString("");
+            return { percentage: 0, color: "#D3D3D3" };
+        }
+
+        // Determine the most frequent lithology
         const mostFrequentLithology = Object.keys(lithologyMap).reduce((a, b) =>
             lithologyMap[a] > lithologyMap[b] ? a : b
         );
 
-        mostFrequentLithologyString = mostFrequentLithology;
+        // Update the state with the most frequent lithology
+        setLithologyString(mostFrequentLithology);
 
         const lithologyPercentage =
             (lithologyMap[mostFrequentLithology] / totalDepth) * 100;
@@ -51,20 +60,21 @@ const CircularProgressBar: React.FC<CircularProgressBarProps> = () => {
         );
 
         // Get the color from GroundMaterialTypeColor
-        const color = materialTypeKey
+        const strokeColor = materialTypeKey
             ? GroundMaterialTypeColor[
                   materialTypeKey as keyof typeof GroundMaterialTypeColor
               ]
             : "#D3D3D3";
 
-        return { percentage: lithologyPercentage, color };
+        return { percentage: lithologyPercentage, color: strokeColor };
     };
 
     useEffect(() => {
         const { percentage, color } = calculateLithologyPercentage();
+        // Update the state for percentage and color
         setLithologyPercentage(percentage);
         setColor(color);
-    }, [selectedWellData]);
+    }, [selectedWellData]); // Trigger effect when selectedWellData changes
 
     const dashOffset =
         circumference - (circumference * lithologyPercentage) / 100;
@@ -104,9 +114,14 @@ const CircularProgressBar: React.FC<CircularProgressBarProps> = () => {
                     </span>
                 </div>
             </div>
-            <h3 className="">
-                {formatGroundMaterialType(mostFrequentLithologyString)}
-            </h3>
+            {lithologyString && (
+                <h3
+                    className=""
+                    id="dominant-lithology-type"
+                >
+                    {formatGroundMaterialType(lithologyString)}
+                </h3>
+            )}
         </>
     );
 };
