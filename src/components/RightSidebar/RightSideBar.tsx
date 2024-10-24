@@ -1,5 +1,6 @@
 import React, { useContext, useState } from "react";
 import { TooltipContext } from "../../context/AppContext"; // adjust the import path as needed
+import CopyCoordinatesButton from "../Buttons/CopyCoordinatesButton";
 import DownloadCSVButton from "../Buttons/DownloadCSVButton";
 import MetersOrFeetToggleButton from "../ToggleButtons/MetersOrFeetToggleButton";
 import WellLithologyTable from "../WellLithologyTable/WellLithologyTable";
@@ -25,37 +26,49 @@ const RightSideBar: React.FC = () => {
             id="rightSideBar"
             className="hidden md:block absolute right-0 top-0 w-[19rem] h-full z-[999] bg-sideBarBackgroundColor border-l-[0.5px] border-borderColor"
         >
-            <h1
-                id="main-label"
-                className="flex items-center w-full h-[3rem] pl-[1.4rem] text-white text-2xl font-[600] font-lora border-b-[0.5px] border-borderColor"
-            >
-                Selected Well Info
-            </h1>
             <div
                 id="right-side-bar-content"
-                className="flex flex-col items-start justify-start w-full h-[calc(100%-3rem)] px-[1.4rem] py-[1rem] text-white overflow-scroll"
+                className="flex flex-col items-start justify-start w-full h-[calc(100%-3rem)] px-[1rem] py-[0.75rem] text-white overflow-scroll"
             >
                 {selectedWellData ? (
                     <>
                         <div
                             id="well-info"
-                            className="max-w-full mb-4"
+                            className="max-w-full mb-[0.75rem]"
                         >
                             <h1 className="lg:text-xl font-[900] mb-1 font-roboto break-words text-ellipsis max-w-full">
                                 {selectedWellData.StateWellID || "Unknown Well"}
                             </h1>
-                            <h3 className="text-base font-roboto">
-                                {formatCoordinate(
-                                    selectedWellData.latitude,
-                                    true
-                                )}
-                                <br />
-                                {formatCoordinate(
-                                    selectedWellData.longitude,
-                                    false
-                                )}
-                            </h3>
+
+                            {/* Two-column grid for formatted latitude and longitude with Copy button */}
+                            <div className="grid grid-cols-[2fr_1fr] items-center ml-[0.8rem]">
+                                {/* Latitude and Longitude */}
+                                <div>
+                                    <h3 className="text-base font-roboto">
+                                        <b>Long</b>&nbsp;&nbsp;
+                                        {formatCoordinate(
+                                            selectedWellData.latitude,
+                                            true
+                                        )}
+                                        <br />
+                                        <b>Lat</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                        {formatCoordinate(
+                                            selectedWellData.longitude,
+                                            false
+                                        )}
+                                    </h3>
+                                </div>
+                                {/* Copy button */}
+                                <div className="flex justify-end ml-1">
+                                    <CopyCoordinatesButton
+                                        latitude={selectedWellData.latitude}
+                                        longitude={selectedWellData.longitude}
+                                    />
+                                </div>
+                            </div>
                         </div>
+
+                        {/* Lithology Breakdown Section */}
                         {selectedWellData && (
                             <div
                                 id="lithology-breakdown"
@@ -63,24 +76,27 @@ const RightSideBar: React.FC = () => {
                             >
                                 <div
                                     id="divider-line"
-                                    className="relative left-[-1.4rem] w-[calc(100%+2.8rem)] h-[0.5px] bg-borderColor mb-2"
+                                    className="relative left-[-1.4rem] w-[calc(100%+2.8rem)] h-[0.5px] bg-borderColor mb-[0.75rem]"
                                 ></div>
 
-                                <DownloadCSVButton
-                                    selectedWellData={selectedWellData}
-                                />
+                                <div className="ml-4">
+                                    <DownloadCSVButton
+                                        selectedWellData={selectedWellData}
+                                    />
+                                </div>
+
                                 <div
                                     id="divider-line"
-                                    className="relative left-[-1.4rem] w-[calc(100%+2.8rem)] h-[0.5px] mt-2 bg-borderColor"
+                                    className="relative left-[-1.4rem] w-[calc(100%+2.8rem)] h-[0.5px] mt-[0.75rem] bg-borderColor"
                                 ></div>
 
-                                <h1 className="text-xl font-[600] mt-2 mb-2 font-roboto text-white">
+                                <h1 className="text-xl font-[600] mb-[10px] mt-[0.75rem] font-roboto text-white">
                                     Lithology breakdown
                                 </h1>
 
                                 <div
                                     id="meters-or-feet-toggle-button-container"
-                                    className="mb-3 ml-4"
+                                    className="mb-[10px] ml-4"
                                 >
                                     <MetersOrFeetToggleButton
                                         metersOrFeet={metersOrFeet}

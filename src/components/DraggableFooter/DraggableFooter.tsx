@@ -1,10 +1,10 @@
 import { animated, useSpring } from "@react-spring/web";
 import { useDrag } from "@use-gesture/react";
 import React, { useContext, useEffect, useRef, useState } from "react";
-import CopyIcon from "../../assets/CopyIcon.svg"; // Assume you have a CopyIcon SVG
 import DownArrow from "../../assets/DownArrow.svg"; // Assume you have a DownArrow SVG
 import UpArrow from "../../assets/UpArrow.svg";
 import { TooltipContext } from "../../context/AppContext"; // adjust the import path as needed
+import CopyCoordinatesButton from "../Buttons/CopyCoordinatesButton";
 import CircularProgressBar from "../LeftSidebar/CircularProgressBar";
 import FlowerChart from "../LeftSidebar/FlowerChart";
 import MetersOrFeetToggleButton from "../ToggleButtons/MetersOrFeetToggleButton";
@@ -206,21 +206,10 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
 
                         {/* Copy Icon for Latitude */}
                         <div className="flex items-center justify-center row-span-2">
-                            <button
-                                className="flex items-center justify-center w-7 h-7 rounded-full bg-[#6A6A6A] active:bg-[#8C8C8C] transition-colors"
-                                onClick={() => {
-                                    if (selectedWellData) {
-                                        navigator.clipboard.writeText(
-                                            `${selectedWellData.latitude},${selectedWellData.longitude}`
-                                        );
-                                    }
-                                }}
-                            >
-                                <img
-                                    src={CopyIcon}
-                                    alt="Copy Latitude"
-                                />
-                            </button>
+                            <CopyCoordinatesButton
+                                latitude={selectedWellData.latitude}
+                                longitude={selectedWellData.longitude}
+                            />
                         </div>
 
                         {/* Longitude Label */}

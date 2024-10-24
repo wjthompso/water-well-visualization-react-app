@@ -30,13 +30,13 @@ const DownloadCSVButton: React.FC<DownloadCSVButtonProps> = ({
 
     return (
         <button
-            className="px-4 flex justify-center items-center h-[34px] font-semibold text-black bg-[#E5E5E5] rounded-md hover:bg-[#E6E6E6] active:bg-white border border-[2px] border-borderColor"
+            className="flex justify-center w-[128px] text-[12px] items-center h-[34px] font-semibold text-black bg-[#E5E5E5] rounded-md hover:bg-[#E6E6E6] active:bg-white border border-[2px] border-borderColor"
             onClick={handleDownload}
         >
             <img
                 src={CSVIcon}
                 alt="CSV Icon"
-                className="mr-2"
+                className="mr-1"
             />
             DRILL REPORT
         </button>
