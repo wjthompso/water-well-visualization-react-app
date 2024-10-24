@@ -11,7 +11,9 @@ import {
  * @returns Promise resolving to an array of Chunk objects.
  */
 export const fetchQuadrants = async (): Promise<Chunk[]> => {
-    const response = await fetch("http://localhost:3000/keys");
+    const response = await fetch(
+        "https://waterwelldepthmap.bren.ucsb.edu/api/keys"
+    );
     if (!response.ok) {
         throw new Error(`Failed to fetch quadrants: ${response.statusText}`);
     }
@@ -30,13 +32,16 @@ export const fetchWellData = async (
     | RawWellData[]
     | { sub_chunks: { location: SubChunkLocation; wells: RawWellData[] }[] }
 > => {
-    const response = await fetch("http://localhost:3000/keys", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ key: locationKey }),
-    });
+    const response = await fetch(
+        "https://waterwelldepthmap.bren.ucsb.edu/api/keys",
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ key: locationKey }),
+        }
+    );
 
     if (!response.ok) {
         throw new Error(`Failed to fetch well data: ${response.statusText}`);

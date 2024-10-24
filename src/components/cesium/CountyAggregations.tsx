@@ -87,7 +87,7 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
 
             try {
                 const aggregationsResponse = await fetch(
-                    "http://localhost:3000/county-aggregations"
+                    "https://waterwelldepthmap.bren.ucsb.edu/api/county-aggregations"
                 );
                 const aggregationsData = await aggregationsResponse.json();
 

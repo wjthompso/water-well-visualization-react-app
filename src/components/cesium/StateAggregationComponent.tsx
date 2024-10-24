@@ -60,7 +60,7 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
         const fetchData = async () => {
             try {
                 const aggregationsResponse = await fetch(
-                    "http://localhost:3000/state-aggregations"
+                    "https://waterwelldepthmap.bren.ucsb.edu/api/state-aggregations"
                 );
                 const aggregationsData = await aggregationsResponse.json();
 
