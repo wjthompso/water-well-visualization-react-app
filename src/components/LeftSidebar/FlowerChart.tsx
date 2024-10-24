@@ -116,71 +116,104 @@ const FlowerChart: React.FC = () => {
                             className="text-2xl font-bold text-center"
                             dy=".35em"
                             textAnchor="middle"
-                            fill={"white"}
+                            fill={textColor} // Use dynamic text color
                         >
                             {centerText}
                         </text>
                         {petalData.map((d: PetalData, i) => {
-                            const totalArcs = petalData.length;
-                            const arcAngle = (2 * Math.PI) / totalArcs;
-                            const offsetAngle = Math.PI / 2; // Starting angle
+                            const isSingleFullPetal =
+                                petalData.length === 1 && d.value === 1;
 
-                            const startAngle = i * arcAngle - offsetAngle;
-                            const endAngle = startAngle + arcAngle;
-                            const innerRadius = 40;
-                            const outerRadius = innerRadius + d.value * 125;
+                            let pathData: string;
+                            let outlinePathData: string | null = null;
+                            let overlayPathData: string;
 
-                            const x0 = Math.cos(startAngle) * innerRadius;
-                            const y0 = Math.sin(startAngle) * innerRadius;
-                            const x1 = Math.cos(endAngle) * innerRadius;
-                            const y1 = Math.sin(endAngle) * innerRadius;
-                            const x2 = Math.cos(endAngle) * outerRadius;
-                            const y2 = Math.sin(endAngle) * outerRadius;
-                            const x3 = Math.cos(startAngle) * outerRadius;
-                            const y3 = Math.sin(startAngle) * outerRadius;
+                            if (isSingleFullPetal) {
+                                // Define radii
+                                const innerRadius = 40;
+                                const outerRadius = innerRadius + 125;
 
-                            const largeArcFlag =
-                                endAngle - startAngle <= Math.PI ? "0" : "1";
+                                // Path for full donut using two arcs for outer and inner circles
+                                pathData = [
+                                    `M ${outerRadius},0`,
+                                    `A ${outerRadius} ${outerRadius} 0 1,0 -${outerRadius} 0`,
+                                    `A ${outerRadius} ${outerRadius} 0 1,0 ${outerRadius} 0`,
+                                    `Z`,
+                                    `M ${innerRadius},0`,
+                                    `A ${innerRadius} ${innerRadius} 0 1,1 -${innerRadius} 0`,
+                                    `A ${innerRadius} ${innerRadius} 0 1,1 ${innerRadius} 0`,
+                                    `Z`,
+                                ].join(" ");
 
-                            const pathData = [
-                                `M ${x0} ${y0}`,
-                                `A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 1 ${x1} ${y1}`,
-                                `L ${x2} ${y2}`,
-                                `A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 0 ${x3} ${y3}`,
-                                `Z`,
-                            ].join(" ");
+                                // For overlay, use the same path
+                                overlayPathData = pathData;
 
-                            // Outline path data
-                            const outlineRadius = innerRadius + 125;
-                            const outlinePathData = [
-                                `M ${Math.cos(startAngle) * innerRadius} ${
-                                    Math.sin(startAngle) * innerRadius
-                                }`,
-                                `A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 1 ${
-                                    Math.cos(endAngle) * innerRadius
-                                } ${Math.sin(endAngle) * innerRadius}`,
-                                `L ${Math.cos(endAngle) * outlineRadius} ${
-                                    Math.sin(endAngle) * outlineRadius
-                                }`,
-                                `A ${outlineRadius} ${outlineRadius} 0 ${largeArcFlag} 0 ${
-                                    Math.cos(startAngle) * outlineRadius
-                                } ${Math.sin(startAngle) * outlineRadius}`,
-                                `Z`,
-                            ].join(" ");
+                                // No outline for single full petal
+                            } else {
+                                // Existing multiple-petal path calculation
+                                const totalArcs = petalData.length;
+                                const arcAngle = (2 * Math.PI) / totalArcs;
+                                const offsetAngle = Math.PI / 2; // Starting angle
 
-                            // Invisible overlay path data
-                            const overlayRadius = innerRadius + 125; // Match the outer radius of the main circle
-                            const overlayPathData = [
-                                `M ${x0} ${y0}`,
-                                `A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 1 ${x1} ${y1}`,
-                                `L ${Math.cos(endAngle) * overlayRadius} ${
-                                    Math.sin(endAngle) * overlayRadius
-                                }`,
-                                `A ${overlayRadius} ${overlayRadius} 0 ${largeArcFlag} 0 ${
-                                    Math.cos(startAngle) * overlayRadius
-                                } ${Math.sin(startAngle) * overlayRadius}`,
-                                `Z`,
-                            ].join(" ");
+                                const startAngle = i * arcAngle - offsetAngle;
+                                const endAngle = startAngle + arcAngle;
+                                const innerRadius = 40;
+                                const outerRadius = innerRadius + d.value * 125;
+
+                                const x0 = Math.cos(startAngle) * innerRadius;
+                                const y0 = Math.sin(startAngle) * innerRadius;
+                                const x1 = Math.cos(endAngle) * innerRadius;
+                                const y1 = Math.sin(endAngle) * innerRadius;
+                                const x2 = Math.cos(endAngle) * outerRadius;
+                                const y2 = Math.sin(endAngle) * outerRadius;
+                                const x3 = Math.cos(startAngle) * outerRadius;
+                                const y3 = Math.sin(startAngle) * outerRadius;
+
+                                const largeArcFlag =
+                                    endAngle - startAngle <= Math.PI
+                                        ? "0"
+                                        : "1";
+
+                                pathData = [
+                                    `M ${x0} ${y0}`,
+                                    `A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 1 ${x1} ${y1}`,
+                                    `L ${x2} ${y2}`,
+                                    `A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 0 ${x3} ${y3}`,
+                                    `Z`,
+                                ].join(" ");
+
+                                // Outline path data
+                                const outlineRadius = innerRadius + 125;
+                                outlinePathData = [
+                                    `M ${Math.cos(startAngle) * innerRadius} ${
+                                        Math.sin(startAngle) * innerRadius
+                                    }`,
+                                    `A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 1 ${
+                                        Math.cos(endAngle) * innerRadius
+                                    } ${Math.sin(endAngle) * innerRadius}`,
+                                    `L ${Math.cos(endAngle) * outlineRadius} ${
+                                        Math.sin(endAngle) * outlineRadius
+                                    }`,
+                                    `A ${outlineRadius} ${outlineRadius} 0 ${largeArcFlag} 0 ${
+                                        Math.cos(startAngle) * outlineRadius
+                                    } ${Math.sin(startAngle) * outlineRadius}`,
+                                    `Z`,
+                                ].join(" ");
+
+                                // Invisible overlay path data
+                                const overlayRadius = innerRadius + 125; // Match the outer radius of the main circle
+                                overlayPathData = [
+                                    `M ${x0} ${y0}`,
+                                    `A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 1 ${x1} ${y1}`,
+                                    `L ${Math.cos(endAngle) * overlayRadius} ${
+                                        Math.sin(endAngle) * overlayRadius
+                                    }`,
+                                    `A ${overlayRadius} ${overlayRadius} 0 ${largeArcFlag} 0 ${
+                                        Math.cos(startAngle) * overlayRadius
+                                    } ${Math.sin(startAngle) * overlayRadius}`,
+                                    `Z`,
+                                ].join(" ");
+                            }
 
                             return (
                                 <React.Fragment key={`petal-${d.id}`}>
@@ -193,13 +226,20 @@ const FlowerChart: React.FC = () => {
                                                 : d.color
                                         }
                                         className="transition-colors duration-100 ease-out aster__solid-arc"
+                                        fillRule={
+                                            isSingleFullPetal
+                                                ? "evenodd"
+                                                : "nonzero"
+                                        } // Use 'evenodd' for single-petal to create a donut
                                     />
-                                    <path
-                                        d={outlinePathData}
-                                        fill="none"
-                                        stroke="#ededf1"
-                                        strokeWidth="1"
-                                    />
+                                    {!isSingleFullPetal && outlinePathData && (
+                                        <path
+                                            d={outlinePathData}
+                                            fill="none"
+                                            stroke="#ededf1"
+                                            strokeWidth="1"
+                                        />
+                                    )}
                                     <path
                                         d={overlayPathData}
                                         fill="transparent"
@@ -219,6 +259,7 @@ const FlowerChart: React.FC = () => {
                                             setCenterText("--");
                                             setTextColor("currentColor");
                                         }}
+                                        style={{ cursor: "pointer" }} // Optional: Change cursor on hover
                                     />
                                 </React.Fragment>
                             );
@@ -255,7 +296,6 @@ const FlowerChart: React.FC = () => {
                                     }}
                                 ></div>
                                 <p className="text-xs font-BeVietnamPro">
-                                    {/* ({(domain.value * 100).toFixed(1)}%){" "} */}
                                     {formatGroundMaterialType(domain.name)}
                                 </p>
                             </div>
