@@ -2,10 +2,13 @@
 
 import {
     Camera,
+    Cartesian2,
     Cartographic,
     Math as CesiumMath,
     Viewer as CesiumViewerInstance,
+    Ellipsoid,
     ScreenSpaceEventType,
+    Viewer,
 } from "cesium";
 import { useCallback, useEffect, useRef } from "react";
 
@@ -88,9 +91,22 @@ const useCameraControls = ({
 
     const handleCameraMove = useCallback(
         async (camera: Camera) => {
-            const cartographicPosition = Cartographic.fromCartesian(
-                camera.position
+            const viewer: Viewer | null = viewerRef.current;
+            if (!viewer) return;
+
+            const ellipsoid = viewer.scene.globe.ellipsoid;
+            const cartesianPosition = camera.pickEllipsoid(
+                new Cartesian2(
+                    viewer.canvas.clientWidth / 2,
+                    viewer.canvas.clientHeight / 2
+                ),
+                ellipsoid
             );
+
+            if (!cartesianPosition) return;
+
+            const cartographicPosition =
+                Ellipsoid.WGS84.cartesianToCartographic(cartesianPosition);
             const currentLat = Number(
                 CesiumMath.toDegrees(cartographicPosition.latitude).toFixed(6)
             );

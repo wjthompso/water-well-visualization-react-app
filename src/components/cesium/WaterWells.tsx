@@ -2,10 +2,12 @@
 
 import {
     CallbackProperty,
+    Cartesian2,
     Cartesian3,
     Cartographic,
     Math as CesiumMath,
     Color,
+    Ellipsoid,
     NearFarScalar,
     VerticalOrigin,
     Viewer,
@@ -88,9 +90,19 @@ const WaterWells: React.FC<WaterWellsProps> = ({
         if (!viewer) return;
 
         const camera = viewer.camera;
-        const cartographicPosition = Cartographic.fromCartesian(
-            camera.position
+        const ellipsoid = viewer.scene.globe.ellipsoid;
+        const cartesianPosition = camera.pickEllipsoid(
+            new Cartesian2(
+                viewer.canvas.clientWidth / 2,
+                viewer.canvas.clientHeight / 2
+            ),
+            ellipsoid
         );
+
+        if (!cartesianPosition) return;
+
+        const cartographicPosition =
+            Ellipsoid.WGS84.cartesianToCartographic(cartesianPosition);
         const currentLat = Number(
             CesiumMath.toDegrees(cartographicPosition.latitude).toFixed(6)
         );
