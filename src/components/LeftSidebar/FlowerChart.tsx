@@ -252,7 +252,7 @@ const FlowerChart: React.FC = () => {
                                             setCenterText(
                                                 `${(d.value * 100).toFixed(0)}%`
                                             );
-                                            setTextColor(d.color);
+                                            setTextColor("white");
                                         }}
                                         onMouseOut={() => {
                                             setHoveredSlice(null);
