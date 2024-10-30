@@ -15,7 +15,13 @@ import {
 } from "cesium";
 import { Geometry, Position } from "geojson";
 import React, { useEffect, useRef, useState } from "react";
-import { Entity } from "resium";
+import {
+    CustomDataSource,
+    Entity,
+    LabelGraphics,
+    PolygonGraphics,
+    PolylineGraphics,
+} from "resium";
 import { useCameraPosition } from "../../context/CameraPositionContext";
 import { useStatePolygons } from "../../context/StatePolygonContext";
 
@@ -35,7 +41,7 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
     const [showStates, setShowStates] = useState<boolean>(false);
     const { setCameraPosition } = useCameraPosition();
     const { statePolygons, loading } = useStatePolygons();
-    const thresholdHeight = 1_000_000; // Adjust as needed
+    const thresholdHeight = 1_000_000; // Adjusted to a more reasonable value
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const raisedHeight = 9000;
 
@@ -95,7 +101,9 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
 
             const cartographicPosition = viewer.camera.positionCartographic;
             const cameraHeight = cartographicPosition?.height || 0;
-            setShowStates(cameraHeight > thresholdHeight);
+            const shouldShow = cameraHeight >= thresholdHeight;
+            console.log("shouldShow", shouldShow);
+            setShowStates(shouldShow);
             setCameraPosition(cartographicPosition);
         };
 
@@ -134,10 +142,6 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
             geometry: geometry,
             properties: {},
         };
-
-        // Simplify and clean up geometry (optional)
-        // const simplifyTolerance = 0.001; // Adjust as needed
-        // feature = simplify(feature, { tolerance: simplifyTolerance, highQuality: true }) as GeoJSON.Feature<Geometry>;
 
         // Clean up the geometry
         feature = cleanCoords(feature) as GeoJSON.Feature<Geometry>;
@@ -197,7 +201,7 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
     }
 
     return (
-        <>
+        <CustomDataSource name="StateAggregationsDataSource">
             {stateFeatures.map((feature) => {
                 const hierarchies = convertGeometryToHierarchy(
                     feature.geometry
@@ -205,45 +209,56 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
                 if (!hierarchies) {
                     return null;
                 }
-                return hierarchies.map((hierarchy, index) => (
-                    <Entity
-                        key={`${feature.name}-${index}`}
-                        polygon={{
-                            hierarchy: hierarchy,
-                            height: raisedHeight,
-                            material: Color.BLUE,
-                            outline: true,
-                            outlineColor: Color.WHITE,
-                            outlineWidth: 8,
-                        }}
-                        label={{
-                            text: feature.wellCount.toLocaleString(),
-                            font: "15pt sans-serif",
-                            fillColor: Color.WHITE,
-                            outlineColor: Color.BLACK,
-                            outlineWidth: 2,
-                            style: LabelStyle.FILL_AND_OUTLINE,
-                            verticalOrigin: VerticalOrigin.CENTER,
-                            horizontalOrigin: HorizontalOrigin.CENTER,
-                            pixelOffset: new Cartesian3(0, 0, 0),
-                            disableDepthTestDistance: Number.POSITIVE_INFINITY,
-                            scaleByDistance: new NearFarScalar(
-                                5.0e5,
-                                1.5,
-                                5.0e6,
-                                0.75
-                            ),
-                            eyeOffset: new Cartesian3(0.0, 0.0, -4000.0), // Adjust this value as needed
-                        }}
-                        position={Cartesian3.fromDegrees(
-                            feature.centroid.lon,
-                            feature.centroid.lat,
-                            raisedHeight
-                        )}
-                    />
-                ));
+
+                return hierarchies.map((hierarchy, index) => {
+                    // Extract polygon positions for PolylineGraphics
+                    const polygonPositions = hierarchy.positions;
+
+                    return (
+                        <Entity
+                            key={`${feature.name}-${index}`}
+                            position={Cartesian3.fromDegrees(
+                                feature.centroid.lon,
+                                feature.centroid.lat,
+                                raisedHeight
+                            )}
+                        >
+                            {/* Polygon Fill */}
+                            <PolygonGraphics
+                                hierarchy={hierarchy}
+                                material={Color.BLUE.withAlpha(0.5)}
+                                // Removed outline properties
+                            />
+                            {/* Polygon Outline */}
+                            <PolylineGraphics
+                                positions={polygonPositions}
+                                width={2} // Adjust this value for thicker outlines
+                                material={Color.WHITE}
+                            />
+                            {/* Label */}
+                            <LabelGraphics
+                                text={feature.wellCount.toLocaleString()}
+                                font="15pt sans-serif"
+                                fillColor={Color.WHITE}
+                                outlineColor={Color.BLACK}
+                                outlineWidth={2}
+                                style={LabelStyle.FILL_AND_OUTLINE}
+                                verticalOrigin={VerticalOrigin.CENTER}
+                                horizontalOrigin={HorizontalOrigin.CENTER}
+                                pixelOffset={Cartesian3.ZERO}
+                                disableDepthTestDistance={
+                                    Number.POSITIVE_INFINITY
+                                }
+                                scaleByDistance={
+                                    new NearFarScalar(5.0e5, 1.5, 5.0e6, 0.75)
+                                }
+                                eyeOffset={new Cartesian3(0.0, 0.0, -4000.0)} // Adjust this value as needed
+                            />
+                        </Entity>
+                    );
+                });
             })}
-        </>
+        </CustomDataSource>
     );
 };
 
