@@ -14,7 +14,7 @@ import {
     VerticalOrigin,
 } from "cesium";
 import { Geometry } from "geojson";
-import isEqual from "lodash.isequal"; // Install lodash.isequal for deep comparison
+import isEqual from "lodash.isequal"; // Ensure lodash.isequal is installed
 import React, {
     useCallback,
     useEffect,
@@ -47,7 +47,8 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
     const [showStates, setShowStates] = useState<boolean>(false);
     const { setCameraPosition } = useCameraPosition();
     const { statePolygons, loading } = useStatePolygons();
-    const thresholdHeight = 1_000_000; // Set to a reasonable value (1000 meters)
+    const thresholdHeight = 1609.34 * 50; // 80,467 meters (~80 km)
+    const maxHeight = 1_000_000; // 1,000,000 meters (~1,000 km)
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const raisedHeight = 12000; // Adjust based on your visualization needs
 
@@ -114,49 +115,58 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
     // Handle camera changes with optimized state updates
     useEffect(() => {
         const handleCameraChange = () => {
-            if (!viewer?.scene) return;
+            if (!viewer?.scene) {
+                return;
+            }
+
+            const start = performance.now();
 
             const cartographicPosition = viewer.camera.positionCartographic;
             const cameraHeight = cartographicPosition?.height || 0;
-            const shouldShow = cameraHeight >= thresholdHeight;
 
-            if (showStates === shouldShow) return;
-            console.log("Camera height:", cameraHeight);
-            console.log("Show states:", shouldShow);
-            setShowStates(shouldShow);
-            setCameraPosition(cartographicPosition);
-        };
-        // Subscribe to camera move events
-        viewer?.camera.moveStart.addEventListener(() => {
-            if (!intervalRef.current) {
-                intervalRef.current = setInterval(handleCameraChange, 300);
+            const shouldShow = cameraHeight >= maxHeight;
+
+            // Only update state if there's a change
+            if (showStates !== shouldShow) {
+                setShowStates(shouldShow);
+                setCameraPosition(cartographicPosition);
             }
-        });
 
-        viewer?.camera.moveEnd.addEventListener(() => {
+            if (shouldShow) {
+                console.log("shouldShow", shouldShow);
+            }
+
+            const end = performance.now();
+
+            console.log("Camera change took", end - start, "ms");
+        };
+
+        const startInterval = () => {
+            if (intervalRef.current) return;
+            intervalRef.current = setInterval(handleCameraChange, 100); // Check every 100ms
+        };
+
+        const stopInterval = () => {
             if (intervalRef.current) {
                 clearInterval(intervalRef.current);
                 intervalRef.current = null;
             }
             handleCameraChange();
-        });
+        };
+
+        viewer?.camera.moveStart.addEventListener(startInterval);
+        viewer?.camera.moveEnd.addEventListener(stopInterval);
 
         // Cleanup on unmount
         return () => {
-            viewer?.camera.moveStart.removeEventListener(() => {
-                if (!intervalRef.current) {
-                    intervalRef.current = setInterval(handleCameraChange, 300);
-                }
-            });
-            viewer?.camera.moveEnd.removeEventListener(() => {
-                if (intervalRef.current) {
-                    clearInterval(intervalRef.current);
-                    intervalRef.current = null;
-                }
-                handleCameraChange();
-            });
+            viewer?.camera.moveStart.removeEventListener(startInterval);
+            viewer?.camera.moveEnd.removeEventListener(stopInterval);
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+            }
         };
-    }, [viewer, setCameraPosition, thresholdHeight]);
+    }, [viewer, showStates, setCameraPosition, thresholdHeight, maxHeight]);
 
     // Convert GeoJSON geometry to PolygonHierarchy
     const convertGeometryToHierarchy = useCallback(
@@ -212,6 +222,8 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
     const entities = useMemo(() => {
         if (!showStates || loading) return null;
 
+        console.log("Rendering state aggregation component!");
+
         return stateFeatures.map((feature) => {
             const hierarchies = convertGeometryToHierarchy(feature.geometry);
             if (!hierarchies) return null;
@@ -266,7 +278,9 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
         raisedHeight,
     ]);
 
-    console.log("Rendering state aggregation component!");
+    // Optional: Remove console logs to enhance performance
+    // console.log("Rendering state aggregation component!");
+
     return <>{entities}</>;
 };
 
