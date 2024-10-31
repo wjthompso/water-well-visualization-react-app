@@ -3,7 +3,8 @@
 import cleanCoords from "@turf/clean-coords";
 import rewind from "@turf/rewind";
 import { Cartesian3, PolygonHierarchy } from "cesium";
-import { Geometry } from "geojson";
+import { Geometry, MultiPolygon, Polygon } from "geojson";
+import polylabel from "polylabel";
 
 /**
  * Converts GeoJSON Geometry to Cesium's PolygonHierarchy.
@@ -93,4 +94,70 @@ export const fixPolygonToMultiPolygon = (geometry: Geometry): Geometry => {
         };
     }
     return geometry;
+};
+
+export const convertGeoJSONToPolylabel = (
+    geometry: Geometry
+): number[][][][] | number[][][] | number[][] => {
+    if (geometry.type === "Polygon") {
+        // Each Polygon has an array of Linear Rings
+        // The first ring is the outer boundary, subsequent rings are holes
+        // polylabel expects an array of rings, each ring being an array of [x, y]
+        return (geometry as Polygon).coordinates.map((ring) =>
+            ring.map((coord) => [coord[0], coord[1]])
+        );
+    } else if (geometry.type === "MultiPolygon") {
+        // For MultiPolygon, return an array of polygons
+        return (geometry as MultiPolygon).coordinates.map((polygon) =>
+            polygon.map((ring) => ring.map((coord) => [coord[0], coord[1]]))
+        );
+    }
+    // Handle other geometry types if necessary
+    throw new Error(`Unsupported geometry type: ${geometry.type}`);
+};
+
+/**
+ * Calculates the visual center (pole of inaccessibility) of a polygon using polylabel.
+ * @param geometry - The GeoJSON geometry.
+ * @param precision - The precision for polylabel (default is 1.0).
+ * @returns The visual center as latitude and longitude.
+ */
+export const calculateVisualCenter = (
+    geometry: Geometry,
+    precision: number = 1.0
+): { lat: number; lon: number } => {
+    const polylabelInput = convertGeoJSONToPolylabel(geometry);
+
+    let point: number[] | null = null;
+
+    if (Array.isArray((polylabelInput as number[][][])[0][0][0])) {
+        // MultiPolygon: Calculate visual center for the first polygon
+        // You might want to enhance this to choose the most appropriate polygon
+        point = polylabel(polylabelInput[0] as number[][][], precision);
+    } else {
+        // Single Polygon
+        point = polylabel(polylabelInput as number[][][], precision);
+    }
+
+    if (!point) {
+        throw new Error("Failed to calculate visual center");
+    }
+
+    const [lon, lat] = point;
+    return { lat, lon };
+};
+
+/**
+ * Converts latitude and longitude to Cartesian3 coordinates.
+ * @param lon - Longitude in degrees.
+ * @param lat - Latitude in degrees.
+ * @param height - Height in meters.
+ * @returns Cartesian3 coordinates.
+ */
+export const fromDegrees = (
+    lon: number,
+    lat: number,
+    height: number
+): Cartesian3 => {
+    return Cartesian3.fromDegrees(lon, lat, height);
 };
