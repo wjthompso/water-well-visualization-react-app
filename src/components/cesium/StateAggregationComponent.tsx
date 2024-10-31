@@ -120,63 +120,43 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
                 return;
             }
 
-            console.log("Handling camera change!");
-
-            const start = performance.now();
-
             const cartographicPosition = viewer.camera.positionCartographic;
             const cameraHeight = cartographicPosition?.height || 0;
 
             const shouldShow = cameraHeight >= maxHeight;
 
-            // Only update state if there's a change
-            if (showStates !== shouldShow) {
-                setShowStates(shouldShow);
-                setCameraPosition(cartographicPosition);
-            }
-
-            if (shouldShow) {
-                console.log("shouldShow", shouldShow);
-            }
-
-            const end = performance.now();
-
-            // console.log("Camera change took", end - start, "ms");
+            setShowStates(shouldShow);
+            setCameraPosition(cartographicPosition);
         };
 
         const startInterval = () => {
-            console.log("Movement started!");
-            if (intervalRef.current !== null) {
-                console.log("We didn't clear the previous interval?");
-                console.log("The previous interval was:", intervalRef.current);
-                return;
+            if (intervalRef.current === null) {
+                intervalRef.current = setInterval(handleCameraChange, 300); // Check every 300ms
             }
-            intervalRef.current = setInterval(handleCameraChange, 300); // Check every 100ms
         };
 
         const stopInterval = () => {
-            console.log("Movement ended!");
             if (intervalRef.current) {
                 clearInterval(intervalRef.current);
                 intervalRef.current = null;
             }
-            handleCameraChange();
+            handleCameraChange(); // Final camera check after movement stops
         };
 
+        // Adding listeners only once when the component mounts
         viewer?.camera.moveStart.addEventListener(startInterval);
         viewer?.camera.moveEnd.addEventListener(stopInterval);
 
-        // Cleanup on unmount
+        // Cleanup on unmount to avoid adding/removing listeners unnecessarily
         return () => {
             viewer?.camera.moveStart.removeEventListener(startInterval);
             viewer?.camera.moveEnd.removeEventListener(stopInterval);
             if (intervalRef.current) {
-                console.log("Clearing interval on unmount!");
                 clearInterval(intervalRef.current);
                 intervalRef.current = null;
             }
         };
-    }, [viewer, showStates, setCameraPosition, thresholdHeight, maxHeight]);
+    }, []); // Empty dependency array ensures listeners are added only once on mount
 
     // Convert GeoJSON geometry to PolygonHierarchy
     const convertGeometryToHierarchy = useCallback(
@@ -231,8 +211,6 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
     // Memoize the list of Entity components to prevent unnecessary re-renders
     const entities = useMemo(() => {
         if (!showStates || loading) return null;
-
-        console.log("Rendering state aggregation component!");
 
         return stateFeatures.map((feature) => {
             const hierarchies = convertGeometryToHierarchy(feature.geometry);
