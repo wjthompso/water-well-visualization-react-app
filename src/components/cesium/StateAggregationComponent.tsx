@@ -116,8 +116,11 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
     useEffect(() => {
         const handleCameraChange = () => {
             if (!viewer?.scene) {
+                console.error("Viewer or scene is not available!");
                 return;
             }
+
+            console.log("Handling camera change!");
 
             const start = performance.now();
 
@@ -138,15 +141,21 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
 
             const end = performance.now();
 
-            console.log("Camera change took", end - start, "ms");
+            // console.log("Camera change took", end - start, "ms");
         };
 
         const startInterval = () => {
-            if (intervalRef.current) return;
-            intervalRef.current = setInterval(handleCameraChange, 100); // Check every 100ms
+            console.log("Movement started!");
+            if (intervalRef.current !== null) {
+                console.log("We didn't clear the previous interval?");
+                console.log("The previous interval was:", intervalRef.current);
+                return;
+            }
+            intervalRef.current = setInterval(handleCameraChange, 300); // Check every 100ms
         };
 
         const stopInterval = () => {
+            console.log("Movement ended!");
             if (intervalRef.current) {
                 clearInterval(intervalRef.current);
                 intervalRef.current = null;
@@ -162,6 +171,7 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
             viewer?.camera.moveStart.removeEventListener(startInterval);
             viewer?.camera.moveEnd.removeEventListener(stopInterval);
             if (intervalRef.current) {
+                console.log("Clearing interval on unmount!");
                 clearInterval(intervalRef.current);
                 intervalRef.current = null;
             }
@@ -278,10 +288,14 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
         raisedHeight,
     ]);
 
+    useEffect(() => {
+        console.log("showStates changed");
+    }, [showStates]);
+
     // Optional: Remove console logs to enhance performance
     // console.log("Rendering state aggregation component!");
 
     return <>{entities}</>;
 };
 
-export default StateAggregations;
+export default React.memo(StateAggregations);
