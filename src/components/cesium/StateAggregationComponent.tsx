@@ -1,8 +1,6 @@
 // StateAggregationsComponent.tsx
 
 import centerOfMass from "@turf/center";
-import cleanCoords from "@turf/clean-coords";
-import rewind from "@turf/rewind";
 import {
     Cartesian3,
     Viewer as CesiumViewer,
@@ -30,6 +28,10 @@ import {
 } from "resium";
 import { useCameraPosition } from "../../context/CameraPositionContext";
 import { useStatePolygons } from "../../context/StatePolygonContext";
+import {
+    convertGeometryToHierarchy,
+    fixPolygonToMultiPolygon,
+} from "../../utilities/geometryUtils"; // Import the shared utility
 
 interface StateAggregationsProps {
     viewer: CesiumViewer;
@@ -47,10 +49,9 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
     const [showStates, setShowStates] = useState<boolean>(false);
     const { setCameraPosition } = useCameraPosition();
     const { statePolygons, loading } = useStatePolygons();
-    const thresholdHeight = 1609.34 * 50; // 80,467 meters (~80 km)
     const maxHeight = 1_000_000; // 1,000,000 meters (~1,000 km)
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
-    const raisedHeight = 12000; // Adjust based on your visualization needs
+    const raisedHeight = 12_000; // Adjust based on your visualization needs
 
     // Ref to store the previous stateFeatures for comparison
     const prevStateFeaturesRef = useRef<StateFeature[]>([]);
@@ -159,62 +160,40 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
     }, []); // Empty dependency array ensures listeners are added only once on mount
 
     // Convert GeoJSON geometry to PolygonHierarchy
-    const convertGeometryToHierarchy = useCallback(
-        (geometry: Geometry): PolygonHierarchy[] | undefined => {
-            let feature: GeoJSON.Feature<Geometry> = {
-                type: "Feature",
-                geometry,
-                properties: {},
-            };
-
-            feature = cleanCoords(feature) as GeoJSON.Feature<Geometry>;
-            feature = rewind(feature, {
-                reverse: true,
-            }) as GeoJSON.Feature<Geometry>;
-
-            const geom = feature.geometry;
-
-            if (geom.type === "Polygon") {
-                const positions = geom.coordinates[0].map(([lon, lat]) =>
-                    Cartesian3.fromDegrees(lon, lat, raisedHeight)
-                );
-
-                const holes = geom.coordinates.slice(1).map((hole) => {
-                    const holePositions = hole.map(([lon, lat]) =>
-                        Cartesian3.fromDegrees(lon, lat, raisedHeight)
-                    );
-                    return new PolygonHierarchy(holePositions);
-                });
-
-                return [new PolygonHierarchy(positions, holes)];
-            } else if (geom.type === "MultiPolygon") {
-                return geom.coordinates.map((polygon) => {
-                    const positions = polygon[0].map(([lon, lat]) =>
-                        Cartesian3.fromDegrees(lon, lat, raisedHeight)
-                    );
-
-                    const holes = polygon.slice(1).map((hole) => {
-                        const holePositions = hole.map(([lon, lat]) =>
-                            Cartesian3.fromDegrees(lon, lat, raisedHeight)
-                        );
-                        return new PolygonHierarchy(holePositions);
-                    });
-
-                    return new PolygonHierarchy(positions, holes);
-                });
-            }
-            return undefined;
-        },
-        [raisedHeight]
-    );
+    const convertGeometry = useCallback((geometry: Geometry): Geometry => {
+        if (geometry.type === "Polygon" && geometry.coordinates.length > 1) {
+            // Convert to MultiPolygon
+            return fixPolygonToMultiPolygon(geometry);
+        }
+        return geometry;
+    }, []);
 
     // Memoize the list of Entity components to prevent unnecessary re-renders
+    let accumulator = 0;
     const entities = useMemo(() => {
         if (!showStates || loading) return null;
 
+        const startTime = performance.now();
+
         return stateFeatures.map((feature) => {
-            const hierarchies = convertGeometryToHierarchy(feature.geometry);
+            let geometry = feature.geometry;
+
+            let hierarchies: PolygonHierarchy[] | undefined;
+            try {
+                hierarchies = convertGeometryToHierarchy(
+                    geometry,
+                    raisedHeight
+                );
+            } catch (error) {
+                console.error("Error converting geometry to hierarchy:", error);
+                hierarchies = undefined;
+            }
+
             if (!hierarchies) return null;
+
+            const endTime = performance.now();
+
+            accumulator += endTime - startTime;
 
             return hierarchies.map((hierarchy, index) => {
                 return (
@@ -263,12 +242,9 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
         showStates,
         loading,
         convertGeometryToHierarchy,
+        convertGeometry,
         raisedHeight,
     ]);
-
-    useEffect(() => {
-        console.log("showStates changed");
-    }, [showStates]);
 
     // Optional: Remove console logs to enhance performance
     // console.log("Rendering state aggregation component!");
