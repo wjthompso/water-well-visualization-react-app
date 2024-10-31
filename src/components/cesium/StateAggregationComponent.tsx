@@ -33,6 +33,36 @@ import {
     fixPolygonToMultiPolygon,
 } from "../../utilities/geometryUtils"; // Import the shared utility
 
+// Define the custom label positions mapping
+const customLabelPositions: {
+    [stateName: string]: { lat: number; lon: number };
+} = {
+    // Washington: 46.984227, -120.064657
+    Washington: { lat: 46.984227, lon: -120.064657 },
+    // Michigan: 42.536459, -84.726852
+    Michigan: { lat: 42.536459, lon: -84.726852 },
+    Virginia: { lat: 37.610804, lon: -78.936152 },
+    Maryland: { lat: 39.335024, lon: -76.977101 },
+    Delaware: { lat: 38.719377, lon: -75.405608 },
+    "New Jersey": { lat: 39.660353, lon: -74.797857 },
+    Vermont: { lat: 44.569211, lon: -72.559378 },
+    "New Hampshire": { lat: 43.62042, lon: -71.679424 },
+    Idaho: { lat: 43.650986, lon: -114.699309 },
+    California: { lat: 35.979579, lon: -119.214633 },
+    // Kentucky: 37.166964, -85.247629
+    Kentucky: { lat: 37.306964, lon: -85.247629 },
+    Louisiana: { lat: 30.293947, lon: -91.971338 },
+    Oklahoma: { lat: 35.332769, lon: -97.595566 },
+    // Indiana: 40.606314, -86.334664
+    Indiana: { lat: 40.606314, lon: -86.334664 },
+    Florida: { lat: 29.867099, lon: -82.488463 },
+    // Rhode Island: 41.684061, -71.549505
+    "Rhode Island": { lat: 41.684061, lon: -71.579505 },
+    Massachusetts: { lat: 42.348898, lon: -71.877308 },
+
+    // Add more states and their custom label positions as needed
+};
+
 interface StateAggregationsProps {
     viewer: CesiumViewer;
 }
@@ -51,7 +81,7 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
     const { statePolygons, loading } = useStatePolygons();
     const maxHeight = 1_000_000; // 1,000,000 meters (~1,000 km)
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
-    const raisedHeight = 12_000; // Adjust based on your visualization needs
+    const raisedHeight = 18_000; // Adjust based on your visualization needs
 
     // Ref to store the previous stateFeatures for comparison
     const prevStateFeaturesRef = useRef<StateFeature[]>([]);
@@ -157,7 +187,7 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
                 intervalRef.current = null;
             }
         };
-    }, []); // Empty dependency array ensures listeners are added only once on mount
+    }, [viewer, maxHeight, setCameraPosition]); // Added dependencies for completeness
 
     // Convert GeoJSON geometry to PolygonHierarchy
     const convertGeometry = useCallback((geometry: Geometry): Geometry => {
@@ -169,13 +199,10 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
     }, []);
 
     // Memoize the list of Entity components to prevent unnecessary re-renders
-    let accumulator = 0;
     const entities = useMemo(() => {
         if (!showStates || loading) return null;
 
-        const startTime = performance.now();
-
-        return stateFeatures.map((feature) => {
+        return stateFeatures.flatMap((feature) => {
             let geometry = feature.geometry;
 
             let hierarchies: PolygonHierarchy[] | undefined;
@@ -189,16 +216,27 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
                 hierarchies = undefined;
             }
 
-            if (!hierarchies) return null;
-
-            const endTime = performance.now();
-
-            accumulator += endTime - startTime;
+            if (!hierarchies) return [];
 
             return hierarchies.map((hierarchy, index) => {
-                return (
+                // Determine the label's geographic position
+                const customLabelCoord = customLabelPositions[feature.name];
+                const labelPosition = customLabelCoord
+                    ? Cartesian3.fromDegrees(
+                          customLabelCoord.lon,
+                          customLabelCoord.lat,
+                          raisedHeight
+                      )
+                    : Cartesian3.fromDegrees(
+                          feature.centroid.lon,
+                          feature.centroid.lat,
+                          raisedHeight
+                      );
+
+                return [
+                    // Polygon Entity
                     <Entity
-                        key={`${feature.name}-${index}`}
+                        key={`polygon-${feature.name}-${index}`}
                         position={Cartesian3.fromDegrees(
                             feature.centroid.lon,
                             feature.centroid.lat,
@@ -216,7 +254,13 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
                             width={2} // Adjust for thicker outlines
                             material={Color.WHITE}
                         />
-                        {/* Label */}
+                    </Entity>,
+
+                    // Label Entity
+                    <Entity
+                        key={`label-${feature.name}-${index}`}
+                        position={labelPosition}
+                    >
                         <LabelGraphics
                             text={feature.wellCount.toLocaleString()}
                             font="15pt sans-serif"
@@ -226,15 +270,14 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
                             style={LabelStyle.FILL_AND_OUTLINE}
                             verticalOrigin={VerticalOrigin.CENTER}
                             horizontalOrigin={HorizontalOrigin.CENTER}
-                            pixelOffset={Cartesian3.ZERO}
                             disableDepthTestDistance={Number.POSITIVE_INFINITY}
                             scaleByDistance={
                                 new NearFarScalar(5.0e5, 1.5, 5.0e6, 0.75)
                             }
                             eyeOffset={new Cartesian3(0.0, 0.0, -4000.0)} // Adjust as needed
                         />
-                    </Entity>
-                );
+                    </Entity>,
+                ];
             });
         });
     }, [
@@ -245,9 +288,6 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
         convertGeometry,
         raisedHeight,
     ]);
-
-    // Optional: Remove console logs to enhance performance
-    // console.log("Rendering state aggregation component!");
 
     return <>{entities}</>;
 };
