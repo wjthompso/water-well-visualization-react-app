@@ -90,7 +90,7 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
     const { statePolygons, loading } = useStatePolygons();
     const maxHeight = 1_000_000; // 1,000,000 meters (~1,000 km)
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
-    const raisedHeight = 18_000; // Adjust based on your visualization needs
+    const raisedHeight = 5_000; // Adjust based on your visualization needs
 
     // Ref to store the previous stateFeatures for comparison
     const prevStateFeaturesRef = useRef<StateFeature[]>([]);

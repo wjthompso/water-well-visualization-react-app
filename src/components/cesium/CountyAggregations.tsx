@@ -56,7 +56,7 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
     const [countyFeatures, setCountyFeatures] = useState<CountyFeature[]>([]);
     const [showCounties, setShowCounties] = useState<boolean>(false);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
-    const raisedHeight = 9000; // Adjust based on your visualization needs
+    const raisedHeight = 4000; // Adjust based on your visualization needs
 
     // Define the min and max well counts for the gradient
     const MIN_WELL_COUNT = 40;
@@ -99,12 +99,6 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
                 ) {
                     throw new Error("Invalid visual center coordinates");
                 }
-
-                // Log visual center for debugging
-                console.log(
-                    `Visual center for geometry for county: `,
-                    visualCenter
-                );
 
                 return visualCenter;
             } catch (error) {
@@ -187,7 +181,6 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
                         const wellCount = aggregationsData[fullName] || 0;
                         const geometry = feature.geometry;
 
-                        console.log("County geometry:", fullName);
                         const visualCenter =
                             calculateVisualCenterCallback(geometry);
 
