@@ -1,7 +1,9 @@
 // utils/geometryUtils.ts
 
+import cleanCoords from "@turf/clean-coords";
+import rewind from "@turf/rewind";
 import { Cartesian3, PolygonHierarchy } from "cesium";
-import { Geometry } from "geojson";
+import { Geometry, MultiPolygon, Polygon } from "geojson";
 import polylabel from "polylabel";
 
 /**
@@ -16,12 +18,39 @@ export const convertGeometryToHierarchy = (
     geometry: Geometry,
     raisedHeight: number
 ): PolygonHierarchy[] | undefined => {
-    if (geometry.type === "Polygon") {
-        const positions = geometry.coordinates[0].map(([lon, lat]) =>
+    let feature: GeoJSON.Feature<Geometry> = {
+        type: "Feature",
+        geometry,
+        properties: {},
+    };
+
+    // Clean the geometry
+    feature = cleanCoords(feature) as GeoJSON.Feature<Geometry>;
+
+    // Rewind the geometry to ensure correct winding order
+    feature = rewind(feature, { reverse: false }) as GeoJSON.Feature<Geometry>;
+
+    const geom = feature.geometry;
+
+    if (geom.type === "Polygon") {
+        // Check if the Polygon has multiple outer rings (improperly represented)
+        if (geom.coordinates.length > 1) {
+            // Convert to MultiPolygon by nesting each ring as a separate polygon
+            return geom.coordinates.map((ring) => {
+                const positions = ring.map(([lon, lat]) =>
+                    Cartesian3.fromDegrees(lon, lat, raisedHeight)
+                );
+                // Assuming no holes; if holes exist, additional handling is needed
+                return new PolygonHierarchy(positions, []);
+            });
+        }
+
+        // Single Polygon with potential holes
+        const positions = geom.coordinates[0].map(([lon, lat]) =>
             Cartesian3.fromDegrees(lon, lat, raisedHeight)
         );
 
-        const holes = geometry.coordinates.slice(1).map((hole) => {
+        const holes = geom.coordinates.slice(1).map((hole) => {
             const holePositions = hole.map(([lon, lat]) =>
                 Cartesian3.fromDegrees(lon, lat, raisedHeight)
             );
@@ -29,8 +58,9 @@ export const convertGeometryToHierarchy = (
         });
 
         return [new PolygonHierarchy(positions, holes)];
-    } else if (geometry.type === "MultiPolygon") {
-        return geometry.coordinates.map((polygon) => {
+    } else if (geom.type === "MultiPolygon") {
+        // Proper MultiPolygon handling
+        return geom.coordinates.map((polygon) => {
             const positions = polygon[0].map(([lon, lat]) =>
                 Cartesian3.fromDegrees(lon, lat, raisedHeight)
             );
@@ -66,34 +96,28 @@ export const fixPolygonToMultiPolygon = (geometry: Geometry): Geometry => {
     return geometry;
 };
 
-/**
- * Converts GeoJSON geometry to an array of rings compatible with polylabel.
- * Flattens all rings for MultiPolygon geometries into a single array.
- *
- * @param geometry - The GeoJSON geometry.
- * @returns An array of rings for use with polylabel.
- */
-export const convertGeoJSONToPolylabel = (geometry: Geometry): number[][][] => {
+export const convertGeoJSONToPolylabel = (
+    geometry: Geometry
+): number[][][][] | number[][][] | number[][] => {
     if (geometry.type === "Polygon") {
-        return geometry.coordinates.map((ring) =>
-            ring.map(([lon, lat]) => [lon, lat])
+        // Each Polygon has an array of Linear Rings
+        // The first ring is the outer boundary, subsequent rings are holes
+        // polylabel expects an array of rings, each ring being an array of [x, y]
+        return (geometry as Polygon).coordinates.map((ring) =>
+            ring.map((coord) => [coord[0], coord[1]])
         );
     } else if (geometry.type === "MultiPolygon") {
-        const allRings: number[][][] = [];
-        for (const polygon of geometry.coordinates) {
-            for (const ring of polygon) {
-                allRings.push(ring.map(([lon, lat]) => [lon, lat]));
-            }
-        }
-        return allRings;
-    } else {
-        throw new Error(`Unsupported geometry type: ${geometry.type}`);
+        // For MultiPolygon, return an array of polygons
+        return (geometry as MultiPolygon).coordinates.map((polygon) =>
+            polygon.map((ring) => ring.map((coord) => [coord[0], coord[1]]))
+        );
     }
+    // Handle other geometry types if necessary
+    throw new Error(`Unsupported geometry type: ${geometry.type}`);
 };
 
 /**
  * Calculates the visual center (pole of inaccessibility) of a polygon using polylabel.
- * Handles both Polygon and MultiPolygon geometries.
  * @param geometry - The GeoJSON geometry.
  * @param precision - The precision for polylabel (default is 1.0).
  * @returns The visual center as latitude and longitude.
@@ -104,7 +128,16 @@ export const calculateVisualCenter = (
 ): { lat: number; lon: number } => {
     const polylabelInput = convertGeoJSONToPolylabel(geometry);
 
-    const point = polylabel(polylabelInput, precision);
+    let point: number[] | null = null;
+
+    if (Array.isArray((polylabelInput as number[][][])[0][0][0])) {
+        // MultiPolygon: Calculate visual center for the first polygon
+        // You might want to enhance this to choose the most appropriate polygon
+        point = polylabel(polylabelInput[0] as number[][][], precision);
+    } else {
+        // Single Polygon
+        point = polylabel(polylabelInput as number[][][], precision);
+    }
 
     if (!point) {
         throw new Error("Failed to calculate visual center");
