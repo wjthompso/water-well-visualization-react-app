@@ -27,6 +27,7 @@ import {
 } from "resium";
 import { useCameraPosition } from "../../context/CameraPositionContext";
 import { useStatePolygons } from "../../context/StatePolygonContext";
+import { getGradientColor } from "../../utilities/colorUtils"; // Import the gradient utility
 import {
     calculateVisualCenter,
     convertGeometryToHierarchy,
@@ -44,7 +45,7 @@ const customLabelPositions: {
     Virginia: { lat: 37.610804, lon: -78.936152 },
     Maryland: { lat: 39.335024, lon: -76.977101 },
     Delaware: { lat: 38.719377, lon: -75.405608 },
-    // Oregan: 43.685151, -121.292206
+    // Oregon: 43.685151, -121.292206
     Oregon: { lat: 43.685151, lon: -121.292206 },
     // Wyoming: 43.373486, -107.611739
     Wyoming: { lat: 43.073486, lon: -107.611739 },
@@ -93,6 +94,10 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
 
     // Ref to store the previous stateFeatures for comparison
     const prevStateFeaturesRef = useRef<StateFeature[]>([]);
+
+    // Define the min and max well counts for the gradient
+    const MIN_WELL_COUNT = 400;
+    const MAX_WELL_COUNT = 200_000;
 
     // Fetch and set state features
     useEffect(() => {
@@ -233,16 +238,23 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
                     raisedHeight
                 );
 
+                // Calculate the color based on well count
+                const polygonColor = getGradientColor(
+                    feature.wellCount,
+                    MIN_WELL_COUNT,
+                    MAX_WELL_COUNT
+                );
+
                 return [
                     // Polygon Entity
                     <Entity
                         key={`polygon-${feature.name}-${index}`}
                         position={polygonPosition}
                     >
-                        {/* Polygon Fill */}
+                        {/* Polygon Fill with Gradient Color */}
                         <PolygonGraphics
                             hierarchy={hierarchy}
-                            material={Color.BLUE.withAlpha(1)}
+                            material={polygonColor}
                         />
                         {/* Polygon Outline */}
                         <PolylineGraphics
@@ -283,6 +295,8 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
         convertGeometryToHierarchy,
         convertGeometry,
         raisedHeight,
+        MIN_WELL_COUNT, // Added dependencies
+        MAX_WELL_COUNT,
     ]);
 
     return <>{entities}</>;

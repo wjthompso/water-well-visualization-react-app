@@ -32,6 +32,7 @@ import {
 } from "resium";
 import { useCameraPosition } from "../../context/CameraPositionContext";
 import { useStatePolygons } from "../../context/StatePolygonContext";
+import { getGradientColor } from "../../utilities/colorUtils"; // Import the gradient utility
 import {
     calculateVisualCenter,
     fromDegrees,
@@ -56,6 +57,10 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
     const [showCounties, setShowCounties] = useState<boolean>(false);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const raisedHeight = 9000; // Adjust based on your visualization needs
+
+    // Define the min and max well counts for the gradient
+    const MIN_WELL_COUNT = 40;
+    const MAX_WELL_COUNT = 1_500;
 
     /**
      * Calculates the visual center of a geometry.
@@ -361,16 +366,23 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
 
                 const polygonPosition = labelPosition;
 
+                // Calculate the color based on well count
+                const polygonColor = getGradientColor(
+                    feature.wellCount,
+                    MIN_WELL_COUNT,
+                    MAX_WELL_COUNT
+                );
+
                 return [
                     // Polygon Entity
                     <Entity
                         key={`polygon-${feature.name}-${index}`}
                         position={polygonPosition}
                     >
-                        {/* Polygon Fill */}
+                        {/* Polygon Fill with Gradient Color */}
                         <PolygonGraphics
                             hierarchy={hierarchy}
-                            material={Color.BLUE.withAlpha(0.5)}
+                            material={polygonColor}
                         />
                         {/* Polygon Outline */}
                         <PolylineGraphics
@@ -398,8 +410,6 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
                             scaleByDistance={
                                 new NearFarScalar(1.0e4, 2.0, 5.0e6, 0.05)
                             }
-                            backgroundColor={Color.BLUE.withAlpha(0.8)}
-                            backgroundPadding={new Cartesian3(7, 4, 0)} // X, Y, Z
                             eyeOffset={new Cartesian3(0.0, 0.0, -4000.0)} // Adjust as needed
                         />
                     </Entity>,
@@ -413,6 +423,8 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
         loading,
         convertGeometry,
         raisedHeight,
+        MIN_WELL_COUNT, // Added dependencies
+        MAX_WELL_COUNT,
     ]);
 
     return <>{entities}</>;
