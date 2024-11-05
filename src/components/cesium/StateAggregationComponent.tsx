@@ -37,8 +37,38 @@ import {
 const customLabelPositions: {
     [stateName: string]: { lat: number; lon: number };
 } = {
-    // Michigan: 43.056967, -84.705578
-    Michigan: { lat: 43.056967, lon: -84.705578 },
+    // Washington: 46.984227, -120.064657
+    Washington: { lat: 46.984227, lon: -120.064657 },
+    // Michigan: 42.536459, -84.726852
+    Michigan: { lat: 42.536459, lon: -84.726852 },
+    Virginia: { lat: 37.610804, lon: -78.936152 },
+    Maryland: { lat: 39.335024, lon: -76.977101 },
+    Delaware: { lat: 38.719377, lon: -75.405608 },
+    // Oregan: 43.685151, -121.292206
+    Oregon: { lat: 43.685151, lon: -121.292206 },
+    // Wyoming: 43.373486, -107.611739
+    Wyoming: { lat: 43.073486, lon: -107.611739 },
+    // South Dakota: 44.847780, -100.402485
+    "South Dakota": { lat: 44.44778, lon: -100.402485 },
+    // Montana: 46.848891, -111.175445
+    Montana: { lat: 46.948891, lon: -110.175445 },
+    "New Jersey": { lat: 39.660353, lon: -74.797857 },
+    Vermont: { lat: 44.569211, lon: -72.559378 },
+    "New Hampshire": { lat: 43.62042, lon: -71.679424 },
+    Idaho: { lat: 43.650986, lon: -114.699309 },
+    California: { lat: 35.979579, lon: -119.214633 },
+    // Kentucky: 37.166964, -85.247629
+    Kentucky: { lat: 37.306964, lon: -85.247629 },
+    Louisiana: { lat: 30.293947, lon: -91.971338 },
+    Oklahoma: { lat: 35.332769, lon: -97.595566 },
+    // Indiana: 40.606314, -86.334664
+    Indiana: { lat: 40.606314, lon: -86.334664 },
+    Florida: { lat: 29.867099, lon: -82.488463 },
+    // Rhode Island: 41.684061, -71.549505
+    "Rhode Island": { lat: 41.684061, lon: -71.579505 },
+    Massachusetts: { lat: 42.348898, lon: -71.877308 },
+
+    // Add more states and their custom label positions as needed
 };
 
 interface StateAggregationsProps {
@@ -212,7 +242,7 @@ const StateAggregations: React.FC<StateAggregationsProps> = ({ viewer }) => {
                         {/* Polygon Fill */}
                         <PolygonGraphics
                             hierarchy={hierarchy}
-                            material={Color.BLUE.withAlpha(0.5)}
+                            material={Color.BLUE.withAlpha(1)}
                         />
                         {/* Polygon Outline */}
                         <PolylineGraphics

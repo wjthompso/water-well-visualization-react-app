@@ -17,10 +17,25 @@ import {
     VerticalOrigin,
 } from "cesium";
 import { Geometry, Position } from "geojson";
-import React, { useEffect, useRef, useState } from "react";
-import { Entity } from "resium";
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
+import {
+    Entity,
+    LabelGraphics,
+    PolygonGraphics,
+    PolylineGraphics,
+} from "resium";
 import { useCameraPosition } from "../../context/CameraPositionContext";
 import { useStatePolygons } from "../../context/StatePolygonContext";
+import {
+    calculateVisualCenter,
+    fromDegrees,
+} from "../../utilities/geometryUtils"; // Ensure this path is correct
 
 interface CountyAggregationsProps {
     viewer: CesiumViewer;
@@ -30,7 +45,7 @@ interface CountyFeature {
     name: string;
     geometry: Geometry;
     wellCount: number;
-    centroid: { lat: number; lon: number };
+    visualCenter: { lat: number; lon: number };
 }
 
 const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
@@ -40,28 +55,78 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
     const [countyFeatures, setCountyFeatures] = useState<CountyFeature[]>([]);
     const [showCounties, setShowCounties] = useState<boolean>(false);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
-    const raisedHeight = 9000;
+    const raisedHeight = 9000; // Adjust based on your visualization needs
 
-    const calculateCentroid = (
-        geometry: Geometry
-    ): { lat: number; lon: number } => {
-        const centroidFeature = centerOfMass({
-            type: "FeatureCollection",
-            features: [
-                {
+    /**
+     * Calculates the visual center of a geometry.
+     * Cleans and rewinds the geometry before calculation.
+     * Falls back to centroid if calculation fails.
+     */
+    const calculateVisualCenterCallback = useCallback(
+        (geometry: Geometry): { lat: number; lon: number } => {
+            try {
+                // Wrap the geometry into a Feature
+                let feature: GeoJSON.Feature<Geometry> = {
                     type: "Feature",
-                    geometry,
+                    geometry: geometry,
                     properties: {},
-                },
-            ],
-        });
-        const [lon, lat] = centroidFeature.geometry.coordinates;
-        return { lat, lon };
-    };
+                };
 
-    // Sets the selected state based off the camera position. Runs when we
-    // finish loading, when the state polygons change (load), or when the camera
-    // position changes
+                // Clean up the geometry
+                feature = cleanCoords(feature) as GeoJSON.Feature<Geometry>;
+
+                // Ensure correct winding order
+                feature = rewind(feature, {
+                    reverse: true,
+                }) as GeoJSON.Feature<Geometry>;
+
+                const cleanedGeometry = feature.geometry;
+
+                // Calculate visual center
+                const visualCenter = calculateVisualCenter(cleanedGeometry);
+
+                // Validate visual center coordinates
+                if (
+                    visualCenter.lat == null ||
+                    visualCenter.lon == null ||
+                    isNaN(visualCenter.lat) ||
+                    isNaN(visualCenter.lon)
+                ) {
+                    throw new Error("Invalid visual center coordinates");
+                }
+
+                // Log visual center for debugging
+                console.log(
+                    `Visual center for geometry for county: `,
+                    visualCenter
+                );
+
+                return visualCenter;
+            } catch (error) {
+                console.error("Error calculating visual center:", error);
+                // Fallback to centroid
+                const centroidFeature = centerOfMass({
+                    type: "FeatureCollection",
+                    features: [
+                        {
+                            type: "Feature",
+                            geometry: geometry,
+                            properties: {},
+                        },
+                    ],
+                });
+                const [lon, lat] = centroidFeature.geometry.coordinates;
+                console.log(`Fallback centroid:`, { lat, lon });
+                return { lat, lon };
+            }
+        },
+        []
+    );
+
+    /**
+     * Sets the selected state based on the camera position.
+     * This determines which state's counties to display.
+     */
     useEffect(() => {
         if (!cameraPosition || loading || statePolygons.length === 0) {
             return;
@@ -78,19 +143,24 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
         if (selectedState !== state?.name) {
             setSelectedState(state ? state.name : null);
         }
-    }, [cameraPosition, statePolygons, loading]);
+    }, [cameraPosition, statePolygons, loading, selectedState]);
 
-    // Fetches county aggregation data when selected state changes
+    /**
+     * Fetches county aggregation data when the selected state changes.
+     * This includes fetching both aggregation counts and county geometries.
+     */
     useEffect(() => {
         const fetchData = async () => {
             if (!selectedState) return;
 
             try {
+                // Fetch county aggregations data
                 const aggregationsResponse = await fetch(
                     "https://waterwelldepthmap.bren.ucsb.edu/api/county-aggregations"
                 );
                 const aggregationsData = await aggregationsResponse.json();
 
+                // Prepare query parameters for fetching county geometries
                 const queryParams = new URLSearchParams({
                     where: `STATE_NAME='${selectedState}'`,
                     outFields: "*",
@@ -98,25 +168,29 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
                     f: "geojson",
                 });
 
+                // Fetch county geometries from ArcGIS REST API
                 const polygonsResponse = await fetch(
                     `https://services.arcgis.com/P3ePLMYs2RVChkJx/ArcGIS/rest/services/USA_Counties_Generalized/FeatureServer/0/query?${queryParams.toString()}`
                 );
                 const polygonsData = await polygonsResponse.json();
 
+                // Process each county feature
                 const combinedData: CountyFeature[] = polygonsData.features.map(
                     (feature: any) => {
                         const countyName = feature.properties.NAME;
                         const fullName = `${countyName}, ${selectedState}`;
                         const wellCount = aggregationsData[fullName] || 0;
-
                         const geometry = feature.geometry;
-                        const centroid = calculateCentroid(geometry);
+
+                        console.log("County geometry:", fullName);
+                        const visualCenter =
+                            calculateVisualCenterCallback(geometry);
 
                         return {
                             name: fullName,
                             geometry: geometry,
-                            wellCount,
-                            centroid,
+                            wellCount: wellCount,
+                            visualCenter: visualCenter,
                         };
                     }
                 );
@@ -128,9 +202,12 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
         };
 
         fetchData();
-    }, [selectedState]);
+    }, [selectedState, calculateVisualCenterCallback]);
 
-    // Adds event listeners for camera movement to show/hide county aggregations
+    /**
+     * Adds event listeners for camera movement to show/hide county aggregations.
+     * Counties are shown when the camera is between 50 miles and 1,000,000 meters.
+     */
     useEffect(() => {
         const handleCameraChange = () => {
             if (!viewer?.scene) {
@@ -139,7 +216,7 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
 
             const cartographicPosition = viewer.camera.positionCartographic;
             const cameraHeight = cartographicPosition?.height || 0;
-            const thresholdHeight = 1609.34 * 50;
+            const thresholdHeight = 1609.34 * 50; // 50 miles in meters
 
             const shouldShow =
                 cameraHeight >= thresholdHeight && cameraHeight < 1_000_000;
@@ -150,7 +227,7 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
 
         const startInterval = () => {
             if (intervalRef.current) return;
-            intervalRef.current = setInterval(handleCameraChange, 100);
+            intervalRef.current = setInterval(handleCameraChange, 100); // Check every 100ms
         };
 
         const stopInterval = () => {
@@ -158,12 +235,14 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
                 clearInterval(intervalRef.current);
                 intervalRef.current = null;
             }
-            handleCameraChange();
+            handleCameraChange(); // Final camera check after movement stops
         };
 
+        // Adding listeners only once when the component mounts
         viewer?.camera.moveStart.addEventListener(startInterval);
         viewer?.camera.moveEnd.addEventListener(stopInterval);
 
+        // Cleanup on unmount to avoid adding/removing listeners unnecessarily
         return () => {
             viewer?.camera.moveStart.removeEventListener(startInterval);
             viewer?.camera.moveEnd.removeEventListener(stopInterval);
@@ -174,123 +253,169 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
         };
     }, [viewer, setCameraPosition]);
 
-    const convertGeometryToHierarchy = (
-        geometry: Geometry
-    ): PolygonHierarchy[] | undefined => {
-        // Wrap the geometry into a Feature
-        let feature: GeoJSON.Feature<Geometry> = {
-            type: "Feature",
-            geometry: geometry,
-            properties: {},
-        };
+    /**
+     * Converts GeoJSON geometry to PolygonHierarchy for Cesium rendering.
+     * Cleans and rewinds the geometry before conversion.
+     */
+    const convertGeometry = useCallback(
+        (geometry: Geometry): PolygonHierarchy[] | undefined => {
+            // Wrap the geometry into a Feature
+            let feature: GeoJSON.Feature<Geometry> = {
+                type: "Feature",
+                geometry: geometry,
+                properties: {},
+            };
 
-        // Clean up the geometry
-        feature = cleanCoords(feature) as GeoJSON.Feature<Geometry>;
+            // Clean up the geometry
+            feature = cleanCoords(feature) as GeoJSON.Feature<Geometry>;
 
-        // Ensure correct winding order for Cesium rendering
-        feature = rewind(feature, {
-            reverse: true,
-        }) as GeoJSON.Feature<Geometry>;
+            // Ensure correct winding order
+            feature = rewind(feature, {
+                reverse: true,
+            }) as GeoJSON.Feature<Geometry>;
 
-        const geom = feature.geometry;
+            const geom = feature.geometry;
 
-        if (geom.type === "Polygon") {
-            const positions = geom.coordinates[0].map((coords: Position) => {
-                const [lon, lat] = coords;
-                return Cartesian3.fromDegrees(lon, lat, raisedHeight);
-            });
+            if (geom.type === "Polygon") {
+                const positions = geom.coordinates[0].map(
+                    (coords: Position) => {
+                        const [lon, lat] = coords; // Ensure [lon, lat] order
+                        return fromDegrees(lon, lat, raisedHeight);
+                    }
+                );
 
-            const holes = geom.coordinates.slice(1).map((hole: Position[]) => {
-                const holePositions = hole.map((coords: Position) => {
-                    const [lon, lat] = coords;
-                    return Cartesian3.fromDegrees(lon, lat, raisedHeight);
-                });
-                return new PolygonHierarchy(holePositions);
-            });
-
-            return [new PolygonHierarchy(positions, holes)];
-        } else if (geom.type === "MultiPolygon") {
-            const hierarchies: PolygonHierarchy[] = geom.coordinates.map(
-                (polygon: Position[][]) => {
-                    const positions = polygon[0].map((coords: Position) => {
-                        const [lon, lat] = coords;
-                        return Cartesian3.fromDegrees(lon, lat, raisedHeight);
-                    });
-
-                    const holes = polygon.slice(1).map((hole: Position[]) => {
+                const holes = geom.coordinates
+                    .slice(1)
+                    .map((hole: Position[]) => {
                         const holePositions = hole.map((coords: Position) => {
                             const [lon, lat] = coords;
-                            return Cartesian3.fromDegrees(
-                                lon,
-                                lat,
-                                raisedHeight
-                            );
+                            return fromDegrees(lon, lat, raisedHeight);
                         });
                         return new PolygonHierarchy(holePositions);
                     });
 
-                    return new PolygonHierarchy(positions, holes);
-                }
-            );
-            return hierarchies;
-        }
-        return undefined;
-    };
+                return [new PolygonHierarchy(positions, holes)];
+            } else if (geom.type === "MultiPolygon") {
+                const hierarchies: PolygonHierarchy[] = geom.coordinates.map(
+                    (polygon: Position[][]) => {
+                        const positions = polygon[0].map((coords: Position) => {
+                            const [lon, lat] = coords;
+                            return fromDegrees(lon, lat, raisedHeight);
+                        });
 
-    if (!showCounties || !selectedState) {
-        return null;
-    }
+                        const holes = polygon
+                            .slice(1)
+                            .map((hole: Position[]) => {
+                                const holePositions = hole.map(
+                                    (coords: Position) => {
+                                        const [lon, lat] = coords;
+                                        return fromDegrees(
+                                            lon,
+                                            lat,
+                                            raisedHeight
+                                        );
+                                    }
+                                );
+                                return new PolygonHierarchy(holePositions);
+                            });
 
-    return (
-        <>
-            {countyFeatures.map((feature) => {
-                const hierarchies = convertGeometryToHierarchy(
-                    feature.geometry
+                        return new PolygonHierarchy(positions, holes);
+                    }
                 );
-                if (!hierarchies) {
+                return hierarchies;
+            }
+            return undefined;
+        },
+        [raisedHeight]
+    );
+
+    /**
+     * Memoizes the list of Entity components to prevent unnecessary re-renders.
+     * Creates separate Entities for polygons and labels.
+     */
+    const entities = useMemo(() => {
+        if (!showCounties || !selectedState || loading) return null;
+
+        return countyFeatures.flatMap((feature) => {
+            const hierarchies = convertGeometry(feature.geometry);
+            if (!hierarchies) return [];
+
+            return hierarchies.map((hierarchy, index) => {
+                // Validate visual center coordinates before rendering
+                if (
+                    isNaN(feature.visualCenter.lat) ||
+                    isNaN(feature.visualCenter.lon) ||
+                    feature.visualCenter.lat == null ||
+                    feature.visualCenter.lon == null
+                ) {
+                    console.warn(`Invalid visual center for ${feature.name}`);
                     return null;
                 }
-                return hierarchies.map((hierarchy, index) => (
+
+                // Convert visual center to Cartesian3
+                const labelPosition = fromDegrees(
+                    feature.visualCenter.lon,
+                    feature.visualCenter.lat,
+                    raisedHeight
+                );
+
+                const polygonPosition = labelPosition;
+
+                return [
+                    // Polygon Entity
                     <Entity
-                        key={`${feature.name}-${index}`}
-                        polygon={{
-                            hierarchy: hierarchy,
-                            height: raisedHeight,
-                            material: Color.BLUE.withAlpha(0.5),
-                            outline: true,
-                            outlineColor: Color.WHITE,
-                            outlineWidth: 2,
-                        }}
-                        label={{
-                            text: feature.wellCount.toLocaleString(),
-                            font: "15pt sans-serif",
-                            fillColor: Color.WHITE,
-                            outlineColor: Color.BLACK,
-                            outlineWidth: 1,
-                            style: LabelStyle.FILL_AND_OUTLINE,
-                            verticalOrigin: VerticalOrigin.CENTER,
-                            horizontalOrigin: HorizontalOrigin.CENTER,
-                            pixelOffset: new Cartesian3(0, 0, 0),
-                            disableDepthTestDistance: Number.POSITIVE_INFINITY,
-                            scaleByDistance: new NearFarScalar(
-                                1.0e4,
-                                2.0,
-                                5.0e6,
-                                0.05
-                            ),
-                            backgroundColor: Color.BLUE.withAlpha(0.8),
-                            backgroundPadding: new Cartesian3(7, 4),
-                        }}
-                        position={Cartesian3.fromDegrees(
-                            feature.centroid.lon,
-                            feature.centroid.lat,
-                            raisedHeight
-                        )}
-                    />
-                ));
-            })}
-        </>
-    );
+                        key={`polygon-${feature.name}-${index}`}
+                        position={polygonPosition}
+                    >
+                        {/* Polygon Fill */}
+                        <PolygonGraphics
+                            hierarchy={hierarchy}
+                            material={Color.BLUE.withAlpha(0.5)}
+                        />
+                        {/* Polygon Outline */}
+                        <PolylineGraphics
+                            positions={hierarchy.positions}
+                            width={2} // Adjust for thicker outlines
+                            material={Color.WHITE}
+                        />
+                    </Entity>,
+
+                    // Label Entity
+                    <Entity
+                        key={`label-${feature.name}-${index}`}
+                        position={labelPosition}
+                    >
+                        <LabelGraphics
+                            text={feature.wellCount.toLocaleString()}
+                            font="15pt sans-serif"
+                            fillColor={Color.WHITE}
+                            outlineColor={Color.BLACK}
+                            outlineWidth={2}
+                            style={LabelStyle.FILL_AND_OUTLINE}
+                            verticalOrigin={VerticalOrigin.CENTER}
+                            horizontalOrigin={HorizontalOrigin.CENTER}
+                            disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                            scaleByDistance={
+                                new NearFarScalar(1.0e4, 2.0, 5.0e6, 0.05)
+                            }
+                            backgroundColor={Color.BLUE.withAlpha(0.8)}
+                            backgroundPadding={new Cartesian3(7, 4, 0)} // X, Y, Z
+                            eyeOffset={new Cartesian3(0.0, 0.0, -4000.0)} // Adjust as needed
+                        />
+                    </Entity>,
+                ];
+            });
+        });
+    }, [
+        countyFeatures,
+        showCounties,
+        selectedState,
+        loading,
+        convertGeometry,
+        raisedHeight,
+    ]);
+
+    return <>{entities}</>;
 };
 
 export default React.memo(CountyAggregations);
