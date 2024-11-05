@@ -1,130 +1,113 @@
+import * as Cesium from "cesium";
 import { Viewer as CesiumViewerInstance } from "cesium";
-import React, { useRef } from "react";
+import React from "react";
 
 interface ZoomControlsProps {
     viewer: CesiumViewerInstance | null;
 }
 
 const ZoomControls: React.FC<ZoomControlsProps> = ({ viewer }) => {
-    const zoomInterval = 500; // Duration of zoom effect in milliseconds
-    const minAltitude = 5000; // Minimum altitude above Earth in meters (5,000 meters)
-    const maxAltitude = 1000000; // Maximum altitude above Earth in meters (1,000,000 meters)
-    const zoomAnimationRef = useRef<number | null>(null);
+    const minAltitude = 5_000; // Minimum altitude above Earth in meters (5,000 meters)
+    const maxAltitude = 6_000_000; // Maximum altitude above Earth in meters (6,000,000 meters)
 
-    const calculateZoomStep = (currentHeight: number) => {
-        // Adjust zoom step based on current height: smaller step when close, larger when far
-        if (currentHeight < 2000) return 500; // Near the ground
-        if (currentHeight < 10000) return 5000; // Low altitude
-        if (currentHeight < 50000) return 2000; // Medium altitude
-        if (currentHeight < 200000) return 4000; // High altitude
-        return 8000; // Very high altitude
-    };
+    // Define zoom levels in ascending order (from closest to farthest)
+    const zoomLevels = [5_000, 75_000, 300_000, 950_000, 3_000_000, 6_000_000];
 
-    const smoothZoomIn = () => {
-        if (!viewer) return;
+    /**
+     * Finds the current zoom level index based on the camera's altitude.
+     * @returns The index of the current zoom level.
+     */
+    const getCurrentZoomIndex = (): number => {
+        if (!viewer) return -1;
+        const currentHeight = Math.round(
+            viewer.camera.positionCartographic.height
+        );
 
-        const animateZoomIn = (startTime: number) => {
-            const currentHeight = viewer.camera.positionCartographic.height;
-
-            if (currentHeight <= minAltitude) {
-                if (zoomAnimationRef.current) {
-                    cancelAnimationFrame(zoomAnimationRef.current);
-                    zoomAnimationRef.current = null;
-                }
-                return;
+        // Find the first zoom level that is greater than the current height
+        for (let i = 0; i < zoomLevels.length; i++) {
+            if (currentHeight <= zoomLevels[i]) {
+                return i;
             }
-
-            const elapsed = performance.now() - startTime;
-            const progress = Math.min(elapsed / zoomInterval, 1);
-            const zoomStep = calculateZoomStep(currentHeight) * progress;
-
-            viewer.camera.zoomIn(zoomStep);
-
-            if (progress < 1 && currentHeight - zoomStep > minAltitude) {
-                zoomAnimationRef.current = requestAnimationFrame((time) =>
-                    animateZoomIn(startTime)
-                );
-            } else {
-                // Ensure we don't go below minAltitude
-                const finalHeight = viewer.camera.positionCartographic.height;
-                if (finalHeight < minAltitude) {
-                    viewer.camera.zoomIn(finalHeight - minAltitude);
-                }
-                if (zoomAnimationRef.current) {
-                    cancelAnimationFrame(zoomAnimationRef.current);
-                    zoomAnimationRef.current = null;
-                }
-            }
-        };
-
-        if (zoomAnimationRef.current) {
-            cancelAnimationFrame(zoomAnimationRef.current);
         }
 
-        const startTime = performance.now();
-        zoomAnimationRef.current = requestAnimationFrame(() =>
-            animateZoomIn(startTime)
-        );
+        // If current height exceeds all zoom levels, return the last index
+        return zoomLevels.length - 1;
     };
 
-    const smoothZoomOut = () => {
+    /**
+     * Zooms the camera in to the next lower zoom level.
+     */
+    const zoomIn = () => {
         if (!viewer) return;
+        const currentIndex = getCurrentZoomIndex();
+        const newIndex = currentIndex > 0 ? currentIndex - 1 : 0;
 
-        const animateZoomOut = (startTime: number) => {
-            const currentHeight = viewer.camera.positionCartographic.height;
+        // Prevent zooming in beyond the minimum altitude
+        if (newIndex === currentIndex) return;
 
-            if (currentHeight >= maxAltitude) {
-                if (zoomAnimationRef.current) {
-                    cancelAnimationFrame(zoomAnimationRef.current);
-                    zoomAnimationRef.current = null;
-                }
-                return;
-            }
+        const targetHeight = zoomLevels[newIndex];
+        const currentPosition = viewer.camera.positionCartographic;
 
-            const elapsed = performance.now() - startTime;
-            const progress = Math.min(elapsed / zoomInterval, 1);
-            const zoomStep = calculateZoomStep(currentHeight) * progress;
-
-            viewer.camera.zoomOut(zoomStep);
-
-            if (progress < 1 && currentHeight + zoomStep < maxAltitude) {
-                zoomAnimationRef.current = requestAnimationFrame((time) =>
-                    animateZoomOut(startTime)
-                );
-            } else {
-                // Ensure we don't exceed maxAltitude
-                const finalHeight = viewer.camera.positionCartographic.height;
-                if (finalHeight > maxAltitude) {
-                    viewer.camera.zoomOut(maxAltitude - finalHeight);
-                }
-                if (zoomAnimationRef.current) {
-                    cancelAnimationFrame(zoomAnimationRef.current);
-                    zoomAnimationRef.current = null;
-                }
-            }
-        };
-
-        if (zoomAnimationRef.current) {
-            cancelAnimationFrame(zoomAnimationRef.current);
-        }
-
-        const startTime = performance.now();
-        zoomAnimationRef.current = requestAnimationFrame(() =>
-            animateZoomOut(startTime)
+        // Calculate the new camera position with the target height
+        const destination = Cesium.Cartesian3.fromRadians(
+            currentPosition.longitude,
+            currentPosition.latitude,
+            targetHeight
         );
+
+        // Fly the camera to the new position
+        viewer.camera.flyTo({
+            destination,
+            duration: 0.6, // Duration in seconds
+            easingFunction: Cesium.EasingFunction.EXPONENTIAL_IN_OUT,
+        });
+    };
+
+    /**
+     * Zooms the camera out to the next higher zoom level.
+     */
+    const zoomOut = () => {
+        if (!viewer) return;
+        const currentIndex = getCurrentZoomIndex();
+        const newIndex =
+            currentIndex < zoomLevels.length - 1
+                ? currentIndex + 1
+                : zoomLevels.length - 1;
+
+        // Prevent zooming out beyond the maximum altitude
+        if (newIndex === currentIndex) return;
+
+        const targetHeight = zoomLevels[newIndex];
+        const currentPosition = viewer.camera.positionCartographic;
+
+        // Calculate the new camera position with the target height
+        const destination = Cesium.Cartesian3.fromRadians(
+            currentPosition.longitude,
+            currentPosition.latitude,
+            targetHeight
+        );
+
+        // Fly the camera to the new position
+        viewer.camera.flyTo({
+            destination,
+            duration: 0.6, // Duration in seconds
+            easingFunction: Cesium.EasingFunction.EXPONENTIAL_IN_OUT,
+        });
     };
 
     return (
-        <div className="absolute z-20 flex flex-col gap-2 top-12 right-[calc(19rem+0.5rem)]">
+        <div className="absolute z-20 flex flex-col gap-2 top-12 left-2 md:left-auto md:right-[calc(19rem+0.5rem)]">
             <button
-                onClick={smoothZoomIn}
-                className="flex items-center justify-center w-10 h-10 text-lg text-white rounded-md bg-headerBackgroundColor hover:bg-gray-600 border-borderColor border-[0.5px]"
+                onClick={zoomIn}
+                className="flex items-center justify-center w-9 h-9 text-lg text-white rounded-md bg-headerBackgroundColor hover:bg-gray-600 border-borderColor border-[0.5px]"
+                aria-label="Zoom In"
             >
                 +
             </button>
             <button
-                onClick={smoothZoomOut}
-                className="flex items-center justify-center w-10 h-10 text-lg text-white rounded-md bg-headerBackgroundColor hover:bg-gray-600 border-borderColor border-[0.5px]"
+                onClick={zoomOut}
+                className="flex items-center justify-center w-9 h-9 text-lg text-white rounded-md bg-headerBackgroundColor hover:bg-gray-600 border-borderColor border-[0.5px]"
+                aria-label="Zoom Out"
             >
                 −
             </button>

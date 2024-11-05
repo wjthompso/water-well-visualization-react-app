@@ -57,6 +57,8 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
     const [showCounties, setShowCounties] = useState<boolean>(false);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const raisedHeight = 4000; // Adjust based on your visualization needs
+    const showCountiesThresholdHeight = 80_467; // 50 miles in meters
+    const showStatesThresholdHeight = 1_000_000;
 
     // Define the min and max well counts for the gradient
     const MIN_WELL_COUNT = 40;
@@ -214,10 +216,10 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
 
             const cartographicPosition = viewer.camera.positionCartographic;
             const cameraHeight = cartographicPosition?.height || 0;
-            const thresholdHeight = 1609.34 * 50; // 50 miles in meters
 
             const shouldShow =
-                cameraHeight >= thresholdHeight && cameraHeight < 1_000_000;
+                cameraHeight >= showCountiesThresholdHeight &&
+                cameraHeight < showStatesThresholdHeight;
 
             setShowCounties(shouldShow);
             setCameraPosition(cartographicPosition);

@@ -23,6 +23,7 @@ import {
 import LeftSidebar from "../LeftSidebar/LeftSidebar";
 
 // Custom hooks
+import ZoomControls from "../Buttons/ZoomControls";
 import useCameraControls from "./CesiumViewerHooks/useCameraControls";
 import useQuadrants from "./CesiumViewerHooks/useQuadrants";
 import useTerrainData from "./CesiumViewerHooks/useTerrainData";
@@ -221,6 +222,7 @@ const CesiumViewerComponent: React.FC = () => {
                         </>
                     )}
                 </Viewer>
+                <ZoomControls viewer={viewerRef.current} />
                 <Tooltip />
             </div>
         </div>
