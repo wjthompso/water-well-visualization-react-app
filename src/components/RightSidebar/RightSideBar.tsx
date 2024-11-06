@@ -2,6 +2,7 @@ import React, { useContext, useState } from "react";
 import { TooltipContext } from "../../context/AppContext"; // adjust the import path as needed
 import CopyCoordinatesButton from "../Buttons/CopyCoordinatesButton";
 import DownloadCSVButton from "../Buttons/DownloadCSVButton";
+import FinePrint from "../FinePrint/FinePrint";
 import MetersOrFeetToggleButton from "../ToggleButtons/MetersOrFeetToggleButton";
 import WellLithologyTable from "../WellLithologyTable/WellLithologyTable";
 
@@ -24,11 +25,11 @@ const RightSideBar: React.FC = () => {
     return (
         <div
             id="rightSideBar"
-            className="hidden md:block absolute right-0 top-0 w-[19rem] h-full z-[999] bg-sideBarBackgroundColor border-l-[0.5px] border-borderColor"
+            className="hidden md:block absolute right-0 top-0 max-w-[19rem] h-full z-[999] bg-sideBarBackgroundColor border-l-[0.5px] border-borderColor"
         >
             <div
                 id="right-side-bar-content"
-                className="flex flex-col items-start justify-start w-full h-[calc(100%-3rem)] px-[1rem] py-[0.75rem] text-white overflow-scroll"
+                className="flex flex-col items-start justify-start w-full h-[100%] px-[1rem] py-[0.75rem] text-white overflow-scroll"
             >
                 {selectedWellData ? (
                     <>
@@ -108,12 +109,33 @@ const RightSideBar: React.FC = () => {
                                     metersOrFeet={metersOrFeet}
                                     selectedWellData={selectedWellData}
                                 />
+
+                                <div
+                                    id="divider-line"
+                                    className="relative left-[-1.4rem] w-[calc(100%+2.8rem)] h-[0.5px] mt-[0.75rem] mb-[0.75rem] bg-borderColor"
+                                ></div>
+
+                                <FinePrint />
                             </div>
                         )}
                     </>
                 ) : (
-                    <div className="text-center text-white">
-                        Please click on a well to see the lithology breakdown
+                    <div className="flex flex-col h-full">
+                        <div className="text-center text-white">
+                            Please click on a well to see the lithology
+                            breakdown
+                        </div>
+                        <div
+                            id="divider-line"
+                            className="relative left-[-1.4rem] w-[calc(100%+2.8rem)] h-[0.5px] mt-[0.75rem] bg-borderColor"
+                        ></div>
+                        <div className="flex-grow"></div>
+                        {/* Fills remaining space */}
+                        <div
+                            id="divider-line"
+                            className="relative left-[-1.4rem] w-[calc(100%+2.8rem)] h-[0.5px] mb-[0.75rem] bg-borderColor"
+                        ></div>
+                        <FinePrint />
                     </div>
                 )}
             </div>

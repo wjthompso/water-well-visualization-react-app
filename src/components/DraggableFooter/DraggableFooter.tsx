@@ -5,6 +5,7 @@ import DownArrow from "../../assets/DownArrow.svg"; // Assume you have a DownArr
 import UpArrow from "../../assets/UpArrow.svg";
 import { TooltipContext } from "../../context/AppContext"; // adjust the import path as needed
 import CopyCoordinatesButton from "../Buttons/CopyCoordinatesButton";
+import FinePrint from "../FinePrint/FinePrint";
 import CircularProgressBar from "../LeftSidebar/CircularProgressBar";
 import FlowerChart from "../LeftSidebar/FlowerChart";
 import MetersOrFeetToggleButton from "../ToggleButtons/MetersOrFeetToggleButton";
@@ -276,6 +277,16 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
                         Lithology Breakdown
                     </h1>
                     <FlowerChart />
+                </div>
+                <div
+                    id="divider-bar"
+                    className="w-[calc(100%+2rem)] mt-3 mb-3 h-[1px] bg-borderColor -mx-4"
+                ></div>
+                <div
+                    id="fine-print-container"
+                    className="flex flex-col items-center"
+                >
+                    <FinePrint />
                 </div>
             </div>
         </animated.div>
