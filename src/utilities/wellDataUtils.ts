@@ -34,10 +34,6 @@ export const processRawWellData = (rawData: RawWellData[]): WellData[] => {
             };
         });
 
-        if (data.drill_notes_pdf !== null) {
-            console.log("Drill notes PDF found: " + data.drill_notes_pdf);
-        }
-
         return {
             longitude: data.lon,
             latitude: data.lat,
