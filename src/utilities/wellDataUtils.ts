@@ -34,12 +34,17 @@ export const processRawWellData = (rawData: RawWellData[]): WellData[] => {
             };
         });
 
+        if (data.drill_notes_pdf !== null) {
+            console.log("Drill notes PDF found: " + data.drill_notes_pdf);
+        }
+
         return {
             longitude: data.lon,
             latitude: data.lat,
             startDepth: 0,
             endDepth: data.total_well_depth_in_ft,
             StateWellID: data.well_id,
+            drillNotesPDF: data.drill_notes_pdf,
             layers: layers,
         };
     });

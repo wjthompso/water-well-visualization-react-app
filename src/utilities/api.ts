@@ -12,7 +12,8 @@ import {
  */
 export const fetchQuadrants = async (): Promise<Chunk[]> => {
     const response = await fetch(
-        "https://waterwelldepthmap.bren.ucsb.edu/api/keys"
+        // "https://waterwelldepthmap.bren.ucsb.edu/api/keys"
+        "http://localhost:3000/keys"
     );
     if (!response.ok) {
         throw new Error(`Failed to fetch quadrants: ${response.statusText}`);
@@ -33,7 +34,8 @@ export const fetchWellData = async (
     | { sub_chunks: { location: SubChunkLocation; wells: RawWellData[] }[] }
 > => {
     const response = await fetch(
-        "https://waterwelldepthmap.bren.ucsb.edu/api/keys",
+        // "https://waterwelldepthmap.bren.ucsb.edu/api/keys",
+        "http://localhost:3000/keys",
         {
             method: "POST",
             headers: {

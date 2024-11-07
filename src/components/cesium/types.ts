@@ -79,6 +79,7 @@ export interface WellData {
     startDepth: number;
     endDepth: number;
     layers: Layer[];
+    drillNotesPDF: string | null;
     StateWellID?: string | null;
     metadata?: string | null;
 }
@@ -116,6 +117,7 @@ export interface RawWellData {
     total_well_depth_in_ft: number;
     well_id: string;
     layers: RawLayer[];
+    drill_notes_pdf: string | null;
 }
 
 export interface SubChunkLocation {

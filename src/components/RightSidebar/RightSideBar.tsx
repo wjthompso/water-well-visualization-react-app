@@ -1,7 +1,8 @@
 import React, { useContext, useState } from "react";
 import { TooltipContext } from "../../context/AppContext"; // adjust the import path as needed
 import CopyCoordinatesButton from "../Buttons/CopyCoordinatesButton";
-import DownloadCSVButton from "../Buttons/DownloadCSVButton";
+import DownloadCSVButton from "../Buttons/DownloadDrillingDataCSVButton";
+import DownloadDrillReportPDFButton from "../Buttons/DownloadDrillReportPDFButton";
 import FinePrint from "../FinePrint/FinePrint";
 import MetersOrFeetToggleButton from "../ToggleButtons/MetersOrFeetToggleButton";
 import WellLithologyTable from "../WellLithologyTable/WellLithologyTable";
@@ -21,6 +22,8 @@ const formatCoordinate = (value: number, isLatitude: boolean) => {
 const RightSideBar: React.FC = () => {
     const { selectedWellData } = useContext(TooltipContext);
     const [metersOrFeet, setMetersOrFeet] = useState<"meters" | "feet">("feet");
+
+    console.log("Well PDF Link", selectedWellData?.drillNotesPDF);
 
     return (
         <div
@@ -60,7 +63,7 @@ const RightSideBar: React.FC = () => {
                                     </h3>
                                 </div>
                                 {/* Copy button */}
-                                <div className="flex justify-end ml-1">
+                                <div className="flex justify-end ml-1 mr-2">
                                     <CopyCoordinatesButton
                                         latitude={selectedWellData.latitude}
                                         longitude={selectedWellData.longitude}
@@ -80,10 +83,17 @@ const RightSideBar: React.FC = () => {
                                     className="relative left-[-1.4rem] w-[calc(100%+2.8rem)] h-[0.5px] bg-borderColor mb-[0.75rem]"
                                 ></div>
 
-                                <div className="ml-4">
+                                <div className="flex flex-row gap-2 ml-2">
                                     <DownloadCSVButton
                                         selectedWellData={selectedWellData}
                                     />
+                                    {selectedWellData.drillNotesPDF ? (
+                                        <DownloadDrillReportPDFButton
+                                            drillNotesPDF={
+                                                selectedWellData.drillNotesPDF
+                                            }
+                                        />
+                                    ) : null}
                                 </div>
 
                                 <div

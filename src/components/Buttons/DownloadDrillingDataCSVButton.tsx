@@ -2,13 +2,13 @@ import React from "react";
 import CSVIcon from "../../assets/CSVIcon.svg";
 import { convertWellDataToCSV } from "../../utilities/csvUtils";
 
-interface DownloadCSVButtonProps {
+interface DownloadDrillingDataCSVButtonProps {
     selectedWellData: any; // Replace `any` with the correct type for WellData if you have one
 }
 
-const DownloadCSVButton: React.FC<DownloadCSVButtonProps> = ({
-    selectedWellData,
-}) => {
+const DownloadDrillingDataCSVButton: React.FC<
+    DownloadDrillingDataCSVButtonProps
+> = ({ selectedWellData }) => {
     const handleDownload = () => {
         if (!selectedWellData) return;
 
@@ -38,9 +38,9 @@ const DownloadCSVButton: React.FC<DownloadCSVButtonProps> = ({
                 alt="CSV Icon"
                 className="mr-1"
             />
-            DRILL REPORT
+            DRILLING DATA
         </button>
     );
 };
 
-export default DownloadCSVButton;
+export default DownloadDrillingDataCSVButton;
