@@ -38,7 +38,7 @@ export const processRawWellData = (rawData: RawWellData[]): WellData[] => {
             longitude: data.lon,
             latitude: data.lat,
             startDepth: 0,
-            endDepth: data.total_well_depth_in_ft,
+            endDepth: layers[layers.length - 1].endDepth,
             StateWellID: data.well_id,
             drillNotesPDF: data.drill_notes_pdf,
             layers: layers,

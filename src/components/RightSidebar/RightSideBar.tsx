@@ -23,8 +23,6 @@ const RightSideBar: React.FC = () => {
     const { selectedWellData } = useContext(TooltipContext);
     const [metersOrFeet, setMetersOrFeet] = useState<"meters" | "feet">("feet");
 
-    console.log("Well PDF Link", selectedWellData?.drillNotesPDF);
-
     return (
         <div
             id="rightSideBar"
