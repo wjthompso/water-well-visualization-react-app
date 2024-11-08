@@ -5,6 +5,8 @@ import DownArrow from "../../assets/DownArrow.svg"; // Assume you have a DownArr
 import UpArrow from "../../assets/UpArrow.svg";
 import { TooltipContext } from "../../context/AppContext"; // adjust the import path as needed
 import CopyCoordinatesButton from "../Buttons/CopyCoordinatesButton";
+import DownloadDrillReportCSVButton from "../Buttons/DownloadDrillingDataCSVButton";
+import DownloadDrillReportPDFButton from "../Buttons/DownloadDrillReportPDFButton";
 import FinePrint from "../FinePrint/FinePrint";
 import CircularProgressBar from "../LeftSidebar/CircularProgressBar";
 import FlowerChart from "../LeftSidebar/FlowerChart";
@@ -253,6 +255,21 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({
                         metersOrFeet={metersOrFeet}
                         selectedWellData={selectedWellData}
                     ></WellLithologyTable>
+                </div>
+                <div
+                    id="divider-bar"
+                    className="w-[calc(100%+2rem)] mt-3 mb-3 h-[1px] bg-borderColor -mx-4"
+                ></div>
+                <div
+                    id="download-buttons-container"
+                    className="flex flex-row justify-center gap-2 align-middle"
+                >
+                    <DownloadDrillReportCSVButton
+                        selectedWellData={selectedWellData || ""}
+                    />
+                    <DownloadDrillReportPDFButton
+                        drillNotesPDF={selectedWellData?.drillNotesPDF || ""}
+                    />
                 </div>
                 <div
                     id="divider-bar"
