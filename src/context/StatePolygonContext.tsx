@@ -32,7 +32,7 @@ export const StatePolygonProvider: React.FC<{ children: React.ReactNode }> = ({
             setLoading(true);
             try {
                 const response = await fetch(
-                    "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/USA_States_Generalized/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson"
+                    "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/USA_States_Generalized_Boundaries/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson"
                 );
                 const data = await response.json();
                 const states = data.features.map((feature: any) => ({

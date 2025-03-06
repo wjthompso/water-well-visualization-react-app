@@ -171,14 +171,17 @@ const CountyAggregations: React.FC<CountyAggregationsProps> = ({ viewer }) => {
 
                 // Fetch county geometries from ArcGIS REST API
                 const polygonsResponse = await fetch(
-                    `https://services.arcgis.com/P3ePLMYs2RVChkJx/ArcGIS/rest/services/USA_Counties_Generalized/FeatureServer/0/query?${queryParams.toString()}`
+                    `https://services.arcgis.com/P3ePLMYs2RVChkJx/ArcGIS/rest/services/USA_Counties_Generalized_Boundaries/FeatureServer/0/query?${queryParams.toString()}`
                 );
                 const polygonsData = await polygonsResponse.json();
 
                 // Process each county feature
                 const combinedData: CountyFeature[] = polygonsData.features.map(
                     (feature: any) => {
-                        const countyName = feature.properties.NAME;
+                        let countyName = feature.properties.NAME;
+                        if (countyName.endsWith(" County")) {
+                            countyName = countyName.replace(" County", "");
+                        }
                         const fullName = `${countyName}, ${selectedState}`;
                         const wellCount = aggregationsData[fullName] || 0;
                         const geometry = feature.geometry;
